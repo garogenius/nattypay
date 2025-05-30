@@ -4,7 +4,7 @@
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
-import { useBusinessRegister, useRegister } from "@/api/auth/auth.queries";
+import { useBusinessRegister } from "@/api/auth/auth.queries";
 import { motion } from "framer-motion";
 import images from "../../../../public/images";
 import Image from "next/image";
