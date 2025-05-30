@@ -120,20 +120,22 @@ const Navbar = () => {
               onClick={() => navigate("/")}
               src={images.logo}
               alt="logo"
-              className="w-44 lg:w-48 h-auto"
+              className="w-44 lg:w-48 h-auto my-auto" // Added my-auto for vertical centering
             />
 
-            <div className="flex items-center justify-center gap-3.5">
-              <Toggler />
+            <div className="flex items-center justify-center gap-3.5 my-auto"> {/* Added my-auto */}
+              <div className="flex items-center my-auto"> {/* Wrapper for Toggler */}
+                <Toggler />
+              </div>
               <CustomButton
                 onClick={() => setOpenDownload(true)}
-                className="max-md:hidden rounded-3xl max-lg:px-6 bg-secondary"
+                className="max-md:hidden rounded-3xl max-lg:px-6 bg-secondary my-auto" // Added my-auto
               >
                 Download App
               </CustomButton>
               <div
                 onClick={() => setOpen(true)}
-                className="cursor-pointer p-3 rounded-full text-text-200 dark:text-text-400 text-xl bg-bg-500"
+                className="cursor-pointer p-3 rounded-full text-text-200 dark:text-text-400 text-xl bg-bg-500 flex items-center my-auto" // Added flex items-center and my-auto
               >
                 <SlMenu />
               </div>
