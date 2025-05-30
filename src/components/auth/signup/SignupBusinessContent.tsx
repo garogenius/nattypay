@@ -4,7 +4,7 @@
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
-import { useRegister } from "@/api/auth/auth.queries";
+import { useBusinessRegister, useRegister } from "@/api/auth/auth.queries";
 import { motion } from "framer-motion";
 import images from "../../../../public/images";
 import Image from "next/image";
@@ -20,6 +20,8 @@ import SearchableDropdown from "@/components/shared/SearchableDropdown";
 import useOnClickOutside from "@/hooks/useOnClickOutside";
 import { getCurrencyIconByString } from "@/utils/utilityFunctions";
 import { useTheme } from "@/store/theme.store";
+import DatePicker from "react-datepicker";
+import useAuthEmailStore from "@/store/authEmail.store";
 
 const schema = yup.object().shape({
   username: yup.string().required("Username is required"),
@@ -30,6 +32,11 @@ const schema = yup.object().shape({
     .required("Email is required"),
 
   password: yup
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .required("Password is required"),
+
+    companyRegistrationNumber: yup
     .string()
     .min(8, "Password must be at least 8 characters")
     .required("Password is required"),
@@ -73,8 +80,11 @@ const CurrencyOptions = [
 const SignupBusinessContent = () => {
   const navigate = useNavigate();
   const theme = useTheme();
-
+  const { setAuthEmail } = useAuthEmailStore();
   const [currencyState, setCurrencyState] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const datePickerRef = useRef<HTMLDivElement>(null);
+  const [startDate, setStartDate] = useState<Date | null>(null);
 
   const form = useForm<RegisterFormData>({
     defaultValues: {
@@ -83,6 +93,7 @@ const SignupBusinessContent = () => {
       email: "",
       password: "",
       confirmPassword: "",
+companyRegistrationNumber: "",
       dateOfBirth: "",
       countryCode: "NGN",
       referralCode: "",
@@ -102,7 +113,21 @@ const SignupBusinessContent = () => {
   } = form;
   const { errors, isValid } = formState;
 
+
+  const watchedDateOfBirth = watch("dateOfBirth");
   const watchedCurrency = watch("countryCode");
+
+  const handleDateChange = (date: Date | null) => {
+    if (date) {
+      setStartDate(date);
+      const newDate = new Date(date);
+      const day = newDate.getDate();
+      const month = newDate.toLocaleString("en-US", { month: "short" });
+      const year = newDate.getFullYear();
+      setValue("dateOfBirth", `${day}-${month}-${year}`);
+      setShowDatePicker(false);
+    }
+  };
 
   const onError = async (error: any) => {
     const errorMessage = error?.response?.data?.message;
@@ -116,12 +141,16 @@ const SignupBusinessContent = () => {
     });
   };
 
-  const onSuccess = () => {
+  const onSuccess = (data:any) => {
+    const user = data?.data?.user;
+    setAuthEmail(user?.email);
     SuccessToast({
       title: "Registration successful!",
       description:
         "Congratulations on your successful registration! 🎉. We are excited to have you onboard!",
     });
+
+    navigate("/verify-email");
 
     reset();
   };
@@ -130,7 +159,7 @@ const SignupBusinessContent = () => {
     mutate: signup,
     isPending: registerPending,
     isError: registerError,
-  } = useRegister(onError, onSuccess);
+  } = useBusinessRegister(onError, onSuccess);
 
   const registerLoading = registerPending && !registerError;
 
@@ -411,16 +440,62 @@ const SignupBusinessContent = () => {
               />
             </div>
 
-            <AuthInput
-              id="dateOfBirth"
-              label="Date of Birth"
-              htmlFor="dateOfBirth"
-              placeholder="Date of Birth"
-              type="date"
-              error={errors.dateOfBirth?.message}
-              {...register("dateOfBirth")}
+             <div className="w-full relative">
+                          <div className="flex flex-col justify-center items-center gap-1 w-full text-black dark:text-white">
+                            <label
+                              className="w-full text-base text-text-800 mb-1 flex items-start "
+                              htmlFor={"dateOfBirth"}
+                            >
+                              Date of Birth
+                            </label>
+                            <div
+                              onClick={() => setShowDatePicker(true)}
+                              className="cursor-pointer w-full flex gap-2 justify-center items-center bg-bg-2000 dark:bg-bg-2100 border border-border-600 rounded-lg py-4 px-3"
+                            >
+                              {watchedDateOfBirth ? (
+                                <div className="w-full bg-transparent p-0 border-none outline-none text-base text-text-200 dark:text-white placeholder:text-text-700 dark:placeholder:text-text-1000 placeholder:text-sm">
+                                  {watchedDateOfBirth}
+                                </div>
+                              ) : (
+                                <div className="w-full bg-transparent p-0 border-none outline-none text-base text-text-200 dark:text-white placeholder:text-text-700 dark:placeholder:text-text-1000 placeholder:text-sm">
+                                  Select Date of Birth
+                                </div>
+                              )}
+                            </div>
+            
+                            {errors.dateOfBirth?.message ? (
+                              <p className="flex self-start text-red-500 font-semibold mt-0.5 text-sm">
+                                {errors.dateOfBirth?.message}
+                              </p>
+                            ) : null}
+                          </div>
+            
+                          {showDatePicker && (
+                            <div ref={datePickerRef} className="absolute z-10 mt-1">
+                              <DatePicker
+                                selected={startDate}
+                                onChange={handleDateChange}
+                                inline
+                                calendarClassName="custom-calendar"
+                                showYearDropdown
+                                scrollableYearDropdown
+                                yearDropdownItemNumber={100}
+                                dropdownMode="select" // This enables selecting the year directly
+                                openToDate={new Date(2000, 0, 1)} // Opens to year 2000 by default
+                              />
+                            </div>
+                          )}
+                        </div>
+            
+<AuthInput
+              id="companyRegistrationNumber"
+              label="Company Registration Number"
+              htmlFor="companyRegistrationNumber"
+              placeholder="Company Registration Number"
+              type="text"
+              error={errors.companyRegistrationNumber?.message}
+              {...register("companyRegistrationNumber")}
             />
-
             <AuthInput
               id="referralCode"
               label="Referral Code"

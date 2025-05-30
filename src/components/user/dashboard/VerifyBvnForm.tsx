@@ -15,13 +15,16 @@ import {
   useValidateBvnVerification,
 } from "@/api/wallet/wallet.queries";
 import SpinnerLoader from "@/components/Loader/SpinnerLoader";
+import { User } from "@/constants/types";
 
 const VerifyBvnForm = ({
   bvnDetails,
   handleComplete,
+  user,
 }: {
   bvnDetails: { bvn: string; verificationId: string };
   handleComplete: (step: number) => void;
+user:User
 }) => {
   const [token, setToken] = useState("");
 
@@ -90,6 +93,7 @@ const VerifyBvnForm = ({
         bvn: bvnDetails.bvn,
         verificationId: bvnDetails.verificationId,
         otpCode: token,
+        isBusiness: user?.isBusiness || false,
       });
     }
   };

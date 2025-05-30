@@ -55,18 +55,22 @@ const AccountTypeSelector = () => {
           value="business"
           className="hidden"
           checked={selectedType === "business"}
+          // onChange={() => {
+          //   // handleTypeChange("business");
+
+          //   ErrorToast({
+          //     title: "Business account not available",
+          //     descriptions: ["Please try again later"],
+          //   });
+
+          //   // SuccessToast({
+          //   //   title: "Business account selected",
+          //   //   description: "Please try again later",
+          //   // });
+          // }}
           onChange={() => {
-            // handleTypeChange("business");
-
-            ErrorToast({
-              title: "Business account not available",
-              descriptions: ["Please try again later"],
-            });
-
-            // SuccessToast({
-            //   title: "Business account selected",
-            //   description: "Please try again later",
-            // });
+            handleTypeChange("business");
+            navigate("/signup/business");
           }}
         />
         <div className="flex-1">

@@ -16,6 +16,18 @@ export interface IRegister {
   countryCode: string;
 }
 
+
+export interface IBusinessRegister {
+  email: string;
+  password: string;
+  username: string;
+  fullname: string;
+  companyRegistrationNumber:string;
+  referralCode?: string;
+  dateOfBirth: string;
+  countryCode: string;
+}
+
 export interface IVerifyEmail {
   email: string;
   otpCode: string;

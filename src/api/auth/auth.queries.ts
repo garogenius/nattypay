@@ -11,6 +11,7 @@ import {
   resend2faCodeRequest,
   verifyResetEmailRequest,
   resetPasswordRequest,
+  registerBusinessRequest,
 } from "./auth.apis";
 
 export const useLogin = (
@@ -30,6 +31,17 @@ export const useRegister = (
 ) => {
   return useMutation({
     mutationFn: registerRequest,
+    onError,
+    onSuccess,
+  });
+};
+
+export const useBusinessRegister = (
+  onError: (error: any) => void,
+  onSuccess: (data: any) => void
+) => {
+  return useMutation({
+    mutationFn: registerBusinessRequest,
     onError,
     onSuccess,
   });

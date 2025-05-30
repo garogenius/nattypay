@@ -5,6 +5,7 @@ export interface IInitiateBvnVerification {
 export interface IValidateBvnVerification {
   bvn: string;
   verificationId: string;
+  isBusiness:boolean
   otpCode: string;
 }
 

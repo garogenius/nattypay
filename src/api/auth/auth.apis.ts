@@ -6,10 +6,16 @@ import {
   IVerifyEmail,
   IResendVerificationCode,
   IResetPassword,
+  IBusinessRegister,
 } from "./auth.types";
 
 export const registerRequest = async (formdata: IRegister) => {
   return request({ url: "/auth/register", method: "post", data: formdata });
+};
+
+
+export const registerBusinessRequest = async (formdata: IBusinessRegister) => {
+  return request({ url: "/auth/register-business", method: "post", data: formdata });
 };
 
 export const loginRequest = async (formdata: ILogin) => {

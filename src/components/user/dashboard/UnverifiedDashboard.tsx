@@ -57,7 +57,7 @@ const UnverifiedDashboard = ({
     }
   };
 
-  console.log(bvnDetails);
+  // console.log(bvnDetails);
 
   const handleComplete = (step: number) => {
     setSteps((prevSteps) =>
@@ -138,6 +138,7 @@ const UnverifiedDashboard = ({
               <VerifyBvnForm
                 bvnDetails={bvnDetails}
                 handleComplete={handleComplete}
+                user={user!}
               />
             </div>
           )}
