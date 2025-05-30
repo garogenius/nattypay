@@ -38,7 +38,6 @@ const schema = yup.object().shape({
 
     companyRegistrationNumber: yup
     .string()
- 
     .required("Company Registration Number is required"),
 
   confirmPassword: yup
@@ -48,7 +47,8 @@ const schema = yup.object().shape({
 
   dateOfBirth: yup.string().required("Date of birth is required"),
 
-  countryCode: yup.string().required("Account type is required"),
+  countryCode: yup.string().required("Country Code is required"),
+  accountType: yup.string().required("Account type is required"),
   referralCode: yup.string(),
 });
 
@@ -95,6 +95,7 @@ const SignupBusinessContent = () => {
       confirmPassword: "",
 companyRegistrationNumber: "",
       dateOfBirth: "",
+      accountType: "BUSINESS",
       countryCode: "NGN",
       referralCode: "",
     },
@@ -116,6 +117,7 @@ companyRegistrationNumber: "",
 
   const watchedDateOfBirth = watch("dateOfBirth");
   const watchedCurrency = watch("countryCode");
+
 
   const handleDateChange = (date: Date | null) => {
     if (date) {

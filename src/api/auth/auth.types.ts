@@ -23,6 +23,7 @@ export interface IBusinessRegister {
   username: string;
   fullname: string;
   companyRegistrationNumber:string;
+  accountType: string;
   referralCode?: string;
   dateOfBirth: string;
   countryCode: string;
