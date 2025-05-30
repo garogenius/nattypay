@@ -38,8 +38,8 @@ const schema = yup.object().shape({
 
     companyRegistrationNumber: yup
     .string()
-    .min(8, "Password must be at least 8 characters")
-    .required("Password is required"),
+ 
+    .required("Company Registration Number is required"),
 
   confirmPassword: yup
     .string()
@@ -200,9 +200,9 @@ companyRegistrationNumber: "",
             <div className="w-full flex flex-col md:flex-row gap-4 items-start justify-start ">
               <AuthInput
                 id="fullname"
-                label="Full Name"
+                label="Company Name"
                 htmlFor="fullname"
-                placeholder="Full Name"
+                placeholder="Company Name"
                 icon={
                   <Image
                     src={
