@@ -1,5 +1,6 @@
 import logo from "./logo.svg";
 import singleLogo from "./single-logo.png";
+import logo2 from "./logo2.svg"
 
 import heroImage from "./home/landingPage/heroImage.png";
 
@@ -158,6 +159,7 @@ const tiers = {
 export default {
   logo,
   singleLogo,
+  logo2,
   landingPage,
   about,
   map,

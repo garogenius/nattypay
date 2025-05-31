@@ -118,9 +118,9 @@ const Navbar = () => {
           <div className="md:hidden flex text-white justify-between items-center w-[95%] lg:w-[90%]">
             <Image
               onClick={() => navigate("/")}
-              src={images.logo}
+              src={images.logo2}
               alt="logo"
-              className="w-44 lg:w-48 h-auto my-auto" // Added my-auto for vertical centering
+              className="w-44 ml-[-8px] lg:w-48 h-auto my-auto" // Added my-auto for vertical centering
             />
 
             <div className="flex items-center justify-center gap-3.5 my-auto"> {/* Added my-auto */}
