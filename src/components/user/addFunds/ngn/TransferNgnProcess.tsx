@@ -6,7 +6,7 @@ import { CURRENCY } from "@/constants/types";
 import useUserStore from "@/store/user.store";
 import { formatNumberWithCommas } from "@/utils/utilityFunctions";
 import Image from "next/image";
-import { format } from "path";
+
 import { useState } from "react";
 import toast from "react-hot-toast";
 import { IoQrCodeSharp } from "react-icons/io5";
