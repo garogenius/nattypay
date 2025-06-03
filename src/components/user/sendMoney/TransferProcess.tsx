@@ -64,11 +64,23 @@ const schema = yup.object().shape({
     .min(10, "Account Number must be 10 digits")
     .max(10, "Account Number must be 10 digits"),
 
+  // amount: yup
+  //   .number()
+  //   .required("Amount is required")
+  //   .typeError("Amount is required")
+  //   .min(50, "Minimum amount is ₦50"),
+
   amount: yup
-    .number()
-    .required("Amount is required")
-    .typeError("Amount is required")
-    .min(50, "Minimum amount is ₦50"),
+  .string()
+  .required("Amount is required")
+  .test("is-number", "Amount must be a valid number", (value) => {
+    const numValue = Number(value?.replace(/,/g, ''));
+    return !isNaN(numValue);
+  })
+  .test("min", "Minimum amount is ₦50", (value) => {
+    const numValue = Number(value?.replace(/,/g, ''));
+    return numValue >= 50;
+  }),
 
   currency: yup.string().required("Currency is required"),
   sessionId: yup.string().required("Session ID is required"),
@@ -129,7 +141,8 @@ const TransferProcess = () => {
 
   const watchedAccountNumber = watch("accountNumber");
   const watchedBankCode = watch("bankCode");
-  const watchedAmount = Number(watch("amount"));
+  const watchedAmount = watch("amount") ? Number(watch("amount").replace(/,/g, '')) : 0;
+  // const watchedAmount = Number(watch("amount"));
   const watchedDescription = watch("description");
   const watchedSessionId = watch("sessionId");
 
@@ -242,6 +255,8 @@ const TransferProcess = () => {
     transferType:
       selectedType === "nattypay" ? TRANSFER_TYPE.INTRA : TRANSFER_TYPE.INTER,
   });
+
+
 
   return (
     <div className="w-full flex max-xl:flex-col 2xs:px-2 xs:px-4 sm:px-6 md:px-8 py-4 2xs:py-6 sm:py-10 bg-transparent xs:bg-bg-600 dark:xs:bg-bg-1100 gap-6 xs:gap-10 lg:gap-12 2xl:gap-16 rounded-xl">
@@ -623,7 +638,7 @@ const TransferProcess = () => {
         {screen === 1 && (
           <div className="w-full dark:max-xs:px-4 xs:px-6 md:px-8 lg:px-10 2xl:px-12 py-8 flex flex-col gap-8 items-center bg-bg-400 dark:bg-black dark:max-xs:bg-bg-1100 rounded-xl ">
             <h2 className="text-2xl sm:text-3xl font-medium text-text-200 dark:text-text-400 text-center">
-              ₦ {watchedAmount?.toLocaleString()}
+              ₦ {formatNumberWithCommas(watchedAmount)}
             </h2>
 
             <div className="w-full flex flex-col gap-2 text-sm sm:text-base">
@@ -661,7 +676,7 @@ const TransferProcess = () => {
                   Amount
                 </p>
                 <p className="text-text-200 dark:text-text-400 font-semibold text-right">
-                  ₦ {formatNumberWithCommas(watchedAmount.toLocaleString())}
+                  ₦ {formatNumberWithCommas(watchedAmount)}
                 </p>
               </div>
 

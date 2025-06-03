@@ -45,12 +45,21 @@ export const handleCopy = (value: string, callback: () => void): void => {
   });
 };
 
-export const formatNumberWithCommas = (value: string) => {
-  // Remove existing commas and get the number
+export const formatNumberWithCommas = (value: string | number) => {
+  if (typeof value === 'number') {
+    return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  }
+  // Remove existing commas and format
   const numberValue = value.replace(/,/g, '');
-  // Format with commas
   return numberValue.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 };
+
+// export const formatNumberWithCommas = (value: string) => {
+//   // Remove existing commas and get the number
+//   const numberValue = value.replace(/,/g, '');
+//   // Format with commas
+//   return numberValue.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+// };
 
 // For numeric input handling
 export const handleNumericKeyDown = (
