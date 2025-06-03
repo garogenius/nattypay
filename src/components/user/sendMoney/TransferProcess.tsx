@@ -11,6 +11,7 @@ import * as yup from "yup";
 import { motion } from "framer-motion";
 import CustomButton from "@/components/shared/Button";
 import {
+  formatNumberWithCommas,
   handleNumericKeyDown,
   handleNumericPaste,
 } from "@/utils/utilityFunctions";
@@ -508,7 +509,7 @@ const TransferProcess = () => {
                               >
                                 Amount{" "}
                               </label>
-                              <div className="w-full flex gap-2 justify-center items-center bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-4 px-3">
+                              {/* <div className="w-full flex gap-2 justify-center items-center bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-4 px-3">
                                 <input
                                   className="w-full bg-transparent p-0 border-none outline-none text-base text-text-200 dark:text-white placeholder:text-text-200 dark:placeholder:text-text-1000 placeholder:text-sm"
                                   placeholder="Enter Amount"
@@ -516,7 +517,25 @@ const TransferProcess = () => {
                                   type="number"
                                   {...register("amount")}
                                 />
-                              </div>
+                              </div> */}
+
+
+<div className="w-full flex gap-2 justify-center items-center bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-4 px-3">
+  <input
+    className="w-full bg-transparent p-0 border-none outline-none text-base text-text-200 dark:text-white placeholder:text-text-200 dark:placeholder:text-text-1000 placeholder:text-sm"
+    placeholder="Enter Amount"
+    required={true}
+    type="text"
+    {...register("amount", {
+      onChange: (e) => {
+        const value = e.target.value.replace(/,/g, '');
+        if (/^\d*\.?\d*$/.test(value)) {
+          e.target.value = formatNumberWithCommas(value);
+        }
+      }
+    })}
+  />
+</div>
 
                               {errors?.amount?.message ? (
                                 <p className="flex self-start text-red-500 font-semibold mt-0.5 text-sm">
@@ -642,7 +661,7 @@ const TransferProcess = () => {
                   Amount
                 </p>
                 <p className="text-text-200 dark:text-text-400 font-semibold text-right">
-                  ₦ {watchedAmount?.toLocaleString()}
+                  ₦ {formatNumberWithCommas(watchedAmount.toLocaleString())}
                 </p>
               </div>
 

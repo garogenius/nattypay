@@ -45,6 +45,13 @@ export const handleCopy = (value: string, callback: () => void): void => {
   });
 };
 
+export const formatNumberWithCommas = (value: string) => {
+  // Remove existing commas and get the number
+  const numberValue = value.replace(/,/g, '');
+  // Format with commas
+  return numberValue.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+};
+
 // For numeric input handling
 export const handleNumericKeyDown = (
   e: React.KeyboardEvent<HTMLInputElement>
