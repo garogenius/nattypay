@@ -71,11 +71,21 @@ export const useInitiateTransfer = (
   return useMutation({
     mutationFn: initiateTransferRequest,
     onError,
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
+      console.log('Transfer Success Response:', data);
       queryClient.invalidateQueries({ queryKey: ["user"] });
       queryClient.invalidateQueries({ queryKey: ["get-beneficiaries"] });
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
-      onSuccess(data);
+
+      const latestTransactions = await queryClient.fetchQuery({
+        queryKey: ["transactions", { page: 1, limit: 1 }],
+        queryFn: () => getTransactions({ page: 1, limit: 1 })
+      });
+
+      // Get the most recent transaction
+      const latestTransaction = latestTransactions?.data?.transactions?.[0];
+      // console.log('Latest Transaction:', latestTransaction);
+    onSuccess({data, transaction: latestTransaction});
     },
   });
 };

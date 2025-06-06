@@ -24,6 +24,7 @@ interface TransactionDetail {
 
 const TransactionReceipt = () => {
   const transaction = useTransactionStore((state) => state.transaction);
+  console.log("Transaction Receipt" , transaction);
   const navigate = useNavigate();
   if (!transaction) return null;
   const fields = getBillsFields(transaction);
