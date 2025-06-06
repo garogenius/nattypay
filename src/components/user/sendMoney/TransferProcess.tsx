@@ -239,7 +239,7 @@ const TransferProcess = () => {
   };
 
   const onSuccess = ({transaction}:any) => {
-    console.log('Transaction Data:', transaction);
+    // console.log('Transaction Data:', transaction);
     setTransaction(transaction);
     SuccessToast({
       title: "Transfer successful",
