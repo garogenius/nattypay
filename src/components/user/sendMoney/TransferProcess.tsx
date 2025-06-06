@@ -405,7 +405,7 @@ const handleShare = async (transaction: TransactionResponse) => {
     mutate: initiateTransfer,
     isPending: transferPending,
     isError: transferError,
-    isSuccess: transferSuccess,
+
   } = useInitiateTransfer(onError, onSuccess);
 
   const transferLoading = transferPending && !transferError;
