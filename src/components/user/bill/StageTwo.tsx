@@ -131,7 +131,7 @@ const BillStageTwo: React.FC<StageTwoProps> = ({
             onClick={onConfirm}
             className="w-full border-2 text-text-1500  dark:text-text-200 dark:font-bold border-primary text-base 2xs:text-lg max-2xs:px-6 py-3.5"
           >
-            Confirm{" "}
+            Pay{" "}
           </CustomButton>
         </div>
       </div>
