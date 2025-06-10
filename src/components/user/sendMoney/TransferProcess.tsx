@@ -268,12 +268,16 @@ const TransferProcess = () => {
           
           <div className="flex items-center justify-between mb-3">
   <div className="flex items-center bg-white p-2 rounded-lg"> {/* Added bg-white, p-2, and rounded-lg */}
-    <Image 
-      src={images.logo} 
-      alt="logo" 
-      className="h-8 w-auto font-bold" // Added font-bold
-      style={{ objectFit: 'contain' }} // Ensures logo maintains its aspect ratio
-    />
+  <Image 
+    src={images.logo} 
+    alt="logo" 
+    className="h-10 w-auto font-bold" // Increased height from h-8 to h-10
+    style={{ 
+      objectFit: 'contain',
+      width: 'auto',
+      minWidth: '120px' // Added minimum width to ensure logo is not too small
+    }}
+  />
   </div>
   <div className="text-gray-700 text-sm font-medium">
     Smart Banking
