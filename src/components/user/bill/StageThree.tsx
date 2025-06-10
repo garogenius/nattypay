@@ -313,7 +313,8 @@ const handleShare = async (props: any) => {
 
         
 
-        <div className="flex justify-center gap-4">
+        // Replace the existing button container div with this:
+<div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full max-w-2xl mx-auto">
   <CustomButton
     type="button"
     onClick={() => handleShare({
@@ -325,9 +326,27 @@ const handleShare = async (props: any) => {
       checkoutMessage,
       electricityResCode
     })}
-    className="w-full 2xs:w-[90%] xs:w-[80%] sm:w-[70%] border-2 text-text-1500 dark:text-text-200 dark:font-bold border-primary text-base 2xs:text-lg max-2xs:px-6 py-3.5"
+    className="w-full border-2 text-text-1500 dark:text-text-200 dark:font-bold border-primary text-base py-3.5 px-4"
   >
-    Share Receipt
+    <span className="flex items-center justify-center gap-2">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        className="w-5 h-5"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <circle cx="18" cy="5" r="3"/>
+        <circle cx="6" cy="12" r="3"/>
+        <circle cx="18" cy="19" r="3"/>
+        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+        <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+      </svg>
+      Share
+    </span>
   </CustomButton>
 
   <CustomButton
@@ -341,9 +360,25 @@ const handleShare = async (props: any) => {
       checkoutMessage,
       electricityResCode
     })}
-    className="w-full 2xs:w-[90%] xs:w-[80%] sm:w-[70%] border-2 text-text-1500 dark:text-text-200 dark:font-bold border-primary text-base 2xs:text-lg max-2xs:px-6 py-3.5"
+    className="w-full border-2 text-text-1500 dark:text-text-200 dark:font-bold border-primary text-base py-3.5 px-4"
   >
-    Download Receipt
+    <span className="flex items-center justify-center gap-2">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        className="w-5 h-5"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="7 10 12 15 17 10"/>
+        <line x1="12" y1="15" x2="12" y2="3"/>
+      </svg>
+      Download
+    </span>
   </CustomButton>
 
   <CustomButton
@@ -352,7 +387,7 @@ const handleShare = async (props: any) => {
       setNetwork("");
       setStage("one");
     }}
-    className="w-full 2xs:w-[90%] xs:w-[80%] sm:w-[70%] border-2 text-text-1500 dark:text-text-200 dark:font-bold border-primary text-base 2xs:text-lg max-2xs:px-6 py-3.5"
+    className="w-full border-2 text-text-1500 dark:text-text-200 dark:font-bold border-primary text-base py-3.5 px-4"
   >
     Done
   </CustomButton>
