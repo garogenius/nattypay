@@ -55,18 +55,24 @@ interface TransactionResponse {
   previousBalance: number;
   currentBalance: number;
   category: string;
+  narration:string
   createdAt: string;
   updatedAt: string;
   transferDetails: {
     fee: number;
     amount: number;
+    beneficiaryAccountNumber:string,
+    beneficiaryBankName:string,
+    beneficiaryName:string,
     sessionId: string;
     amountPaid: number;
     senderName: string;
+    senderBankName?: string;
     bankName?: string;
     accountNumber?: string;
     accountName?: string;
-  };
+  }
+
 }
 
 const transferMethods = [
@@ -239,7 +245,7 @@ const TransferProcess = () => {
   };
 
   const onSuccess = ({transaction}:any) => {
-    // console.log('Transaction Data:', transaction);
+    console.log('Transaction Data:', transaction);
     setTransaction(transaction);
     SuccessToast({
       title: "Transfer successful",
@@ -250,6 +256,9 @@ const TransferProcess = () => {
 
   const ReceiptTemplate = ({ transaction }: { transaction: TransactionResponse }) => {
     const formattedDate = format(new Date(transaction.createdAt), "EEEE, MMMM d, yyyy h:mm a");
+    const formatSenderName = (senderName: string) => {
+      return senderName?.replace('NATTYPAY / ', '') || '';
+    };
   
     return (
       <div id="receipt-container" className="flex flex-col max-w-md mx-auto overflow-hidden rounded-2xl shadow-lg">
@@ -258,13 +267,18 @@ const TransferProcess = () => {
           <div className="absolute -right-3 -top-1 w-6 h-6 bg-white rounded-full"></div>
           
           <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center">
-              <Image src={images.logo} alt="logo" className="h-8 w-auto" />
-            </div>
-            <div className="text-gray-700 text-sm font-medium">
-              Smart Banking
-            </div>
-          </div>
+  <div className="flex items-center bg-white p-2 rounded-lg"> {/* Added bg-white, p-2, and rounded-lg */}
+    <Image 
+      src={images.logo} 
+      alt="logo" 
+      className="h-8 w-auto font-bold" // Added font-bold
+      style={{ objectFit: 'contain' }} // Ensures logo maintains its aspect ratio
+    />
+  </div>
+  <div className="text-gray-700 text-sm font-medium">
+    Smart Banking
+  </div>
+</div>
           
           <h1 className="text-xl font-bold text-center text-gray-800 mb-1">Transaction Receipt</h1>
           <p className="text-xs text-center text-gray-500">
@@ -273,14 +287,22 @@ const TransferProcess = () => {
         </div>
         <div className="bg-white">
         {[
-          { label: "Transaction Type", value: transaction.category },
-          { label: "Reference", value: transaction.transactionRef },
-          { label: "Bank Name", value: transaction.transferDetails?.bankName, show: !!transaction.transferDetails?.bankName },
-          { label: "Account Number", value: transaction.transferDetails?.accountNumber },
-          { label: "Account Name", value: transaction.transferDetails?.accountName },
-          { label: "Amount", value: `₦ ${formatNumberWithCommas(transaction.transferDetails?.amount)}` },
-          { label: "Transfer Fee", value: `₦ ${formatNumberWithCommas(transaction.transferDetails?.fee)}`, show: transaction.transferDetails?.fee > 0 },
-          { label: "Description", value: transaction.description, show: !!transaction.description },
+          { label: "Category",  value: selectedType === "bank" ? "Inter Bank Transfer" : "Intra Bank Transfer"  },
+          { label: "Total Amount Paid", value: `₦ ${formatNumberWithCommas(transaction.transferDetails?.amount)}`  },
+          { 
+            label: "Sender Name", 
+            value: formatSenderName(transaction.transferDetails?.senderName), 
+            show: !!transaction.transferDetails?.senderBankName 
+          },
+          { label: "Beneficiary Name", value: transaction.transferDetails?.beneficiaryName },
+          { label: "Beneficiary Bank Name", value: transaction.transferDetails?.beneficiaryBankName },
+          { label: "Beneficiary Account Number", value: transaction.transferDetails?.beneficiaryAccountNumber },
+          { label: "Session ID", value:  transaction.transferDetails?.sessionId  },
+          { label: "Narration", value: transaction.description},
+          { 
+            label: "Date", 
+            value: format(new Date(transaction.createdAt), "yyyy-MM-dd '|' h:mm a")
+          },
           { label: "Status", value: transaction.status, isStatus: true },
         ]
           .filter(item => item.show !== false)
@@ -1015,7 +1037,7 @@ const handleShare = async (transaction: TransactionResponse) => {
             </div>
 
             <h2 className="text-3xl sm:text-4xl font-bold text-text-200 dark:text-text-400 text-center tracking-tight">
-              ₦ {watchedAmount?.toLocaleString()}
+              ₦ {watchedAmount}
             </h2>
 
             <div className="w-full flex flex-col gap-3 text-sm sm:text-base bg-white/5 rounded-xl p-4 backdrop-blur-sm">

@@ -80,7 +80,7 @@ export const getTransactionDetails = (
 };
 
 export const depositFields = [
-  { label: "Transaction Ref", value: "{transactionRef}" },
+
   { label: "Category", value: "{category}" },
   { label: "Currency", value: "{currency}" },
   { label: "Transaction Type", value: "{type}" },
@@ -108,21 +108,18 @@ export const depositFields = [
   { label: "Balance Before", value: "₦{previousBalance}" },
   { label: "Balance After", value: "₦{currentBalance}" },
   { label: "Date & Time", value: "{createdAt}" },
+  { label: "Transaction Ref", value: "{transactionRef}" },
 ];
 
 export const transferFields = [
-  { label: "Transaction Ref", value: "{transactionRef}" },
+
   { label: "Category", value: "{category}" },
   { label: "Currency", value: "{currency}" },
   { label: "Transaction Type", value: "{type}" },
 
   { label: "Total Amount Paid", value: "₦{transferDetails.amountPaid}" },
   { label: "Sender Name", value: "{transferDetails.senderName}" },
-  { label: "Sender Bank Name", value: "{transferDetails.senderBankName}" },
-  {
-    label: "Sender Account Number",
-    value: "{transferDetails.senderAccountNumber}",
-  },
+ 
 
   { label: "Beneficiary Name", value: "{transferDetails.beneficiaryName}" },
   {
@@ -139,10 +136,11 @@ export const transferFields = [
   { label: "Balance Before", value: "₦{previousBalance}" },
   { label: "Balance After", value: "₦{currentBalance}" },
   { label: "Date & Time", value: "{createdAt}" },
+  { label: "Transaction Ref", value: "{transactionRef}" },
 ];
 
 export const networksFields = [
-  { label: "Transaction Ref", value: "{transactionRef}" },
+
   { label: "Category", value: "{category}" },
   { label: "Currency", value: "{currency}" },
   { label: "Transaction Type", value: "{type}" },
@@ -157,10 +155,11 @@ export const networksFields = [
   { label: "Balance Before", value: "₦{previousBalance}" },
   { label: "Balance After", value: "₦{currentBalance}" },
   { label: "Date & Time", value: "{createdAt}" },
+  { label: "Transaction Ref", value: "{transactionRef}" },
 ];
 
 export const electricityFields = [
-  { label: "Transaction Ref", value: "{transactionRef}" },
+
   { label: "Category", value: "{category}" },
   { label: "Currency", value: "{currency}" },
   { label: "Transaction Type", value: "{type}" },
@@ -175,10 +174,11 @@ export const electricityFields = [
   { label: "Balance Before", value: "₦{previousBalance}" },
   { label: "Balance After", value: "₦{currentBalance}" },
   { label: "Date & Time", value: "{createdAt}" },
+  { label: "Transaction Ref", value: "{transactionRef}" },
 ];
 
 export const giftCardFields = [
-  { label: "Transaction Ref", value: "{transactionRef}" },
+
   { label: "Category", value: "{category}" },
   { label: "Currency", value: "{currency}" },
   { label: "Transaction Type", value: "{type}" },
@@ -192,10 +192,11 @@ export const giftCardFields = [
   { label: "Balance Before", value: "₦{previousBalance}" },
   { label: "Balance After", value: "₦{currentBalance}" },
   { label: "Date & Time", value: "{createdAt}" },
+  { label: "Transaction Ref", value: "{transactionRef}" },
 ];
 
 export const defaultBillsFields = [
-  { label: "Transaction Ref", value: "{transactionRef}" },
+
   { label: "Category", value: "{category}" },
   { label: "Currency", value: "{currency}" },
   { label: "Transaction Type", value: "{type}" },
@@ -209,6 +210,7 @@ export const defaultBillsFields = [
   { label: "Balance Before", value: "₦{previousBalance}" },
   { label: "Balance After", value: "₦{currentBalance}" },
   { label: "Date & Time", value: "{createdAt}" },
+  { label: "Transaction Ref", value: "{transactionRef}" },
 ];
 
 export const getBillsFields = (transaction: Transaction) => {
@@ -245,20 +247,25 @@ const ReceiptContainer = () => {
 
   return (
     <div id="receipt-container" className="flex flex-col max-w-md mx-auto overflow-hidden rounded-2xl shadow-lg">
-      {/* Header with logo and title */}
+
       <div className="bg-amber-100 p-4 rounded-b-2xl relative">
-        {/* Curved edges */}
+   
         <div className="absolute -left-3 -top-1 w-6 h-6 bg-white rounded-full"></div>
         <div className="absolute -right-3 -top-1 w-6 h-6 bg-white rounded-full"></div>
         
         <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center">
-            <Image src={images.logo} alt="logo" className="h-8 w-auto" />
-          </div>
-          <div className="text-gray-700 text-sm font-medium">
-            Smart Banking
-          </div>
-        </div>
+  <div className="flex items-center bg-white p-2 rounded-lg"> {/* Added bg-white, p-2, and rounded-lg */}
+    <Image 
+      src={images.logo} 
+      alt="logo" 
+      className="h-8 w-auto font-bold" // Added font-bold
+      style={{ objectFit: 'contain' }} // Ensures logo maintains its aspect ratio
+    />
+  </div>
+  <div className="text-gray-700 text-sm font-medium">
+    Smart Banking
+  </div>
+</div>
         
         <h1 className="text-xl font-bold text-center text-gray-800 mb-1">Transaction Receipt</h1>
         <p className="text-xs text-center text-gray-500">
