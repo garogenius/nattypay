@@ -257,7 +257,7 @@ const TransferProcess = () => {
   const ReceiptTemplate = ({ transaction }: { transaction: TransactionResponse }) => {
     const formattedDate = format(new Date(transaction.createdAt), "EEEE, MMMM d, yyyy h:mm a");
     const formatSenderName = (senderName: string) => {
-      return senderName?.replace('NATTYPAY / ', '') || '';
+      return senderName?.replace(/^(NATTYPAY|NATTYPAYGLOBALS)\s*\/\s*/, '') || '';
     };
   
     return (
