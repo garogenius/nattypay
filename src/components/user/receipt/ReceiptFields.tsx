@@ -24,6 +24,10 @@ export const statusStyles: Record<string, string> = {
   failed: "bg-red-400 text-red-800",
 };
 
+const formatSenderName = (senderName: string) => {
+  return senderName?.replace(/^(NATTYPAY|NATTYPAYGLOBALS)\s*\/\s*/, '') || '';
+};
+
 export const getTransactionDetails = (
   transaction: Transaction,
   fields: FieldMapping[]
@@ -55,6 +59,13 @@ export const getTransactionDetails = (
           );
         }
 
+        
+        if (field.label === "Category" && transaction.category === TRANSACTION_CATEGORY.TRANSFER) {
+          const isInterBank = transaction.transferDetails?.beneficiaryBankName && 
+            transaction.transferDetails.beneficiaryBankName.toLowerCase() !== 'nattypay';
+          return isInterBank ? "Inter Bank Transfer" : "Intra Bank Transfer";
+        }
+
         // Handle nested properties
         const props = key.split(".");
         let value: unknown = transaction;
@@ -66,11 +77,17 @@ export const getTransactionDetails = (
           }
         }
 
+        if (field.label === "Sender Name" || field.label === "Beneficiary Name") {
+          return formatSenderName(String(value ?? ""));
+        }
+
         if (field.label === "Total Amount Paid" || 
           field.label === "Balance Before" || 
           field.label === "Balance After") {
         return formatNumberWithCommas(String(value ?? "0"));
       }
+
+
         return String(value ?? "0");
       }),
       isStatus: field.label === "Status",
@@ -136,7 +153,7 @@ export const transferFields = [
   { label: "Balance Before", value: "₦{previousBalance}" },
   { label: "Balance After", value: "₦{currentBalance}" },
   { label: "Date & Time", value: "{createdAt}" },
-  { label: "Transaction Ref", value: "{transactionRef}" },
+  { label: "Transaction Ref", value: "{transferDetails.sessionId}" },
 ];
 
 export const networksFields = [
