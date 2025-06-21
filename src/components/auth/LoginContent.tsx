@@ -143,7 +143,7 @@ const LoginContent = () => {
 
   const onSubmit = async (data: LoginFormData) => {
     login({
-      email: data.email.toLowerCase(),
+      email: data.email,
       password: data.password,
       ipAddress: data.ipAddress || "",
       deviceName: data.deviceName || "",
