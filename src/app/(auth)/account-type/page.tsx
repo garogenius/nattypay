@@ -1,28 +1,67 @@
 import AccountTypeDescription from "@/components/auth/accountType/AccountTypeDescription";
 import AccountTypeSelector from "@/components/auth/accountType/AccountTypeSelector";
 import Link from "next/link";
+import Image from "next/image";
 import React from "react";
 
 const AccountTypePage = () => {
   return (
-    <div className="relative h-full min-h-screen overflow-auto w-full flex max-lg:flex-col lg:justify-between items-center  bg-bg-400 dark:bg-black">
-      <AccountTypeDescription />
-      <div className="lg:mt-32 flex flex-col gap-6 sm:gap-8 items-center justify-center h-full w-full lg:w-[50%] xl:w-[55%] py-10 2xs:py-12 sm:py-16 px-4 xs:px-8 md:px-12 xl:px-16 2xl:px-20">
-        <div className=" text-text-200 dark:text-text-400 flex flex-col self-start justify-start items-start gap-0">
-          <h1 className="text-xl xs:text-2xl font-bold">
-            Choose Account type{" "}
-          </h1>
-          <p className="text-base xs:text-lg">
-            Are you creating a business or personal account?
+    <div className="relative flex h-full min-h-screen w-full overflow-hidden bg-black">
+      {/* Mobile Logo */}
+      <div className="absolute top-6 left-6 z-50 lg:hidden">
+        <Link href="/">
+          <Image
+            src="/images/logo.svg"
+            alt="NattyPay Logo"
+            width={120}
+            height={40}
+            className="h-10 w-auto"
+            priority
+          />
+        </Link>
+      </div>
+
+      {/* Left side - Image with overlay */}
+      <div className="hidden lg:block lg:w-3/5 relative">
+        {/* Desktop Logo at top-left */}
+        <div className="absolute top-6 left-6 z-50">
+          <Link href="/">
+            <Image
+              src="/images/logo.svg"
+              alt="NattyPay Logo"
+              width={120}
+              height={40}
+              className="h-10 w-auto"
+              priority
+            />
+          </Link>
+        </div>
+        <AccountTypeDescription />
+      </div>
+
+      {/* Right side - Form */}
+      <div className="flex w-full flex-col items-center justify-center bg-black p-6 sm:p-8 lg:w-2/5 lg:overflow-y-auto">
+        <div className="w-full max-w-sm space-y-8">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-white sm:text-3xl">
+              Choose Account Type
+            </h1>
+            <p className="mt-2 text-gray-300">
+              Are you creating a business or personal account?
+            </p>
+          </div>
+
+          <div className="mt-8">
+            <AccountTypeSelector />
+          </div>
+
+          <p className="mt-6 text-center text-sm text-gray-400">
+            Already have an account?{" "}
+            <Link href="/login" className="font-medium text-primary hover:text-primary/90">
+              Sign in
+            </Link>
           </p>
         </div>
-        <AccountTypeSelector />
-        <p className="mt-2 xs:mt-4 text-base sm:text-lg text-text-200 dark:text-white ">
-          Already have an account?{" "}
-          <Link className="text-primary" href="/login">
-            Login
-          </Link>
-        </p>
       </div>
     </div>
   );

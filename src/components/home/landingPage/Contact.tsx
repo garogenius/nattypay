@@ -20,40 +20,38 @@ const Contact = () => {
         ref={ref}
         animate={isInView ? "show" : "hidden"}
         initial="hidden"
-        className="w-full md:w-[90%] lg:w-[88%] flex flex-col  items-center h-full py-12 sm:py-16 lg:py-20"
+        className="w-[90%] lg:w-[88%] flex flex-col items-center h-full py-12 sm:py-16 lg:py-20"
       >
-        <div className="w-full h-full flex max-lg:flex-col items-center gap-5 2xs:gap-10 lg:gap-20 px-6 xs:px-8 py-6 xs:py-8 sm:py-10 md:rounded-xl bg-bg-600 dark:bg-bg-1300">
+        <div className="w-full h-full flex max-lg:flex-col items-center gap-5 2xs:gap-8 lg:gap-12 px-5 xs:px-7 py-6 xs:py-8 sm:py-10 rounded-2xl bg-bg-600 dark:bg-bg-1100 shadow-md">
+          {/* Left: Text */}
           <div className="w-full lg:w-[55%] xl:w-[60%] flex flex-col gap-4">
-            {" "}
-            <motion.div
-              variants={textVariant(0.1)}
-              className="w-full xs:w-[90%] md:w-[80%] lg:w-[90%] text-black flex flex-col gap-2.5"
-            >
-              <h1 className="text-2xl xs:text-3xl  font-semibold">
-                We are glad to help you{" "}
-              </h1>
-
-              <p className="text-sm xs:text-base ">
-                If you have any additional questions or need further assistance,
-                please do not hesitate to contact our customer support team. We
-                are here to help you have a seamless and satisfying experience
-                with NattyPay.
+            <motion.div variants={textVariant(0.1)} className="w-full lg:w-[90%] flex flex-col items-start text-left gap-3">
+              <span className="h-1.5 w-20 rounded-full bg-primary"></span>
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-text-200 dark:text-text-400">
+                We’re here to help
+              </h2>
+              <p className="text-sm sm:text-base text-text-1700 dark:text-text-800">
+                If you have questions or need assistance, our support team is ready to help you get the most out of
+                Nattypay. Reach us by phone or email and we’ll respond promptly.
               </p>
             </motion.div>
-            <div className="flex flex-col gap-2 text-black">
-              <div className="flex items-center gap-4">
-                <FaPhone />
-                <p className="text-sm">+2348134146906</p>
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full bg-primary/15 text-primary flex items-center justify-center">
+                  <FaPhone />
+                </div>
+                <p className="text-sm sm:text-base text-text-200 dark:text-text-400">+2348134146906</p>
               </div>
-
-              <div className="flex items-center gap-4">
-                <MdEmail className="text-xl" />
-                <p className="text-sm">support@Nattypay.com</p>
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full bg-primary/15 text-primary flex items-center justify-center">
+                  <MdEmail className="text-lg" />
+                </div>
+                <p className="text-sm sm:text-base text-text-200 dark:text-text-400">support@Nattypay.com</p>
               </div>
             </div>
             <motion.div variants={zoomIn(0.2, 0.5)}>
-              <CustomButton className="max-lg:hidden max-xs:py-2 border-2 border-primary text-black text-sm px-4">
-                Chat Support{" "}
+              <CustomButton className="max-lg:hidden rounded-3xl px-6 py-3 border border-primary text-black bg-secondary">
+                Chat Support
               </CustomButton>
             </motion.div>
           </div>
@@ -66,12 +64,9 @@ const Contact = () => {
             />
           </div>
 
-          <motion.div
-            className="w-full flex justify-start lg:hidden "
-            variants={zoomIn(0.2, 0.5)}
-          >
-            <CustomButton className="max-xs:py-2 border-2 border-primary text-text-300 text-base">
-              Chat Support{" "}
+          <motion.div className="w-full flex justify-start lg:hidden" variants={zoomIn(0.2, 0.5)}>
+            <CustomButton className="rounded-3xl px-6 py-3 border border-primary text-black bg-secondary">
+              Chat Support
             </CustomButton>
           </motion.div>
         </div>

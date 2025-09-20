@@ -5,7 +5,9 @@ import { motion, useInView } from "framer-motion";
 import Image from "next/image";
 import { useRef } from "react";
 import images from "../../../../public/images";
-import { useTheme } from "@/store/theme.store";
+import { Swiper, SwiperSlide } from "swiper/react";
+import { Autoplay } from "swiper/modules";
+import "swiper/css";
 
 const PartnersImages = [
   images.landingPage.partner1,
@@ -31,12 +33,12 @@ const PartnersImages = [
 const Providers = () => {
   const ref = useRef(null);
   const isInView = useInView(ref, { amount: 0.25 });
-  const theme = useTheme();
 
   const bgStyles = {
     backgroundImage: "url('/images/home/landingPage/providersBg.svg')", // Adjust the path as needed
     backgroundPosition: "center",
-    backgroundColor: theme === "light" ? "#f9f9f9" : "#141414",
+    // Use true black background for the section
+    backgroundColor: "#000000",
     backgroundRepeat: "no-repeat",
     zIndex: 10,
   };
@@ -47,40 +49,67 @@ const Providers = () => {
         ref={ref}
         animate={isInView ? "show" : "hidden"}
         initial="hidden"
-        className="w-[90%] lg:w-[88%] flex flex-col gap-10 lg:gap-20 items-center h-full py-12 sm:py-16 lg:py-20"
+        className="w-[90%] lg:w-[88%] h-full -mt-6 sm:-mt-8 lg:-mt-12 py-6 sm:py-8 lg:py-10"
       >
+        {/* Card container */}
         <motion.div
           variants={textVariant(0.1)}
-          className="w-full 2xs:w-[90%] xs:w-[80%] md:w-[70%] xl:w-[60%] flex flex-col gap-1.5 xs:gap-2.5 xl:gap-4 justify-center items-center text-center text-text-200 dark:text-text-400"
+          className="w-full rounded-[24px] border border-border-400/60 overflow-hidden"
+          style={{ backgroundColor: "rgb(20 20 20 / var(--tw-bg-opacity, 1))" }}
         >
-          <h1 className="text-2xl 2xs:text-3xl xs:text-4xl xl:text-5xl 2xl:text-6xl font-bold ">
-            With Over <span className="text-primary">60</span> Service Provider{" "}
-          </h1>
-          <p className="text-sm xs:text-base lg:text-lg ">
-            Nattypay is more than just a financial service provider; we are a
-            community dedicated to improving financial well-being
-          </p>
-        </motion.div>
-        <motion.div
-          variants={staggerContainer(0.1, 0.2)}
-          className="w-full xs:w-[90%] 2xl:w-[80%] h-full flex flex-wrap items-center justify-center gap-3"
-        >
-          {PartnersImages.map((item, index) => (
-            <motion.div
-              variants={scaleVariants}
-              whileInView={scaleVariants.whileInView}
-              key={index}
-              className=" "
+          {/* Header row */}
+          <div className="w-full flex items-start justify-between gap-4 px-5 py-6 sm:px-8 sm:py-8 lg:px-10 lg:py-10">
+            <div className="flex flex-col gap-1.5 text-text-200">
+              <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold leading-tight text-white">
+                Businesses that
+                <br />
+                Count On Us
+              </h2>
+              <p className="text-xs sm:text-sm text-text-1700">
+                Join <span className="text-primary font-semibold">60+</span> business owners on the Nattypay platform
+              </p>
+            </div>
+            {/* Big outlined 5m+ */}
+            <div className="hidden sm:block">
+              <span
+                className="text-[64px] sm:text-[80px] lg:text-[96px] leading-none font-extrabold tracking-tight"
+                style={{ WebkitTextStroke: "2px #D4B139", color: "transparent" }}
+              >
+                60+
+              </span>
+            </div>
+          </div>
+
+          {/* Logos slider */}
+          <div className="w-full px-4 sm:px-6 lg:px-8 pb-6 sm:pb-8">
+            <Swiper
+              modules={[Autoplay]}
+              autoplay={{ delay: 2500, disableOnInteraction: false }}
+              loop
+              grabCursor
+              spaceBetween={16}
+              breakpoints={{
+                320: { slidesPerView: 2 },
+                480: { slidesPerView: 3 },
+                640: { slidesPerView: 4 },
+                1024: { slidesPerView: 5 },
+                1280: { slidesPerView: 6 },
+              }}
             >
-              <Image
-                key={index}
-                src={item}
-                alt="icons"
-                className="w-16 2xs:w-20 xs:w-24 sm:w-28 lg:w-32 xl:w-36 2xl:w-40"
-              />
-            </motion.div>
-          ))}
-        </motion.div>{" "}
+              {PartnersImages.map((item, index) => (
+                <SwiperSlide key={index}>
+                  <motion.div
+                    variants={scaleVariants}
+                    whileInView={scaleVariants.whileInView}
+                    className="h-24 sm:h-28 lg:h-32 bg-white rounded-xl overflow-hidden flex items-center justify-center"
+                  >
+                    <Image src={item} alt="partner logo" className="max-w-full max-h-full object-contain" />
+                  </motion.div>
+                </SwiperSlide>
+              ))}
+            </Swiper>
+          </div>
+        </motion.div>
       </motion.div>
     </div>
   );

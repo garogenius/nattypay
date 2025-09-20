@@ -1,17 +1,50 @@
 "use client";
-import { motion, useInView } from "framer-motion";
+import { motion, useInView, AnimatePresence } from "framer-motion";
 import { SectionWrapper } from "@/utils/hoc";
 import { fadeIn, textVariant, zoomIn } from "@/utils/motion";
 import useNavigate from "@/hooks/useNavigate";
 import Image from "next/image";
 import images from "../../../../public/images";
 import CustomButton from "@/components/shared/Button";
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const Heroarea = () => {
   const navigate = useNavigate();
   const ref = useRef(null);
   const isInView = useInView(ref, { amount: 0.25 });
+
+  // Rotating headlines setup (with highlighted keywords)
+  const headlines: React.ReactNode[] = [
+    (
+      <>
+        We Are Your <span className="text-secondary">Trusted</span> Financial Partner
+      </>
+    ),
+    (
+      <>
+        <span className="text-secondary">Fast</span>, <span className="text-secondary">Secure</span> & <span className="text-secondary">Global</span> Payments
+      </>
+    ),
+    (
+      <>
+        Banking Made <span className="text-secondary">Simple</span> For <span className="text-secondary">Everyone</span>
+      </>
+    ),
+  ];
+  const [headlineIndex, setHeadlineIndex] = useState(0);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setHeadlineIndex((i) => (i + 1) % headlines.length);
+    }, 3000);
+    return () => clearInterval(id);
+  }, []);
+
+  const slideVariants = {
+    initial: { y: 24, opacity: 0 },
+    animate: { y: 0, opacity: 1, transition: { duration: 0.5, ease: "easeOut" } },
+    exit: { y: -24, opacity: 0, transition: { duration: 0.4, ease: "easeIn" } },
+  } as const;
 
   return (
     <div className="relative w-full flex justify-center">
@@ -43,9 +76,20 @@ const Heroarea = () => {
               variants={textVariant(0.1)}
               className="z-10 full 2xs:w-[95%] text-text-200 dark:text-text-400 flex flex-col gap-2 xs:gap-3"
             >
-              <h1 className="text-3xl 2xs:text-4xl xs:text-5xl xl:text-6xl 2xl:text-7xl font-bold leading-[2.4rem] 2xs:leading-[2.8rem] xs:leading-[3.5rem] xl:leading-[4rem] 2xl:leading-[5rem]">
-                We Are Your Trusted Financial Partner{" "}
-              </h1>
+              <div className="relative overflow-hidden">
+                <AnimatePresence mode="wait" initial={false}>
+                  <motion.h1
+                    key={headlineIndex}
+                    variants={slideVariants}
+                    initial="initial"
+                    animate="animate"
+                    exit="exit"
+                    className="text-3xl 2xs:text-4xl xs:text-5xl xl:text-6xl 2xl:text-7xl font-bold leading-[2.4rem] 2xs:leading-[2.8rem] xs:leading-[3.5rem] xl:leading-[4rem] 2xl:leading-[5rem]"
+                  >
+                    {headlines[headlineIndex]}
+                  </motion.h1>
+                </AnimatePresence>
+              </div>
               <p className="text-base 2xs:text-lg xl:text-xl leading-[1.5rem] xl:leading-[2rem]">
                 Experience seamless financial transactions with Nattypay, a
                 local and global leading financial service provider, We make the
@@ -104,31 +148,6 @@ const Heroarea = () => {
             </div>
           </div>
         </div>
-        <motion.div
-          variants={textVariant(0.1)}
-          className="w-full md:w-[95%] lg:w-[90%] 2xl:w-[85%] text-text-200 dark:text-text-400 flex flex-col gap-3"
-        >
-          <h1 className="text-2xl xs:text-3xl xl:text-4xl 2xl:text-5xl font-bold ">
-            Introduction{" "}
-          </h1>
-
-          <p className="text-sm xs:text-base lg:text-lg leading-[1.6rem] xs:leading-[1.8rem]">
-            As an answer to solve the issue of local and global people in the
-            world face getting standard and quality Financial for daily
-            well-being, spring forth NATTYPAY GLOBAL SOLUTION LIMITED. Over time
-            we&apos;ve been able to solve this great complication in our society
-            and put big promising smiles on people&apos;s faces thus far.{" "}
-            {/* Add margin here for space */}
-            <span className="sm:hidden block my-4"></span>
-            In an era defined by rapid technological evolution, NATTYPAY GLOBAL
-            SOLUTION LIMITED emerges as a key player, shaping the future through
-            a commitment to excellence, foresight, and a relentless pursuit of
-            groundbreaking advancements. Our journey is rooted in a deep
-            understanding of the dynamic needs of the modern consumer, and we
-            take pride in crafting solutions that not only meet but exceed
-            expectations.
-          </p>
-        </motion.div>
       </motion.div>
     </div>
   );

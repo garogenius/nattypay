@@ -32,12 +32,13 @@ const Wcu = () => {
       >
         <motion.div
           variants={textVariant(0.1)}
-          className="w-full 2xs:w-[90%] xs:w-[80%] md:w-[70%] xl:w-[60%] flex flex-col gap-1.5 xs:gap-2.5 xl:gap-4 justify-center items-center text-center text-text-200 dark:text-text-400"
+          className="w-full 2xs:w-[90%] xs:w-[80%] md:w-[70%] xl:w-[60%] flex flex-col items-center text-center gap-3"
         >
-          <h1 className="text-2xl 2xs:text-3xl xs:text-4xl xl:text-5xl 2xl:text-6xl font-bold ">
-            Why Choose Nattypay?{" "}
-          </h1>
-          <p className="text-sm xs:text-base lg:text-lg ">
+          <span className="h-1.5 w-20 rounded-full bg-primary"></span>
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-text-200 dark:text-text-400">
+            Why Choose Nattypay?
+          </h2>
+          <p className="max-w-5xl text-sm sm:text-base text-text-1700 dark:text-text-800">
             Nattypay is more than just a financial service provider; we are a
             community dedicated to improving financial well-being
           </p>

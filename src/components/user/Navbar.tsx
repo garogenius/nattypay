@@ -5,7 +5,6 @@ import useUserStore from "@/store/user.store";
 
 import useUserLayoutStore from "@/store/userLayout.store";
 import Link from "next/link";
-import Toggler from "../shared/Toggler";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import Image from "next/image";
@@ -95,8 +94,6 @@ const Navbar = () => {
       </div>
 
       <div className="flex items-center gap-3 xs:gap-4 lg:gap-6 xl:gap-8">
-        <Toggler />
-
         <div className="flex items-center gap-2">
           <Link
             href="/user/settings/profile"

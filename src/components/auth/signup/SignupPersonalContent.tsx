@@ -6,7 +6,6 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { useRegister } from "@/api/auth/auth.queries";
 import { motion } from "framer-motion";
-import images from "../../../../public/images";
 import Image from "next/image";
 import AuthInput from "../AuthInput";
 import CustomButton from "@/components/shared/Button";
@@ -16,12 +15,14 @@ import SuccessToast from "@/components/toast/SuccessToast";
 import useNavigate from "@/hooks/useNavigate";
 import { useRef, useState } from "react";
 import icons from "../../../../public/icons";
+import images from "../../../../public/images";
 import SearchableDropdown from "@/components/shared/SearchableDropdown";
 import useOnClickOutside from "@/hooks/useOnClickOutside";
 import { getCurrencyIconByString } from "@/utils/utilityFunctions";
 import { useTheme } from "@/store/theme.store";
 import useAuthEmailStore from "@/store/authEmail.store";
 import DatePicker from "react-datepicker";
+import AccountTypeDescription from "@/components/auth/accountType/AccountTypeDescription";
 
 const schema = yup.object().shape({
   username: yup.string().required("Username is required"),
@@ -80,6 +81,8 @@ const SignupPersonalContent = () => {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const datePickerRef = useRef<HTMLDivElement>(null);
   const [startDate, setStartDate] = useState<Date | null>(null);
+  // Stepper state: 0..3
+  const [activeStep, setActiveStep] = useState<number>(0);
 
   useOnClickOutside(datePickerRef as React.RefObject<HTMLElement>, () =>
     setShowDatePicker(false)
@@ -96,7 +99,7 @@ const SignupPersonalContent = () => {
       countryCode: "NGN",
       referralCode: "",
     },
-    resolver: yupResolver(schema),
+    resolver: yupResolver(schema) as any,
     mode: "onChange",
   });
 
@@ -108,6 +111,7 @@ const SignupPersonalContent = () => {
     reset,
     watch,
     setValue,
+    trigger,
   } = form;
   const { errors } = formState;
 
@@ -167,366 +171,454 @@ const SignupPersonalContent = () => {
   useOnClickOutside(dropdownRef, () => {
     setCurrencyState(false);
   });
+  
+  // Validate required fields for the current step before moving forward
+  const stepFields: (keyof RegisterFormData)[][] = [
+    ["fullname", "username", "countryCode"],
+    ["email", "password", "confirmPassword"],
+    ["dateOfBirth"],
+    [], // Step 4 has no required field (referral is optional)
+  ];
+
+  const handleNext = async () => {
+    const fields = stepFields[activeStep] || [];
+    if (fields.length === 0) {
+      setActiveStep((s) => Math.min(3, s + 1));
+      return;
+    }
+    const valid = await trigger(fields as any, { shouldFocus: true });
+    if (valid) setActiveStep((s) => Math.min(3, s + 1));
+  };
   return (
-    <div className="relative flex justify-center items-center w-full bg-bg-400 dark:bg-black">
-      <div className="flex flex-col justify-center items-center w-full gap-8 mt-32 sm:mt-36 lg:mt-40 xl:mt-48 mb-12 sm:mb-14 lg:mb-16 xl:mb-20">
-        <motion.div
-          whileInView={{ opacity: [0, 1] }}
-          transition={{ duration: 0.5, type: "tween" }}
-          className="z-10 flex flex-col justify-start items-start w-full xs:w-[90%] md:w-[80%] lg:w-[65%] xl:w-[55%] 2xl:w-[45%]  bg-transparent xs:bg-bg-600 xs:dark:bg-bg-1100 dark:xs:border dark:border-border-600 rounded-2xl px-6 2xs:px-8 sm:px-10 py-2.5 2xs:py-4 sm:py-6 gap-6 2xs:gap-8 sm:gap-10 md:gap-12"
-        >
-          <div className="text-white flex flex-col items-center justify-center w-full text-center">
+    <div className="relative w-full flex flex-col lg:flex-row">
+      {/* Left: Hidden on mobile, visible on large screens */}
+      <div className="hidden lg:block lg:w-1/2 relative">
+        {/* Desktop Logo at top-left */}
+        <div className="absolute top-6 left-6 z-50">
+          <Link href="/">
             <Image
-              className="w-20 2xs:w-24 xs:w-28 "
-              src={images.singleLogo}
-              alt="logo"
-              onClick={() => {
-                navigate("/");
-              }}
-            />{" "}
-            <h2 className="text-xl xs:text-2xl lg:text-3xl text-text-200 dark:text-white font-semibold">
-              Create New Account{" "}
-            </h2>
+              src="/images/logo.svg"
+              alt="NattyPay Logo"
+              width={120}
+              height={40}
+              className="h-10 w-auto"
+              priority
+            />
+          </Link>
+        </div>
+        <div className="absolute inset-0 w-full h-full">
+          <AccountTypeDescription />
+        </div>
+      </div>
+      {/* Right: Form panel. On mobile, full height; on desktop, half width */}
+      <div className="w-full lg:w-1/2 flex flex-col justify-center items-center bg-black min-h-screen lg:min-h-0">
+        <div className="w-full max-w-xl px-4 sm:px-8 pt-20 pb-8 lg:pt-8">
+          {/* Mobile Header: App logo and name (fixed at top-left) */}
+          <Link href="/" className="lg:hidden fixed top-0 left-0 z-50 inline-flex items-center gap-2 px-4 py-3 bg-bg-700/90 dark:bg-dark-primary/90 backdrop-blur">
+            <Image src={images.logo} alt="ValarPay logo" className="w-8 h-auto" />
+            <span className="text-text-200 dark:text-white font-semibold text-lg tracking-wide">VALARPAY</span>
+          </Link>
+          <div className="text-text-200 dark:text-text-400 flex flex-col self-start justify-start items-start gap-2 md:gap-4 mb-6">
+            <h1 className="text-xl lg:text-3xl font-bold">Create Personal Account</h1>
+            <p className="text-base xs:text-lg font-light">Follow the steps below to create your account</p>
           </div>
-          <form
-            className="flex flex-col justify-start items-start w-full gap-4"
-            onSubmit={handleSubmit(onSubmit)}
-            noValidate
-          >
-            <div className="w-full flex flex-col md:flex-row gap-4 items-start justify-start ">
-              <AuthInput
-                id="fullname"
-                label="Full Name"
-                htmlFor="fullname"
-                placeholder="Full Name"
-                icon={
-                  <Image
-                    src={
-                      theme === "dark"
-                        ? icons.authIcons.userLeftDark
-                        : icons.authIcons.userLeft
+          {/* Top Progress Stepper */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between">
+              {[
+                { title: 'Step 1', desc: 'Details' },
+                { title: 'Step 2', desc: 'Security' },
+                { title: 'Step 3', desc: 'DOB' },
+                { title: 'Step 4', desc: 'Referral' },
+              ].map((s, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={async () => {
+                    if (i <= activeStep) {
+                      setActiveStep(i);
+                    } else {
+                      await handleNext();
                     }
-                    alt="user"
-                    className="w-5 h-5 sm:w-6 sm:h-6"
-                  />
-                }
-                error={errors.fullname?.message}
-                {...register("fullname")}
-              />
-              <AuthInput
-                id="username"
-                label="Username"
-                htmlFor="username"
-                placeholder="Username"
-                icon={
-                  <Image
-                    src={
-                      theme === "dark"
-                        ? icons.authIcons.userRightDark
-                        : icons.authIcons.userRight
-                    }
-                    alt="user"
-                    className="w-5 h-5 sm:w-6 sm:h-6"
-                  />
-                }
-                error={errors.username?.message}
-                {...register("username")}
-              />
+                  }}
+                  className="flex-1 flex flex-col items-center text-xs sm:text-sm"
+                >
+                  <div className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full border-2 flex items-center justify-center ${activeStep >= i ? 'border-primary' : 'border-border-400 dark:border-border-600'}`}>
+                    <div className={`w-3 h-3 rounded-full ${activeStep >= i ? 'bg-primary' : 'bg-transparent'}`} />
+                  </div>
+                  <p className={`mt-1 font-medium ${activeStep === i ? 'text-primary' : 'text-text-400'}`}>{s.desc}</p>
+                </button>
+              ))}
             </div>
-
-            <div
-              ref={dropdownRef}
-              className="relative w-full flex flex-col gap-1"
+          </div>
+          {/* Form Card */}
+          <motion.div
+            whileInView={{ opacity: [0, 1] }}
+            transition={{ duration: 0.5, type: 'tween' }}
+            className="bg-bg-600 dark:bg-bg-1100 dark:border dark:border-border-600 rounded-2xl p-5 sm:p-7 shadow-lg"
+          >
+            <div className="text-white flex flex-col gap-1 mb-4">
+              {/* <h2 className="text-xl xs:text-2xl lg:text-3xl text-text-200 dark:text-white font-semibold">Create New Account</h2>
+              <p className="text-sm text-text-400">Provide your details to continue</p> */}
+            </div>
+            <form
+              className="flex flex-col justify-start items-start w-full gap-4"
+              onSubmit={handleSubmit(onSubmit)}
+              noValidate
             >
-              <label
-                htmlFor="currencyCode"
-                className="text-base text-text-800 mb-1 flex items-start w-full"
-              >
-                Choose a currency{" "}
-              </label>
-              <div
-                onClick={() => {
-                  setCurrencyState(!currencyState);
-                }}
-                className="w-full flex gap-2 justify-center items-center bg-bg-2000 border border-border-600 rounded-lg py-3 px-3"
-              >
-                <div className="w-full flex items-center justify-between ">
-                  {!watchedCurrency ? (
-                    <p className="text-text-700 dark:text-text-1000 text-sm 2xs:text-base">
-                      Select Currency
-                    </p>
-                  ) : (
-                    <div className="flex items-center gap-4">
-                      <Image
-                        src={
-                          getCurrencyIconByString(
-                            watchedCurrency.toLowerCase()
-                          ) || ""
-                        }
-                        alt="currency"
-                        className="w-8 h-8 sm:w-9 sm:h-9"
-                      />
-                      <div className="flex flex-col gap-0 text-text-700 dark:text-text-1000">
-                        <p className="2xs:text-base text-sm font-medium">
-                          {watchedCurrency} Account
-                        </p>
-                        <p className="text-[10px] 3xs:text-xs ">
-                          Available for everyone
-                        </p>
-                      </div>
-                    </div>
-                  )}
-
-                  <motion.svg
-                    animate={{
-                      rotate: currencyState ? 180 : 0,
-                    }}
-                    transition={{ duration: 0.3 }}
-                    className="w-4 h-4 text-text-700 dark:text-text-1000 cursor-pointer"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 9l-7 7-7-7"
+              {/* Step 1: Fullname, Username, Currency */}
+              {activeStep === 0 && (
+                <>
+                  <div className="w-full flex flex-col md:flex-row gap-4 items-start justify-start ">
+                    <AuthInput
+                      id="fullname"
+                      label="Full Name"
+                      htmlFor="fullname"
+                      placeholder="Full Name"
+                      icon={
+                        <Image
+                          src={
+                            theme === "dark"
+                              ? icons.authIcons.userLeftDark
+                              : icons.authIcons.userLeft
+                          }
+                          alt="user"
+                          className="w-5 h-5 sm:w-6 sm:h-6"
+                        />
+                      }
+                      error={errors.fullname?.message}
+                      {...register("fullname")}
                     />
-                  </motion.svg>
-                </div>
-              </div>
+                    <AuthInput
+                      id="username"
+                      label="Username"
+                      htmlFor="username"
+                      placeholder="Username"
+                      icon={
+                        <Image
+                          src={
+                            theme === "dark"
+                              ? icons.authIcons.userRightDark
+                              : icons.authIcons.userRight
+                          }
+                          alt="user"
+                          className="w-5 h-5 sm:w-6 sm:h-6"
+                        />
+                      }
+                      error={errors.username?.message}
+                      {...register("username")}
+                    />
+                  </div>
 
-              {currencyState && (
-                <div className="absolute top-full my-2.5 px-1 py-2 overflow-y-auto h-fit max-h-60 w-full bg-bg-600 border dark:bg-bg-1100 border-gray-300 dark:border-border-600 rounded-md shadow-md z-10 no-scrollbar">
-                  <SearchableDropdown
-                    items={CurrencyOptions}
-                    searchKey="value"
-                    showSearch={false}
-                    displayFormat={(currency) => (
-                      <div className="w-full flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-4">
-                          <Image
-                            src={
-                              getCurrencyIconByString(
-                                currency.value.toLowerCase()
-                              ) || ""
-                            }
-                            alt="currency"
-                            className="w-8 h-8 sm:w-9 sm:h-9"
-                          />
-                          <div className="flex flex-col text-text-700 dark:text-text-1000">
-                            <p className="text-sm 2xs:text-base  font-medium">
-                              {currency.label} Account
-                            </p>
-                            {currency.available ? (
-                              <p className="text-[10px] 3xs:text-xs">
+                  <div
+                    ref={dropdownRef}
+                    className="relative w-full flex flex-col gap-1"
+                  >
+                    <label
+                      htmlFor="currencyCode"
+                      className="text-base text-text-800 mb-1 flex items-start w-full"
+                    >
+                      Choose a currency{" "}
+                    </label>
+                    <div
+                      onClick={() => {
+                        setCurrencyState(!currencyState);
+                      }}
+                      className="w-full flex gap-2 justify-center items-center bg-bg-2000 border border-border-600 rounded-lg py-3 px-3"
+                    >
+                      <div className="w-full flex items-center justify-between ">
+                        {!watchedCurrency ? (
+                          <p className="text-text-700 dark:text-text-1000 text-sm 2xs:text-base">
+                            Select Currency
+                          </p>
+                        ) : (
+                          <div className="flex items-center gap-4">
+                            <Image
+                              src={
+                                getCurrencyIconByString(
+                                  watchedCurrency.toLowerCase()
+                                ) || ""
+                              }
+                              alt="currency"
+                              className="w-8 h-8 sm:w-9 sm:h-9"
+                            />
+                            <div className="flex flex-col gap-0 text-text-700 dark:text-text-1000">
+                              <p className="2xs:text-base text-sm font-medium">
+                                {watchedCurrency} Account
+                              </p>
+                              <p className="text-[10px] 3xs:text-xs ">
                                 Available for everyone
                               </p>
-                            ) : (
-                              <p className="text-[10px] 3xs:text-xs text-red-500">
-                                Unavailable
-                              </p>
-                            )}
+                            </div>
                           </div>
-                        </div>
-                        <div
-                          className={`w-5 h-5 sm:w-6 sm:h-6 border-2 ${
-                            watchedCurrency === currency.value
-                              ? "border-primary"
-                              : "border-border-200 dark:border-border-100"
-                          } rounded-full flex items-center justify-center`}
+                        )}
+
+                        <motion.svg
+                          animate={{
+                            rotate: currencyState ? 180 : 0,
+                          }}
+                          transition={{ duration: 0.3 }}
+                          className="w-4 h-4 text-text-700 dark:text-text-1000 cursor-pointer"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                          xmlns="http://www.w3.org/2000/svg"
                         >
-                          <div
-                            className={`w-3 h-3 bg-primary rounded-full ${
-                              watchedCurrency === currency.value
-                                ? "block"
-                                : "hidden"
-                            }`}
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 9l-7 7-7-7"
                           />
-                        </div>
+                        </motion.svg>
+                      </div>
+                    </div>
+
+                    {currencyState && (
+                      <div className="absolute top-full my-2.5 px-1 py-2 overflow-y-auto h-fit max-h-60 w-full bg-bg-600 border dark:bg-bg-1100 border-gray-300 dark:border-border-600 rounded-md shadow-md z-10 no-scrollbar">
+                        <SearchableDropdown
+                          items={CurrencyOptions}
+                          searchKey="value"
+                          showSearch={false}
+                          displayFormat={(currency) => (
+                            <div className="w-full flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-4">
+                                <Image
+                                  src={
+                                    getCurrencyIconByString(
+                                      currency.value.toLowerCase()
+                                    ) || ""
+                                  }
+                                  alt="currency"
+                                  className="w-8 h-8 sm:w-9 sm:h-9"
+                                />
+                                <div className="flex flex-col text-text-700 dark:text-text-1000">
+                                  <p className="text-sm 2xs:text-base  font-medium">
+                                    {currency.label} Account
+                                  </p>
+                                  {currency.available ? (
+                                    <p className="text-[10px] 3xs:text-xs">
+                                      Available for everyone
+                                    </p>
+                                  ) : (
+                                    <p className="text-[10px] 3xs:text-xs text-red-500">
+                                      Unavailable
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                              <div
+                                className={`w-5 h-5 sm:w-6 sm:h-6 border-2 ${watchedCurrency === currency.value
+                                  ? "border-primary"
+                                  : "border-border-200 dark:border-border-100"
+                                  } rounded-full flex items-center justify-center`}
+                              >
+                                <div
+                                  className={`w-3 h-3 bg-primary rounded-full ${watchedCurrency === currency.value
+                                    ? "block"
+                                    : "hidden"
+                                    }`}
+                                />
+                              </div>
+                            </div>
+                          )}
+                          onSelect={(currency) => {
+                            if (currency.available) {
+                              setValue("countryCode", currency.value);
+                              clearErrors("countryCode");
+                            } else {
+                              setCurrencyState(false);
+                              ErrorToast({
+                                title: "Currency not available",
+                                descriptions: [
+                                  "This currency is not available for registration",
+                                ],
+                              });
+                            }
+                          }}
+                          isOpen={currencyState}
+                          onClose={() => setCurrencyState(false)}
+                        />
                       </div>
                     )}
-                    onSelect={(currency) => {
-                      if (currency.available) {
-                        setValue("countryCode", currency.value);
-                        clearErrors("countryCode");
-                      } else {
-                        setCurrencyState(false);
-                        ErrorToast({
-                          title: "Currency not available",
-                          descriptions: [
-                            "This currency is not available for registration",
-                          ],
-                        });
+                  </div>
+                </>
+              )}
+
+              {/* Step 2: Email, Passwords */}
+              {activeStep === 1 && (
+                <>
+                  <AuthInput
+                    id="email"
+                    label="Email"
+                    type="email"
+                    htmlFor="email"
+                    placeholder="Email"
+                    icon={
+                      <Image
+                        src={
+                          theme === "dark"
+                            ? icons.authIcons.mailDark
+                            : icons.authIcons.mail
+                        }
+                        alt="email"
+                        className="w-5 h-5 sm:w-6 sm:h-6"
+                      />
+                    }
+                    error={errors.email?.message}
+                    {...register("email")}
+                  />
+
+                  <div className="w-full flex flex-col md:flex-row gap-4 items-start justify-start ">
+                    <AuthInput
+                      id="password"
+                      label="Password"
+                      type="password"
+                      htmlFor="password"
+                      placeholder="Password"
+                      autoComplete="off"
+                      icon={
+                        <Image
+                          src={
+                            theme === "dark"
+                              ? icons.authIcons.lockDark
+                              : icons.authIcons.lock
+                          }
+                          alt="password"
+                          className="w-5 h-5 sm:w-6 sm:h-6"
+                        />
                       }
-                    }}
-                    isOpen={currencyState}
-                    onClose={() => setCurrencyState(false)}
-                  />
-                </div>
-              )}
-            </div>
+                      error={errors.password?.message}
+                      {...register("password")}
+                    />
 
-            <AuthInput
-              id="email"
-              label="Email"
-              type="email"
-              htmlFor="email"
-              placeholder="Email"
-              icon={
-                <Image
-                  src={
-                    theme === "dark"
-                      ? icons.authIcons.mailDark
-                      : icons.authIcons.mail
-                  }
-                  alt="email"
-                  className="w-5 h-5 sm:w-6 sm:h-6"
+                    <AuthInput
+                      id="confirmPassword"
+                      label="Confirm Password"
+                      type="password"
+                      htmlFor="confirmPassword"
+                      placeholder="Confirm Password"
+                      icon={
+                        <Image
+                          src={
+                            theme === "dark"
+                              ? icons.authIcons.lockDark
+                              : icons.authIcons.lock
+                          }
+                          alt="password"
+                          className="w-5 h-5 sm:w-6 sm:h-6"
+                        />
+                      }
+                      error={errors.confirmPassword?.message}
+                      autoComplete="off"
+                      {...register("confirmPassword")}
+                    />
+                  </div>
+                </>
+              )}
+
+              {/* Step 3: Date of Birth */}
+              {activeStep === 2 && (
+                <>
+                  <div className="w-full relative">
+                    <div className="flex flex-col justify-center items-center gap-1 w-full text-black dark:text-white">
+                      <label
+                        className="w-full text-base text-text-800 mb-1 flex items-start "
+                        htmlFor={"dateOfBirth"}
+                      >
+                        Date of Birth
+                      </label>
+                      <div
+                        onClick={() => setShowDatePicker(true)}
+                        className="cursor-pointer w-full flex gap-2 justify-center items-center bg-bg-2000 dark:bg-bg-2100 border border-border-600 rounded-lg py-4 px-3"
+                      >
+                        {watchedDateOfBirth ? (
+                          <div className="w-full bg-transparent p-0 border-none outline-none text-base text-text-200 dark:text-white placeholder:text-text-700 dark:placeholder:text-text-1000 placeholder:text-sm">
+                            {watchedDateOfBirth}
+                          </div>
+                        ) : (
+                          <div className="w-full bg-transparent p-0 border-none outline-none text-base text-text-200 dark:text-white placeholder:text-text-700 dark:placeholder:text-text-1000 placeholder:text-sm">
+                            Select Date of Birth
+                          </div>
+                        )}
+                      </div>
+
+                      {errors.dateOfBirth?.message ? (
+                        <p className="flex self-start text-red-500 font-semibold mt-0.5 text-sm">
+                          {errors.dateOfBirth?.message}
+                        </p>
+                      ) : null}
+                    </div>
+
+                    {showDatePicker && (
+                      <div ref={datePickerRef} className="absolute z-10 mt-1">
+                        <DatePicker
+                          selected={startDate}
+                          onChange={handleDateChange}
+                          inline
+                          calendarClassName="custom-calendar"
+                          showYearDropdown
+                          scrollableYearDropdown
+                          yearDropdownItemNumber={100}
+                          dropdownMode="select"
+                          openToDate={new Date(2000, 0, 1)}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+
+              {/* Step 4: Referral Code */}
+              {activeStep === 3 && (
+                <AuthInput
+                  id="referralCode"
+                  label="Referral Code"
+                  htmlFor="referralCode"
+                  placeholder="Referral Code"
+                  type="text"
+                  error={errors.referralCode?.message}
+                  {...register("referralCode")}
                 />
-              }
-              error={errors.email?.message}
-              {...register("email")}
-            />
-
-            <div className="w-full flex flex-col md:flex-row gap-4 items-start justify-start ">
-              <AuthInput
-                id="password"
-                label="Password"
-                type="password"
-                htmlFor="password"
-                placeholder="Password"
-                autoComplete="off"
-                icon={
-                  <Image
-                    src={
-                      theme === "dark"
-                        ? icons.authIcons.lockDark
-                        : icons.authIcons.lock
-                    }
-                    alt="password"
-                    className="w-5 h-5 sm:w-6 sm:h-6"
-                  />
-                }
-                error={errors.password?.message}
-                {...register("password")}
-              />
-
-              <AuthInput
-                id="confirmPassword"
-                label="Confirm Password"
-                type="password"
-                htmlFor="confirmPassword"
-                placeholder="Confirm Password"
-                icon={
-                  <Image
-                    src={
-                      theme === "dark"
-                        ? icons.authIcons.lockDark
-                        : icons.authIcons.lock
-                    }
-                    alt="password"
-                    className="w-5 h-5 sm:w-6 sm:h-6"
-                  />
-                }
-                error={errors.confirmPassword?.message}
-                autoComplete="off"
-                {...register("confirmPassword")}
-              />
-            </div>
-
-            <div className="w-full relative">
-              <div className="flex flex-col justify-center items-center gap-1 w-full text-black dark:text-white">
-                <label
-                  className="w-full text-base text-text-800 mb-1 flex items-start "
-                  htmlFor={"dateOfBirth"}
-                >
-                  Date of Birth
-                </label>
-                <div
-                  onClick={() => setShowDatePicker(true)}
-                  className="cursor-pointer w-full flex gap-2 justify-center items-center bg-bg-2000 dark:bg-bg-2100 border border-border-600 rounded-lg py-4 px-3"
-                >
-                  {watchedDateOfBirth ? (
-                    <div className="w-full bg-transparent p-0 border-none outline-none text-base text-text-200 dark:text-white placeholder:text-text-700 dark:placeholder:text-text-1000 placeholder:text-sm">
-                      {watchedDateOfBirth}
-                    </div>
-                  ) : (
-                    <div className="w-full bg-transparent p-0 border-none outline-none text-base text-text-200 dark:text-white placeholder:text-text-700 dark:placeholder:text-text-1000 placeholder:text-sm">
-                      Select Date of Birth
-                    </div>
-                  )}
-                </div>
-
-                {errors.dateOfBirth?.message ? (
-                  <p className="flex self-start text-red-500 font-semibold mt-0.5 text-sm">
-                    {errors.dateOfBirth?.message}
-                  </p>
-                ) : null}
-              </div>
-
-              {showDatePicker && (
-                <div ref={datePickerRef} className="absolute z-10 mt-1">
-                  <DatePicker
-                    selected={startDate}
-                    onChange={handleDateChange}
-                    inline
-                    calendarClassName="custom-calendar"
-                    showYearDropdown
-                    scrollableYearDropdown
-                    yearDropdownItemNumber={100}
-                    dropdownMode="select" // This enables selecting the year directly
-                    openToDate={new Date(2000, 0, 1)} // Opens to year 2000 by default
-                  />
-                </div>
               )}
-            </div>
 
-            <AuthInput
-              id="referralCode"
-              label="Referral Code"
-              htmlFor="referralCode"
-              placeholder="Referral Code"
-              type="text"
-              error={errors.referralCode?.message}
-              {...register("referralCode")}
-            />
-
-            <CustomButton
-              type="submit"
-              disabled={registerLoading}
-              isLoading={registerLoading}
-              className="w-full  border-2 border-primary text-black text-base 2xs:text-lg max-2xs:px-6 py-3.5 xs:py-4"
-            >
-              Sign Up{" "}
-            </CustomButton>
-
-            <p className="w-full flex justify-center items-center gap-1 my-2 xs:my-4 text-base sm:text-lg text-text-200 dark:text-white ">
-              Already have an account?{" "}
-              <Link className="text-primary" href="/login">
-                Login
-              </Link>
-            </p>
-          </form>
-        </motion.div>
+              {/* Navigation Buttons */}
+              <div className="w-full flex items-center justify-between gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setActiveStep((s) => Math.max(0, s - 1))}
+                  className={`px-4 py-2 rounded-md border ${activeStep === 0 ? 'opacity-40 cursor-not-allowed' : ''} text-white border-white/30`}
+                  disabled={activeStep === 0}
+                >
+                  Back
+                </button>
+                {activeStep < 3 ? (
+                  <CustomButton
+                    type="button"
+                    onClick={handleNext}
+                    className="min-w-32 border-2 border-primary text-black"
+                  >
+                    Continue
+                  </CustomButton>
+                ) : (
+                  <CustomButton
+                    type="submit"
+                    disabled={registerLoading}
+                    isLoading={registerLoading}
+                    className="min-w-32 border-2 border-primary text-black"
+                  >
+                    Sign Up
+                  </CustomButton>
+                )}
+              </div>
+              {/* Footer */}
+              <p className="mt-6 text-base sm:text-lg text-text-200 dark:text-white w-full text-center">
+                Already have an account? <Link className="text-primary" href="/login">Login</Link>
+              </p>
+            </form>
+          </motion.div>
+        </div>
       </div>
-      <div
-        className=" absolute bottom-0 left-0 inset-[60rem] opacity-60"
-        style={{
-          background: `
-                radial-gradient(
-                  circle at bottom left,
-                  rgba(212, 177, 57, 0.4) 0%,
-                  rgba(212, 177, 57, 0.2) 40%,
-                  rgba(212, 177, 57, 0.1) 60%,
-                  rgba(212, 177, 57, 0) 80%
-                )
-              `,
-          filter: "blur(60px)",
-          transform: "scale(1.1)",
-        }}
-      />
     </div>
   );
 };

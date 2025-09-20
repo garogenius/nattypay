@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import Accordion from "./Accordion";
 import { motion, useInView } from "framer-motion";
+import { textVariant } from "@/utils/motion";
 import { SectionWrapper } from "@/utils/hoc";
 
 const Faqs: React.FC = () => {
@@ -63,9 +64,21 @@ const Faqs: React.FC = () => {
         ref={ref}
         animate={isInView ? "show" : "hidden"}
         initial="hidden"
-        className="w-[90%] lg:w-[88%] flex flex-col gap-10 lg:gap-20 items-center h-full pb-12 sm:pb-16 "
+        className="w-[90%] lg:w-[88%] flex flex-col gap-10 lg:gap-20 items-center h-full py-12 sm:py-16 lg:py-20"
       >
-        <div className="w-full grid grid-cols-1  gap-5 items-start">
+        <motion.div
+          variants={textVariant(0.1)}
+          className="w-full 2xs:w-[90%] xs:w-[80%] md:w-[70%] xl:w-[60%] flex flex-col items-center text-center gap-3"
+        >
+          <span className="h-1.5 w-20 rounded-full bg-primary"></span>
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-text-200 dark:text-text-400">
+            Frequently Asked Questions
+          </h2>
+          <p className="max-w-5xl text-sm sm:text-base text-text-1700 dark:text-text-800">
+            See some of the frequently asked questions from our customers about our services
+          </p>
+        </motion.div>
+        <div className="w-full grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
           {AccordionsData.map((item, index) => (
             <Accordion
               key={index}

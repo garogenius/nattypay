@@ -18,11 +18,17 @@ const Accordion = ({
     <div
       onClick={onToggle}
       className={`h-fit ${
-        isOpen ? " border-secondary" : ""
-      } bg-bg-600 dark:bg-bg-1100  shadow-lg rounded-lg py-3 xs:py-4 lg:py-6 px-4 lg:px-6 flex flex-col gap-2.5 xs:gap-4 cursor-pointer`}
+        isOpen
+          ? "border-2 border-primary shadow-xl"
+          : "border border-transparent shadow-lg"
+      } bg-bg-600 dark:bg-bg-1100 rounded-lg py-3 xs:py-4 lg:py-6 px-4 lg:px-6 flex flex-col gap-2.5 xs:gap-4 cursor-pointer`}
     >
       <div className="flex items-center justify-between gap-3">
-        <h1 className="font-semibold text-sm sm:text-base xl:text-lg text-text-200 dark:text-text-400">
+        <h1
+          className={`font-semibold text-sm sm:text-base xl:text-lg ${
+            isOpen ? "text-primary" : "text-text-200 dark:text-text-400"
+          }`}
+        >
           {title}
         </h1>
         <div className="bg-primary rounded-md p-1 xs:p-1.5 text-base sm:text-lg text-white">

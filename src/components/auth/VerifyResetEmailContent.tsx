@@ -15,6 +15,7 @@ import useTimerStore from "@/store/timer.store";
 import { useRouter } from "next/navigation";
 import SpinnerLoader from "../Loader/SpinnerLoader";
 import icons from "../../../public/icons";
+import images from "../../../public/images";
 import {
   useResendVerificationCode,
   useVerifyResetEmail,
@@ -159,7 +160,10 @@ const VerifyResetEmailContent = () => {
 
   return (
     <div className="relative flex justify-center items-center w-full bg-bg-400 dark:bg-black">
-      <div className="flex flex-col justify-center items-center w-full gap-8 mt-32 sm:mt-36 lg:mt-40 xl:mt-48 mb-12 sm:mb-14 lg:mb-16 xl:mb-20">
+      <div className="absolute top-4 left-4 z-20 hidden sm:block">
+        <Image src={images.logo2} alt="logo" className="w-30 h-20 cursor-pointer" onClick={() => navigate("/")} />
+      </div>
+      <div className="flex flex-col justify-center items-center w-full gap-8 mt-20 sm:mt-36 lg:mt-40 xl:mt-48 mb-12 sm:mb-14 lg:mb-16 xl:mb-20">
         <motion.div
           whileInView={{ opacity: [0, 1] }}
           transition={{ duration: 0.5, type: "tween" }}
@@ -170,11 +174,8 @@ const VerifyResetEmailContent = () => {
               <Image
                 className="w-8 2xs:w-10 xs:w-12 "
                 src={icons.authIcons.emailIcon}
-                alt="logo"
-                onClick={() => {
-                  navigate("/");
-                }}
-              />{" "}
+                alt="email"
+              />
             </div>
             <div className="w-full 2xs:w-[90%] xs:w-[80%] sm:w-[70%] md:w-[60%] flex flex-col justify-center items-center gap-0.5 sm:gap-2 text-text-700 dark:text-text-900">
               <h2 className="text-xl xs:text-2xl xl:text-3xl font-semibold">

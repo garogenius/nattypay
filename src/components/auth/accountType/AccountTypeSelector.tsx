@@ -1,101 +1,105 @@
 "use client";
 
-import useNavigate from "@/hooks/useNavigate";
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
+import { useRouter } from "next/navigation";
+import useUserStore from "@/store/user.store";
+import { motion, useInView } from "framer-motion";
+import CustomButton from "@/components/shared/Button";
+
+type AccountOption = {
+  type: "personal" | "business";
+  title: string;
+  description: string;
+};
+
+const accountOptions: AccountOption[] = [
+  {
+    type: "personal",
+    title: "Personal Account",
+    description: "for individuals"
+  },
+  {
+    type: "business",
+    title: "Business Account",
+    description: "for corporate entities"
+  }
+];
 
 const AccountTypeSelector = () => {
-  const navigate = useNavigate();
-  const [selectedType, setSelectedType] = useState<string>("");
+  const [selectedType, setSelectedType] = useState<"" | "personal" | "business">("");
+  const router = useRouter();
+  const ref = useRef(null);
+  const isInView = useInView(ref, { amount: 0.25 });
 
-  const handleTypeChange = (type: "personal" | "business") => {
+  const handleAccountTypeSelect = (type: "personal" | "business") => {
     setSelectedType(type);
   };
 
+  const handleContinue = () => {
+    if (selectedType) {
+      // Store the account type in localStorage for the signup process
+      localStorage.setItem('signupAccountType', selectedType);
+      // Navigate to the correct signup page based on the selected type
+      if (selectedType === 'personal') {
+        router.push('/signup/personal');
+      } else if (selectedType === 'business') {
+        router.push('/signup/business');
+      }
+    }
+  };
+
   return (
-    <div className="w-full h-full flex flex-col gap-4">
-      <label className="relative flex items-center px-4 2xs:px-5 py-4 2xs:py-5 bg-bg-600 dark:bg-bg-1100 rounded-lg sm:rounded-xl cursor-pointer hover:opacity-80">
-        <input
-          type="radio"
-          name="accountType"
-          value="personal"
-          className="hidden"
-          checked={selectedType === "personal"}
-          onChange={() => {
-            handleTypeChange("personal");
-            navigate("/signup/personal");
-          }}
-        />
-        <div className="flex-1">
-          <h3 className="text-base 2xs:text-lg md:text-xl font-medium text-text-200 dark:text-text-1300">
-            Personal Account
-          </h3>
-          <p className="text-text-700 dark:text-text-800 text-xs 2xs:text-sm">
-            for individuals
-          </p>
-        </div>
-        <div
-          className={`w-5 h-5 sm:w-6 sm:h-6 border-2 ${
-            selectedType === "personal"
-              ? "border-primary"
-              : "border-border-200 dark:border-border-100"
-          } rounded-full flex items-center justify-center`}
-        >
+    <motion.div
+      ref={ref}
+      animate={isInView ? "show" : "hidden"}
+      initial="hidden"
+      className="flex flex-col gap-6 w-full"
+    >
+      <div className="flex flex-col gap-3 w-full">
+        {accountOptions.map((option) => (
           <div
-            className={`w-3 h-3 bg-primary rounded-full ${
-              selectedType === "personal" ? "block" : "hidden"
+            key={option.type}
+            onClick={() => handleAccountTypeSelect(option.type)}
+            className={`flex flex-col items-start gap-1 p-4 rounded-lg border-2 transition-all duration-200 w-full text-left cursor-pointer ${
+              selectedType === option.type
+                ? 'border-primary bg-primary/5'
+                : 'border-gray-200 dark:border-gray-700 hover:border-primary/50 hover:bg-primary/5'
             }`}
-          />
-        </div>
-      </label>
+          >
+            <div className="flex items-center w-full">
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-text-200 dark:text-text-400">
+                  {option.title}
+                </h3>
+                <p className="text-sm text-text-200/70 dark:text-text-400/70">
+                  {option.description}
+                </p>
+              </div>
+              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                selectedType === option.type
+                  ? 'border-primary bg-primary'
+                  : 'border-gray-300 dark:border-gray-600'
+              }`}>
+                {selectedType === option.type && (
+                  <div className="w-2.5 h-2.5 bg-white rounded-full"></div>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
 
-      <label className="relative flex items-center px-4 2xs:px-5 py-4 2xs:py-5  bg-bg-600 dark:bg-bg-1100 rounded-lg sm:rounded-xl cursor-pointer hover:opacity-80">
-        <input
-          type="radio"
-          name="accountType"
-          value="business"
-          className="hidden"
-          checked={selectedType === "business"}
-          // onChange={() => {
-          //   // handleTypeChange("business");
-
-          //   ErrorToast({
-          //     title: "Business account not available",
-          //     descriptions: ["Please try again later"],
-          //   });
-
-          //   // SuccessToast({
-          //   //   title: "Business account selected",
-          //   //   description: "Please try again later",
-          //   // });
-          // }}
-          onChange={() => {
-            handleTypeChange("business");
-            navigate("/signup/business");
-          }}
-        />
-        <div className="flex-1">
-          <h3 className="text-base 2xs:text-lg md:text-xl font-medium text-text-200 dark:text-text-1300">
-            Business Account
-          </h3>
-          <p className="text-text-700 dark:text-text-800 text-xs 2xs:text-sm">
-            for corporate entities
-          </p>
+      {selectedType && (
+        <div className="mt-2">
+          <CustomButton
+            onClick={handleContinue}
+            className="w-full py-3 bg-primary text-white hover:bg-primary/90 transition-colors"
+          >
+            Continue
+          </CustomButton>
         </div>
-        <div
-          className={`w-5 h-5 sm:w-6 sm:h-6 border-2 ${
-            selectedType === "business"
-              ? "border-primary"
-              : "border-border-200 dark:border-border-100"
-          } rounded-full flex items-center justify-center`}
-        >
-          <div
-            className={`w-3 h-3 bg-primary rounded-full ${
-              selectedType === "business" ? "block" : "hidden"
-            }`}
-          />
-        </div>
-      </label>
-    </div>
+      )}
+    </motion.div>
   );
 };
 

@@ -1,3 +1,6 @@
+@import 'swiper/css';
+@import 'swiper/css/navigation';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -61,4 +64,15 @@ input[type="number"] {
 
 .animate-heartbeat {
   animation: heartbeat 1.5s ease-in-out infinite;
+}
+
+/* Swiper navigation styles */
+.swiper-button-prev,
+.swiper-button-next {
+  color: #D4B139; /* primary */
+  z-index: 10;
+}
+
+.swiper-button-disabled {
+  opacity: 0.35;
 }

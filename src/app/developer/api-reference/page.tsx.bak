@@ -1,0 +1,478 @@
+"use client";
+
+import Link from "next/link";
+import { useState, useMemo } from "react";
+import DeveloperHeader from "@/components/developer/DeveloperHeader";
+
+const CopyButton = ({ text }: { text: string }) => (
+  <button
+    onClick={(e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      navigator.clipboard.writeText(text);
+    }}
+    className="text-[11px] px-2 py-1 rounded border border-white/20 hover:bg-white/10"
+  >
+    Copy
+  </button>
+);
+
+const Badge = ({ method }: { method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE" }) => {
+  const color = useMemo(() => {
+    switch (method) {
+      case "GET":
+        return "bg-emerald-600";
+      case "POST":
+        return "bg-blue-600";
+      case "PUT":
+      case "PATCH":
+        return "bg-yellow-600";
+      case "DELETE":
+        return "bg-rose-600";
+    }
+  }, [method]);
+  return (
+    <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold text-white ${color}`}>
+      {method}
+    </span>
+  );
+};
+
+// Types
+type ApiEndpoint = {
+  title: string;
+  description: string;
+  method: string;
+  endpoint: string;
+  headers: { name: string; type: string; example: string }[];
+  body: string;
+  curl: string;
+  response: string;
+};
+
+type ApiData = {
+  [key: string]: ApiEndpoint[];
+};
+
+// API DATA CONFIG
+const apiData: ApiData = {
+  Auth: [
+    {
+      title: "Register User",
+      description: "Register a new user.",
+      method: "POST",
+      endpoint: "https://backend-api-production-e3f2.up.railway.app/api/v1/auth/register-user",
+      headers: [
+        { name: "authorization", type: "Bearer Token", example: "Bearer <token>" },
+        { name: "x-api-key", type: "string", example: "2442555352662653" },
+      ],
+      body: `{
+  "username": "AbuksLC",
+  "fullname": "Abuks Inc",
+  "email": "abuksinccc@gmail.com",
+  "password": "Caicedo123",
+  "dateOfBirth": "8-Mar-1996",
+  "countryCode": "NGN",
+  "companyRegistrationNumber":"RC-234555",
+  "accountType":"BUSINESS",
+  "referralCode": ""
+}`,
+      curl: `curl --location 'https://backend-api-production-e3f2.up.railway.app/api/v1/auth/register-business' \\
+--header 'x-api-key: 2442555352662653' \\
+--data-raw '{
+  "username": "AbuksLC",
+  "fullname": "Abuks Inc",
+  "email": "abuksinccc@gmail.com",
+  "password": "Caicedo123",
+  "dateOfBirth": "8-Mar-1996",
+  "countryCode": "NGN",
+  "companyRegistrationNumber":"RC-234555",
+  "accountType":"BUSINESS",
+  "referralCode": ""
+}'`,
+      response: `{
+  "message": "User created successfully",
+  "user": {
+    "id": "4c8c3a7e-58a8-4c3c-8915-d73317ae4f43",
+    "email": "abuksinccc@gmail.com",
+    "username": "AbuksLC",
+    "fullname": "Abuks Inc",
+    "createdAt": "2025-06-01T20:55:55.374Z",
+    "status": "active",
+    "accountType": "BUSINESS"
+  },
+  "statusCode": 200
+}`,
+    },
+  ],
+  User: [
+    {
+      title: "Verify Phone Number",
+      description: "Verify user phone number with OTP.",
+      method: "POST",
+      endpoint: "https://backend-api-production-e3f2.up.railway.app/api/v1/user/verify-phoneNumber",
+      headers: [
+        { name: "authorization", type: "Bearer Token", example: "Bearer <token>" },
+        { name: "x-api-key", type: "string", example: "2442555352662653" },
+      ],
+      body: `{
+  "email": "abrahamosazee3@gmail.com",
+  "otp": "8773"
+}`,
+      curl: `curl --location 'https://backend-api-production-e3f2.up.railway.app/api/v1/user/verify-phoneNumber' \\
+--header 'x-api-key: 2442555352662653' \\
+--data-raw '{
+--data '{
+  "email": "abrahamosazee3@gmail.com",
+  "otp": "8773"
+      headers: [
+        { name: "authorization", type: "Bearer Token", example: "Bearer <token>" },
+        { name: "x-api-key", type: "string", example: "2442555352662653" },
+      ],
+      body: `{
+  "qrCode": "data:image/png;base64,iVBOR..."
+}`,
+      curl: `curl --location 'https://backend-api-production-e3f2.up.railway.app/api/v1/wallet/decode-qrcode' \\
+--header 'x-api-key: 2442555352662653' \\
+--data '{
+  "qrCode": "data:image/png;base64,iVBOR..."
+}'`,
+      response: `{
+  "message": "QR Code decoded successfully",
+  "statusCode": 200,
+  "data": {
+    "bankCode": "090286",
+    "accountNumber": "8024123703",
+    "currency": "NGN",
+    "amount": "500"
+  }
+}`,
+    },
+  ],
+  Bill: [
+    {
+      title: "Pay for School Fee",
+      description: "Pay school fees using bill API.",
+      method: "POST",
+      endpoint: "https://backend-api-production-e3f2.up.railway.app/api/v1/bill/school/pay",
+      headers: [
+        { name: "x-api-key", type: "string", example: "2442555352662653" },
+      ],
+      body: `{
+  "itemCode": "",
+  "billerCode": "",
+  "currency": "",
+  "amount": ""
+}`,
+      curl: `curl --location 'https://backend-api-production-e3f2.up.railway.app/api/v1/bill/school/pay' \\
+--header 'x-api-key: 2442555352662653' \\
+--data '{
+  "itemCode": "",
+  "billerCode": "",
+  "currency": "",
+  "amount": ""
+}'`,
+      response: `No response body (204)`
+    },
+  ],
+  User: [
+    {
+      title: "Verify Wallet PIN",
+      description: "Verify user's wallet PIN.",
+      method: "POST",
+      endpoint: "https://backend-api-production-e3f2.up.railway.app/api/v1/user/verify-wallet-pin",
+      headers: [
+        { name: "authorization", type: "Bearer Token", example: "Bearer <token>" },
+        { name: "x-api-key", type: "string", example: "2442555352662653" },
+      ],
+      body: `{
+  "pin": "1234"
+}`,
+      curl: `curl --location 'https://backend-api-production-e3f2.up.railway.app/api/v1/user/verify-wallet-pin' \
+--header 'x-api-key: 2442555352662653' \
+--data '{
+  "pin": "1234"
+}'`,
+      response: `No response body (204)`
+    },
+    {
+      title: "Verify NIN",
+      description: "Verify user's National Identity Number (NIN).",
+      method: "POST",
+      endpoint: "https://backend-api-production-e3f2.up.railway.app/api/v1/user/verify-nin",
+      headers: [
+        { name: "authorization", type: "Bearer Token", example: "Bearer <token>" },
+        { name: "x-api-key", type: "string", example: "2442555352662653" },
+      ],
+      body: `{
+  "nin": ""
+}`,
+      curl: `curl --location 'https://backend-api-production-e3f2.up.railway.app/api/v1/user/verify-nin' \
+--header 'x-api-key: 2442555352662653' \
+--data '{
+  "nin": ""
+}'`,
+      response: `No response body (204)`
+    },
+    {
+      title: "Report Scam",
+      description: "Report a scam incident.",
+      method: "POST",
+      endpoint: "https://backend-api-production-e3f2.up.railway.app/api/v1/user/report-scam",
+      headers: [
+        { name: "authorization", type: "Bearer Token", example: "Bearer <token>" },
+        { name: "x-api-key", type: "string", example: "2442555352662653" },
+      ],
+      body: `{
+  "screenshot": "[File]",
+  "title": "title of the report scam",
+  "description": "description"
+}`,
+      curl: `curl --location 'https://backend-api-production-e3f2.up.railway.app/api/v1/user/report-scam' \
+--header 'x-api-key: 2442555352662653' \
+--form 'screenshot=@"path/to/file"' \
+--form 'title="title of the report scam"' \
+--form 'description="description"'`,
+      response: `{
+  "message": "Information retrieve successfully",
+  "statusCode": 200
+}`
+    },
+    {
+      title: "Create Business Account",
+      description: "Create a business account for a user.",
+      method: "POST",
+      endpoint: "https://backend-api-production-e3f2.up.railway.app/api/v1/user/create-business-account",
+      headers: [
+        { name: "authorization", type: "Bearer Token", example: "Bearer <token>" },
+        { name: "x-api-key", type: "string", example: "2442555352662653" },
+      ],
+      body: `{
+  "bvn": "22222222226",
+  "companyRegistrationNumber": "RC34564567"
+}`,
+      curl: `curl --location 'https://backend-api-production-e3f2.up.railway.app/api/v1/user/create-business-account' \\
+--header 'x-api-key: 2442555352662653' \\
+--data '{
+  "bvn": "22222222226",
+  "companyRegistrationNumber": "RC34564567"
+}'`,
+      response: `{
+  "message": "Business wallet created successfully",
+  "statusCode": 201,
+  "data": {
+    "id": "65754e0b-43b8-458a-8ef5-36f6753c38a3",
+    "userId": "790aebfd-316b-4bcf-88ee-5a64beea797c",
+    "balance": "0",
+    "currency": "NGN",
+    "accountName": "nattypay/Abuks llc",
+    "bankName": "WEMA BANK",
+    "bankCode": null,
+    "accountNumber": "8548729462",
+    "createdAt": "2024-12-27T01:53:45.847Z",
+    "updatedAt": "2024-12-27T01:53:45.847Z",
+    "accountRef": "URF_1735264416834_7779635"
+  }
+}`
+    },
+    {
+      title: "Set Wallet PIN",
+      description: "Set the wallet PIN for a user.",
+      method: "POST",
+      endpoint: "https://backend-api-production-e3f2.up.railway.app/api/v1/user/set-wallet-pin",
+      headers: [
+        { name: "authorization", type: "Bearer Token", example: "Bearer <token>" },
+        { name: "x-api-key", type: "string", example: "2442555352662653" },
+      ],
+      body: `{
+  "pin": "1234"
+}`,
+      curl: `curl --location 'https://backend-api-production-e3f2.up.railway.app/api/v1/user/set-wallet-pin' \\
+--header 'x-api-key: 2442555352662653' \\
+--data '{
+  "pin": "1234"
+}'`,
+      response: "No response body (204 No Content)"
+    },
+    {
+      title: "Change PIN",
+      description: "Change the user's wallet PIN.",
+      method: "PUT",
+      endpoint: "https://backend-api-production-e3f2.up.railway.app/api/v1/user/change-pin",
+      headers: [
+        { name: "authorization", type: "Bearer Token", example: "Bearer <token>" },
+        { name: "x-api-key", type: "string", example: "2442555352662653" },
+      ],
+      body: `{
+  "oldPin": "1245",
+  "newPin": "1234"
+}`,
+      curl: `curl --location --request PUT 'https://backend-api-production-e3f2.up.railway.app/api/v1/user/change-pin' \\
+--header 'x-api-key: 2442555352662653' \\
+--data '{
+  "oldPin": "1245",
+  "newPin": "1234"
+}'`,
+      response: "No response body (204 No Content)"
+    },
+    {
+      title: "Create Account",
+      description: "Create a user account with BVN verification.",
+      method: "POST",
+      endpoint: "https://backend-api-production-e3f2.up.railway.app/api/v1/user/create-account",
+      headers: [
+        { name: "authorization", type: "Bearer Token", example: "Bearer <token>" },
+        { name: "x-api-key", type: "string", example: "2442555352662653" },
+      ],
+      body: `{
+  "bvn": "22222222226"
+}`,
+      curl: `curl --location 'https://backend-api-production-e3f2.up.railway.app/api/v1/user/create-account' \\
+--header 'x-api-key: 2442555352662653' \\
+--data '{
+  "bvn": "22222222226"
+}'`,
+      response: "No response body (200 OK)"
+    },
+    {
+      title: "Change Passcode",
+      description: "Change the user's passcode.",
+      method: "PUT",
+      endpoint: "https://backend-api-production-e3f2.up.railway.app/api/v1/user/change-passcode",
+      headers: [
+        { name: "authorization", type: "Bearer Token", example: "Bearer <token>" },
+        { name: "x-api-key", type: "string", example: "2442555352662653" },
+      ],
+      body: `{
+  "oldPasscode": "123456",
+  "newPasscode": "123452"
+}`,
+      curl: `curl --location --request PUT 'https://backend-api-production-e3f2.up.railway.app/api/v1/user/change-passcode' \\
+--header 'x-api-key: 2442555352662653' \\
+--data '{
+  "oldPasscode": "123456",
+  "newPasscode": "123452"
+}'`,
+      response: `{
+  "message": "Passcode updated successfully",
+  "statusCode": 200
+}`
+    }
+  ]
+};
+
+export default function ApiReferencePage() {
+  const [activeCategory, setActiveCategory] = useState("Auth");
+  const [activeEndpoint, setActiveEndpoint] = useState(apiData["Auth"][0]);
+
+  return (
+    <div className="w-full bg-white text-gray-900 overflow-x-hidden">
+      <DeveloperHeader />
+
+      <main className="w-full flex py-8 md:py-12 px-36 sm:px-32 lg:px-56">
+        {/* Sidebar */}
+        <aside className="w-64 border-r border-gray-200 hidden md:block">
+          <nav className="p-4 space-y-4">
+            {Object.keys(apiData).map((category) => (
+              <div key={category}>
+                <h3 className="font-semibold text-gray-800 mb-2">{category}</h3>
+                <ul className="space-y-1">
+                  {(apiData[category as keyof typeof apiData]).map((endpoint, idx) => (
+                    <li key={idx}>
+                      <button
+                        onClick={() => {
+                          setActiveCategory(category);
+                          setActiveEndpoint(endpoint);
+                        }}
+                        className={`w-full text-left text-sm px-2 py-1 rounded hover:bg-gray-100 ${
+                          activeEndpoint.title === endpoint.title ? "bg-gray-200" : ""
+                        }`}
+                      >
+                        {endpoint.title}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </nav>
+        </aside>
+
+        {/* Main Content */}
+        <div className="flex-1 px-6">
+          <div className="space-y-8">
+            {/* Page Header */}
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-4">{activeEndpoint.title}</h1>
+              <p className="text-gray-600 text-lg">{activeEndpoint.description}</p>
+            </div>
+
+            {/* Headers and cURL Request */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Headers Section */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">Headers</h3>
+                <div className="space-y-3">
+                  {activeEndpoint.headers.map((header, idx) => (
+                    <div key={idx} className="flex items-start gap-4">
+                      <div className="min-w-32">
+                        <p className="text-sm font-medium text-gray-900">{header.name}</p>
+                        <p className="text-xs text-gray-500">{header.type}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600">
+                          Set value to <code className="px-1 py-0.5 bg-gray-100 rounded text-sm">{header.example}</code>
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* cURL Request */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">cURL Request</h3>
+                <div className="rounded-xl border border-gray-200 bg-[#334155] text-white overflow-hidden">
+                  <div className="flex items-center justify-between px-4 py-2 text-xs bg-[#475569]">
+                    <div className="flex items-center gap-2">
+                      <Badge method={activeEndpoint.method as any} />
+                      <span>{activeEndpoint.endpoint.replace("https://backend-api-production-e3f2.up.railway.app", "")}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span>cURL</span>
+                      <CopyButton text={activeEndpoint.curl} />
+                    </div>
+                  </div>
+                  <pre className="px-4 py-4 text-xs overflow-x-auto whitespace-pre text-green-300">{activeEndpoint.curl}</pre>
+                </div>
+              </div>
+            </div>
+
+            {/* Body Parameters and Sample Response */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
+              {/* Body Parameters Section */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">Body Parameters</h3>
+                <div className="h-full">
+                  <pre className="h-full px-4 py-3 bg-gray-100 rounded text-sm overflow-x-auto whitespace-pre">{activeEndpoint.body}</pre>
+                </div>
+              </div>
+
+              {/* Sample Response */}
+              <div className="rounded-xl border border-gray-200 bg-[#334155] text-white overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-2 text-xs bg-[#475569]">
+                  <span>Sample Response</span>
+                  <div className="flex items-center gap-2">
+                    <span>200 OK</span>
+                    <CopyButton text={activeEndpoint.response} />
+                  </div>
+                </div>
+                <pre className="px-4 py-4 text-xs overflow-x-auto whitespace-pre text-green-300">{activeEndpoint.response}</pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}

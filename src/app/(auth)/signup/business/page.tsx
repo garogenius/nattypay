@@ -1,8 +1,7 @@
 import SignupBusinessContent from "@/components/auth/signup/SignupBusinessContent";
 
-
-const SignupPersonalPage = () => {
+const SignupBusinessPage = () => {
   return <SignupBusinessContent />;
 };
 
-export default SignupPersonalPage;
+export default SignupBusinessPage;

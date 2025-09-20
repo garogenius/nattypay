@@ -8,6 +8,7 @@ import { Toaster } from "react-hot-toast";
 import ReactQueryProvider from "@/providers/ReactQueryProvider";
 import UserProvider from "@/providers/UserProvider";
 import "react-datepicker/dist/react-datepicker.css";
+import ClientOnlyWelcome from "@/components/ClientOnlyWelcome";
 
 // Initialize Inter font
 const inter = Inter({
@@ -26,7 +27,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className="dark" data-mode="dark">
       <body className={inter.className}>
         <ThemeProvider>
           <ReactQueryProvider>
@@ -47,6 +48,7 @@ export default function RootLayout({
                 }}
               />
               <NextTopLoader color="#D4B139" showSpinner={false} />
+              <ClientOnlyWelcome />
               <main className="w-full overflow-hidden">{children}</main>
             </UserProvider>
           </ReactQueryProvider>
