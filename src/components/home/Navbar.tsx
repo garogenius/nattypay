@@ -10,6 +10,7 @@ import { NavItems } from "@/constants/index";
 import CustomButton from "../shared/Button";
 import cn from "classnames";
 import { SlClose, SlMenu } from "react-icons/sl";
+import { SlArrowDown, SlArrowUp } from "react-icons/sl";
 import { motion, AnimatePresence } from "framer-motion";
 import DownloadPopupModal from "../modals/DownloadPopupModal";
 
@@ -20,6 +21,7 @@ const Navbar = () => {
   const [open, setOpen] = useState(false);
   const [openDownload, setOpenDownload] = useState(false);
   const [devMenuOpen, setDevMenuOpen] = useState(false);
+  const [mobileDevOpen, setMobileDevOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Close dropdown when clicking outside
@@ -171,9 +173,10 @@ const Navbar = () => {
                 </CustomButton>
               </Link>
               <button
-                onClick={() => setOpen(true)}
+                onClick={() => setOpen((v) => !v)}
                 className="p-2 rounded-full text-text-200 dark:text-text-400 hover:bg-bg-500 transition-colors"
                 aria-label="Menu"
+                aria-expanded={open}
               >
                 <SlMenu className="text-xl" />
               </button>
@@ -190,7 +193,7 @@ const Navbar = () => {
                 exit="exit"
                 className="fixed inset-0 bg-bg-700 dark:bg-bg-1000 z-50 overflow-y-auto h-screen"
               >
-                <div className="flex flex-col items-center w-full bg-inherit h-full">
+                <div className="flex flex-col items-stretch w-full bg-inherit h-full">
                   <div className="flex items-center justify-between w-full pt-10 pb-6 px-6">
                     <div className="w-10"></div>
                     <SlClose
@@ -199,13 +202,14 @@ const Navbar = () => {
                     />
                   </div>
 
-                  <div className="w-full bg-transparent flex justify-center items-center flex-col gap-2.5 xs:gap-4">
+                  <div className="w-full bg-transparent flex justify-start items-stretch flex-col gap-1.5 xs:gap-2">
+                    {/* Primary Links */}
                     {NavItems.map((item) => (
                       <Link
                         href={item?.path}
                         key={item?.id}
                         className={cn(
-                          `w-full text-center no-underline py-3 text-base hover:text-secondary`,
+                          `w-full text-left no-underline px-6 py-3 text-base hover:text-secondary border-b border-bg-600/40`,
                           {
                             "text-secondary dark:text-primary dark:bg-bg-1100":
                               isActive(item.path),
@@ -217,48 +221,79 @@ const Navbar = () => {
                         {item?.title}
                       </Link>
                     ))}
-                    {/* Developer Links (Mobile) */}
-                    <div className="w-full pt-2">
-                      <div className="px-6 py-2 text-left text-text-500 dark:text-text-600 text-sm uppercase tracking-wide">
-                        Developer
-                      </div>
-                      <Link
-                        href="/developer/api-documentation"
-                        className={cn(
-                          `w-full text-center no-underline py-3 text-base hover:text-secondary block`,
-                          {
-                            "text-secondary dark:text-primary dark:bg-bg-1100": isActive(
-                              "/developer/api-documentation"
-                            ),
-                            "text-text-200 dark:text-text-400": !isActive(
-                              "/developer/api-documentation"
-                            ),
-                          }
-                        )}
-                        onClick={() => setOpen(false)}
+                    {/* Developer Dropdown (Mobile) */}
+                    <div className="w-full">
+                      <button
+                        className="w-full flex items-center justify-between px-6 py-3 text-base no-underline border-b border-bg-600/40 text-text-200 dark:text-text-400 hover:text-secondary"
+                        onClick={() => setMobileDevOpen((v) => !v)}
+                        aria-expanded={mobileDevOpen}
+                        aria-controls="mobile-dev-submenu"
                       >
-                        API Documentation
-                      </Link>
-                      <Link
-                        href="/developer/api-reference"
-                        className={cn(
-                          `w-full text-center no-underline py-3 text-base hover:text-secondary block`,
-                          {
-                            "text-secondary dark:text-primary dark:bg-bg-1100": isActive(
-                              "/developer/api-reference"
-                            ),
-                            "text-text-200 dark:text-text-400": !isActive(
-                              "/developer/api-reference"
-                            ),
-                          }
+                        <span>Developer</span>
+                        {mobileDevOpen ? (
+                          <SlArrowUp className="text-lg" />
+                        ) : (
+                          <SlArrowDown className="text-lg" />
                         )}
-                        onClick={() => setOpen(false)}
-                      >
-                        API Reference
-                      </Link>
+                      </button>
+                      <AnimatePresence initial={false}>
+                        {mobileDevOpen && (
+                          <motion.div
+                            id="mobile-dev-submenu"
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.25, ease: "easeInOut" }}
+                            className="overflow-hidden"
+                          >
+                            <div className="flex flex-col">
+                              <Link
+                                href="/developer/api-documentation"
+                                className={cn(
+                                  `w-full text-left no-underline px-8 py-3 text-base hover:text-secondary border-b border-bg-600/40`,
+                                  {
+                                    "text-secondary dark:text-primary dark:bg-bg-1100": isActive(
+                                      "/developer/api-documentation"
+                                    ),
+                                    "text-text-200 dark:text-text-400": !isActive(
+                                      "/developer/api-documentation"
+                                    ),
+                                  }
+                                )}
+                                onClick={() => {
+                                  setOpen(false);
+                                  setMobileDevOpen(false);
+                                }}
+                              >
+                                API Documentation
+                              </Link>
+                              <Link
+                                href="/developer/api-reference"
+                                className={cn(
+                                  `w-full text-left no-underline px-8 py-3 text-base hover:text-secondary`,
+                                  {
+                                    "text-secondary dark:text-primary dark:bg-bg-1100": isActive(
+                                      "/developer/api-reference"
+                                    ),
+                                    "text-text-200 dark:text-text-400": !isActive(
+                                      "/developer/api-reference"
+                                    ),
+                                  }
+                                )}
+                                onClick={() => {
+                                  setOpen(false);
+                                  setMobileDevOpen(false);
+                                }}
+                              >
+                                API Reference
+                              </Link>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
 
-                    <Link href="/account-type" className="w-[90%] mb-8">
+                    <Link href="/account-type" className="w-full px-6 mb-8">
                       <CustomButton
                         onClick={() => setOpen(false)}
                         className="mt-2 w-full rounded-2xl max-lg:px-6 bg-secondary"

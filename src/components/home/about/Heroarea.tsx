@@ -5,33 +5,34 @@ import { SectionWrapper } from "@/utils/hoc";
 import { textVariant, fadeIn, staggerContainer } from "@/utils/motion";
 import { useRef } from "react";
 import Image from "next/image";
+import images from "../../../../public/images";
 
 // Core Values Data (make sure to import or define this)
 const CoreValuesData = [
   {
     title: "Integrity",
     description: "We uphold the highest standards of integrity in all our actions.",
-    image: "/images/icons/integrity.svg"
+    image: images.about.coreValues3
   },
   {
     title: "Innovation",
     description: "We embrace creativity and innovation to drive financial solutions.",
-    image: "/images/icons/innovation.svg"
+    image: images.about.coreValues2
   },
   {
     title: "Customer Focus",
     description: "Our customers are at the heart of everything we do.",
-    image: "/images/icons/customer.svg"
+    image: images.about.coreValues1
   },
   {
     title: "Excellence",
     description: "We strive for excellence in all aspects of our services.",
-    image: "/images/icons/excellence.svg"
+    image: images.about.coreValues1
   },
   {
     title: "Teamwork",
     description: "We believe in the power of collaboration and teamwork.",
-    image: "/images/icons/teamwork.svg"
+    image: images.about.coreValues2
   }
 ];
 
@@ -242,7 +243,7 @@ const Heroarea = () => {
                       alt={item.title}
                       width={24}
                       height={24}
-                      className="w-5 h-5 text-primary"
+                      className="w-5 h-5 brightness-0 invert"
                     />
                   </div>
                   <div>

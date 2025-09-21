@@ -27,6 +27,7 @@ const accountOptions: AccountOption[] = [
 
 const AccountTypeSelector = () => {
   const [selectedType, setSelectedType] = useState<"" | "personal" | "business">("");
+  const [submitting, setSubmitting] = useState(false);
   const router = useRouter();
   const ref = useRef(null);
   const isInView = useInView(ref, { amount: 0.25 });
@@ -37,13 +38,20 @@ const AccountTypeSelector = () => {
 
   const handleContinue = () => {
     if (selectedType) {
-      // Store the account type in localStorage for the signup process
-      localStorage.setItem('signupAccountType', selectedType);
-      // Navigate to the correct signup page based on the selected type
-      if (selectedType === 'personal') {
-        router.push('/signup/personal');
-      } else if (selectedType === 'business') {
-        router.push('/signup/business');
+      try {
+        setSubmitting(true);
+        // Store the account type in localStorage for the signup process
+        localStorage.setItem('signupAccountType', selectedType);
+        // Navigate to the correct signup page based on the selected type
+        if (selectedType === 'personal') {
+          router.push('/signup/personal');
+        } else if (selectedType === 'business') {
+          router.push('/signup/business');
+        }
+      } finally {
+        // In case navigation is interrupted, re-enable the button after a short delay.
+        // On successful navigation this component unmounts and this has no effect.
+        setTimeout(() => setSubmitting(false), 1500);
       }
     }
   };
@@ -93,9 +101,13 @@ const AccountTypeSelector = () => {
         <div className="mt-2">
           <CustomButton
             onClick={handleContinue}
-            className="w-full py-3 bg-primary text-white hover:bg-primary/90 transition-colors"
+            disabled={submitting}
+            aria-busy={submitting}
+            className={
+              "w-full py-3 bg-primary text-white hover:bg-primary/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+            }
           >
-            Continue
+            {submitting ? "Continuing..." : "Continue"}
           </CustomButton>
         </div>
       )}

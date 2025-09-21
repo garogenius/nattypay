@@ -18,7 +18,7 @@ const TopHero = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="inline-flex items-center px-4 py-2 rounded-full bg-primary/10 dark:bg-primary/20 mb-6"
+            className="inline-flex items-center px-4 mt-7 py-2 rounded-full bg-primary/10 dark:bg-primary/20 mb-6"
           >
             <span className="text-sm font-medium text-primary">
               About NattyPay
@@ -29,13 +29,15 @@ const TopHero = () => {
             variants={textVariant(0.2)}
             initial="hidden"
             animate="show"
-            className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-dark-primary dark:text-white mb-6"
+            className="text-4xl md:text-5xl lg:text-6xl font-bold md:tracking-tight tracking-normal text-dark-primary dark:text-white mb-6 break-words"
           >
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/70">
-              Empowering Financial
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/70 whitespace-normal">
+              {"Empowering"}
+              {"\u00A0"}
+              {"Financial"}
             </span>
-            <br className="hidden sm:block" />
-            <span className="text-dark-primary dark:text-white">Freedom Across Africa</span>
+            <br className="block" />
+            <span className="text-dark-primary dark:text-white block sm:inline">Freedom Across Africa</span>
           </motion.h1>
           
           <motion.p 

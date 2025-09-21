@@ -207,10 +207,7 @@ const SignupBusinessContent = () => {
       <div className="w-full lg:w-1/2 flex flex-col justify-center items-center bg-black min-h-screen lg:min-h-0">
         <div className="w-full max-w-xl px-4 sm:px-8 pt-20 pb-8 lg:pt-8">
           {/* Mobile Header: App logo and name (fixed at top-left) */}
-          <Link href="/" className="lg:hidden fixed top-0 left-0 z-50 inline-flex items-center gap-2 px-4 py-3 bg-bg-700/90 dark:bg-dark-primary/90 backdrop-blur">
-            <Image src={images.logo} alt="ValarPay logo" className="w-8 h-auto" />
-            <span className="text-text-200 dark:text-white font-semibold text-lg tracking-wide">VALARPAY</span>
-          </Link>
+
           <div className="text-text-200 dark:text-text-400 flex flex-col self-start justify-start items-start gap-2 md:gap-4 mb-6">
             <h1 className="text-xl lg:text-3xl font-bold">Create Business Account</h1>
             <p className="text-base xs:text-lg font-light">Follow the steps below to create your account</p>
@@ -388,7 +385,7 @@ const SignupBusinessContent = () => {
                     </div>
 
                     {currencyState && (
-                      <div className="absolute top-full my-2.5 px-1 py-2 overflow-y-auto h-fit max-h-60 w-full bg-bg-600 border dark:bg-bg-1100 border-gray-300 dark:border-border-600 rounded-md shadow-md z-10 no-scrollbar">
+                      <div className="absolute top-full my-2.5 px-1 py-2 overflow-y-auto overscroll-contain h-fit max-h-[60vh] w-full bg-bg-600 border dark:bg-bg-1100 border-gray-300 dark:border-border-600 rounded-md shadow-md z-50">
                         <SearchableDropdown
                           items={CurrencyOptions}
                           searchKey="value"
@@ -439,6 +436,7 @@ const SignupBusinessContent = () => {
                             if (currency.available) {
                               setValue("currency", currency.value);
                               clearErrors("currency");
+                              setCurrencyState(false);
                             } else {
                               setCurrencyState(false);
                               ErrorToast({

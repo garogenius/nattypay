@@ -10,21 +10,21 @@ const AccountTypePage = () => {
       {/* Mobile Logo */}
       <div className="absolute top-6 left-6 z-50 lg:hidden">
         <Link href="/">
-          <Image
+          {/* <Image
             src="/images/logo.svg"
             alt="NattyPay Logo"
             width={120}
             height={40}
             className="h-10 w-auto"
             priority
-          />
+          /> */}
         </Link>
       </div>
 
       {/* Left side - Image with overlay */}
       <div className="hidden lg:block lg:w-3/5 relative">
         {/* Desktop Logo at top-left */}
-        <div className="absolute top-6 left-6 z-50">
+        <div className="absolute top-6 left-6 z-50 hidden lg:block">
           <Link href="/">
             <Image
               src="/images/logo.svg"
