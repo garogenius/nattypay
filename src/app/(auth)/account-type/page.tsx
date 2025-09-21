@@ -22,7 +22,7 @@ const AccountTypePage = () => {
       </div>
 
       {/* Left side - Image with overlay */}
-      <div className="hidden lg:block lg:w-3/5 relative">
+      <div className="hidden lg:block lg:w-7/12 relative">
         {/* Desktop Logo at top-left */}
         <div className="absolute top-6 left-6 z-50 hidden lg:block">
           <Link href="/">
@@ -40,8 +40,8 @@ const AccountTypePage = () => {
       </div>
 
       {/* Right side - Form */}
-      <div className="flex w-full flex-col items-center justify-center bg-black p-6 sm:p-8 lg:w-2/5 lg:overflow-y-auto">
-        <div className="w-full max-w-sm space-y-8">
+      <div className="flex w-full flex-col items-center justify-center bg-black p-6 sm:p-8 lg:w-5/12 lg:overflow-y-auto">
+        <div className="w-full max-w-xl sm:max-w-2xl space-y-8">
           <div className="text-center">
             <h1 className="text-2xl font-bold text-white sm:text-3xl">
               Choose Account Type
