@@ -153,7 +153,7 @@ const LoginContent = () => {
 
   return (
     <div className="relative flex justify-center items-center w-full bg-bg-400 dark:bg-black">
-      <div className="absolute top-4 left-4 z-20">
+      <div className="hidden sm:block absolute top-4 left-4 z-20">
         <Image src={images.logo2} alt="logo" className="w-30 h-20 cursor-pointer" onClick={() => navigate("/")} />
       </div>
       <div className="flex flex-col justify-center items-center w-full gap-8 mt-16 sm:mt-20 lg:mt-24 xl:mt-28 mb-8 sm:mb-10 lg:mb-12 xl:mb-14">
