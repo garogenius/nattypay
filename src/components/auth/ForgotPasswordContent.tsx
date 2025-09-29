@@ -78,29 +78,73 @@ const ForgotPasswordContent = () => {
   };
 
   return (
-    <div className="relative flex justify-center items-center w-full bg-bg-400 dark:bg-black">
-      <div className="absolute top-4 left-4 z-20 hidden sm:block">
-        <Image src={images.logo2} alt="logo" className="w-30 h-20 cursor-pointer" onClick={() => navigate("/")} />
+    <div className="relative flex h-full min-h-screen w-full overflow-hidden bg-black">
+      {/* Mobile Logo */}
+      <div className="absolute top-6 left-6 z-50 lg:hidden">
+        <Image
+          src={images.logo2}
+          alt="logo"
+          className="w-24 h-12 cursor-pointer"
+          onClick={() => navigate("/")}
+        />
       </div>
-      <div className="flex flex-col justify-center items-center w-full gap-8 mt-20 sm:mt-36 lg:mt-40 xl:mt-48 mb-12 sm:mb-14 lg:mb-16 xl:mb-20">
+
+      {/* Left side - Image with overlay and content */}
+      <div className="hidden lg:block lg:w-7/12 relative">
+        {/* Desktop Logo at top-left */}
+        <div className="absolute top-6 left-6 z-50 hidden lg:block">
+          <Image
+            src={images.logo2}
+            alt="logo"
+            className="w-28 h-14 cursor-pointer"
+            onClick={() => navigate("/")}
+          />
+        </div>
+        {/* Background image */}
+        <div className="absolute inset-0">
+          <Image
+            src={images.auth.accountTypeDescription}
+            alt="auth background"
+            fill
+            priority
+            className="object-cover"
+          />
+          <div className="absolute inset-0 bg-black/80" />
+        </div>
+        {/* Overlay text */}
+        <div className="relative z-10 h-full w-full flex items-center">
+          <div className="px-6 2xs:px-8 sm:px-12 md:px-16 lg:px-20 py-20 max-w-2xl">
+            <h1 className="text-3xl 2xs:text-4xl xs:text-5xl md:text-6xl font-bold text-white mb-4">
+              Reset your password
+            </h1>
+            <p className="text-base 2xs:text-lg xl:text-xl text-gray-200 leading-relaxed max-w-xl">
+              Enter your email and we’ll send you a one-time code to reset your password.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Right side - Form */}
+      <div className="flex w-full flex-col items-center justify-center bg-black p-6 sm:p-8 lg:w-5/12 lg:overflow-y-auto">
         <motion.div
           whileInView={{ opacity: [0, 1] }}
           transition={{ duration: 0.5, type: "tween" }}
-          className="z-10 flex flex-col justify-start items-start w-full xs:w-[90%] md:w-[80%] lg:w-[55%] xl:w-[45%] 2xl:w-[35%]  bg-transparent xs:bg-bg-600 xs:dark:bg-bg-1100 dark:xs:border dark:border-border-600 rounded-2xl px-6 2xs:px-8 sm:px-10 py-2.5 2xs:py-4 sm:py-6 gap-6 2xs:gap-8 sm:gap-10 md:gap-12"
+          className="w-full max-w-md sm:max-w-lg space-y-8 bg-bg-600 dark:bg-bg-1100 border border-border-600 rounded-2xl px-6 2xs:px-8 sm:px-8 py-6 2xs:py-8"
         >
           <div className="text-white flex flex-col items-center justify-center w-full text-center">
-            <Image
-              className="w-20 2xs:w-24 xs:w-28 "
+            {/* <Image
+              className="w-20 2xs:w-24 xs:w-28"
               src={images.singleLogo}
               alt="logo"
               onClick={() => {
                 navigate("/");
               }}
-            />{" "}
-            <h2 className="text-xl xs:text-2xl lg:text-3xl text-text-200 dark:text-white font-semibold">
-              Forgot Password{" "}
+            /> */}
+            <h2 className="mt-2 text-xl xs:text-2xl lg:text-3xl text-text-200 dark:text-white font-semibold">
+              Forgot Password
             </h2>
           </div>
+
           <form
             className="flex flex-col justify-start items-start w-full gap-7"
             onSubmit={handleSubmit(onSubmit)}
@@ -114,11 +158,7 @@ const ForgotPasswordContent = () => {
               placeholder="Email"
               icon={
                 <Image
-                  src={
-                    theme === "dark"
-                      ? icons.authIcons.mailDark
-                      : icons.authIcons.mail
-                  }
+                  src={theme === "dark" ? icons.authIcons.mailDark : icons.authIcons.mail}
                   alt="email"
                   className="w-5 h-5 sm:w-6 sm:h-6"
                 />
@@ -128,9 +168,9 @@ const ForgotPasswordContent = () => {
             />
 
             <p className="w-full flex justify-center items-center gap-1 text-base sm:text-lg text-text-200 dark:text-white ">
-              Back to{" "}
+              Back to{' '}
               <Link className="text-primary" href="/login">
-                Login{" "}
+                Login
               </Link>
             </p>
 
@@ -138,29 +178,13 @@ const ForgotPasswordContent = () => {
               type="submit"
               disabled={!isValid || forgotPasswordLoading}
               isLoading={forgotPasswordLoading}
-              className="mb-4  w-full  border-2 border-primary text-black text-base 2xs:text-lg max-2xs:px-6 py-3.5 xs:py-4"
+              className="mb-2 w-full border-2 border-primary text-black text-base 2xs:text-lg py-3.5 xs:py-4"
             >
-              Send OTP{" "}
+              Send OTP
             </CustomButton>
           </form>
         </motion.div>
       </div>
-      <div
-        className=" absolute bottom-0 left-0 inset-[60rem] opacity-60"
-        style={{
-          background: `
-                radial-gradient(
-                  circle at bottom left,
-                  rgba(212, 177, 57, 0.4) 0%,
-                  rgba(212, 177, 57, 0.2) 40%,
-                  rgba(212, 177, 57, 0.1) 60%,
-                  rgba(212, 177, 57, 0) 80%
-                )
-              `,
-          filter: "blur(60px)",
-          transform: "scale(1.1)",
-        }}
-      />
     </div>
   );
 };
