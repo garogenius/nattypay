@@ -80,7 +80,7 @@ const PreRegisterCurrencyContent = () => {
     });
     
     // Navigate to email verification if email was used
-    if (registrationData?.isEmail) {
+    if (registrationData?.email) {
       navigate("/verify-email");
     } else {
       navigate("/verify-phoneNumber");
@@ -101,7 +101,7 @@ const PreRegisterCurrencyContent = () => {
     });
     
     // Still proceed to verification even if account creation fails
-    if (registrationData?.isEmail) {
+    if (registrationData?.email) {
       navigate("/verify-email");
     } else {
       navigate("/verify-phoneNumber");
@@ -134,7 +134,7 @@ const PreRegisterCurrencyContent = () => {
       });
     } else {
       // For NGN, proceed directly to verification
-      if (registrationData?.isEmail) {
+      if (registrationData?.email) {
         navigate("/verify-email");
       } else {
         navigate("/verify-phoneNumber");
@@ -205,7 +205,7 @@ const PreRegisterCurrencyContent = () => {
         countryCode: validCurrency, // Use currency code as countryCode (NGN, USD, EUR, GBP)
       };
       
-      if (registrationData.isEmail && registrationData.email) {
+      if (registrationData.email) {
         businessPayload.email = registrationData.email;
       } else if (registrationData.phoneNumber) {
         businessPayload.email = registrationData.phoneNumber;
@@ -214,7 +214,7 @@ const PreRegisterCurrencyContent = () => {
       signupBusiness(businessPayload);
     } else {
       // Personal registration
-      if (registrationData.isEmail && registrationData.email) {
+      if (registrationData.email) {
         registrationPayload.email = registrationData.email;
       } else if (registrationData.phoneNumber) {
         registrationPayload.email = registrationData.phoneNumber;
