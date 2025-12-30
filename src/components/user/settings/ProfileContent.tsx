@@ -204,7 +204,7 @@ const ProfileContent = () => {
     mode: "onChange",
   });
 
-  const { register, handleSubmit, formState, watch, setValue } = form;
+  const { register, handleSubmit, formState, watch, setValue, reset } = form;
   const { errors, isValid } = formState;
   const watchedDateOfBirth = watch("dateOfBirth");
 
@@ -218,11 +218,33 @@ const ProfileContent = () => {
       setShowDatePicker(false);
     }
   };
+  
   useEffect(() => {
     if (user?.profileImageUrl) {
       setImgUrl(user.profileImageUrl);
     }
   }, [user]);
+
+  // Update form values when user data changes (e.g., after phone number update)
+  useEffect(() => {
+    if (user) {
+      const accountNumber = user?.wallet?.find(
+        (w) => w.currency === CURRENCY.NGN
+      )?.accountNumber;
+      
+      reset({
+        email: user?.email || "",
+        username: user?.username || "",
+        fullname: user?.fullname || "",
+        businessName: user?.businessName || "",
+        phoneNumber: user?.phoneNumber || "",
+        dateOfBirth: user?.dateOfBirth || "",
+        referralCode: user?.referralCode || "",
+        accountTier: `Tier ${user?.tierLevel}` || "",
+        accountNumber: accountNumber || "",
+      }, { keepDefaultValues: false });
+    }
+  }, [user, reset]);
 
   const onError = async (error: any) => {
     const errorMessage = error?.response?.data?.message;

@@ -109,6 +109,24 @@ const AccountsContent: React.FC = () => {
       msg.toLowerCase().includes("email") && msg.toLowerCase().includes("required")
     );
 
+    // Check if the error is about ID validation (tier verification required)
+    const hasIdValidationError = errorMessages.some((msg: string) =>
+      msg.toLowerCase().includes("unable to validate") || 
+      msg.toLowerCase().includes("verify provided id") ||
+      msg.toLowerCase().includes("invalid id number")
+    );
+
+    if (hasIdValidationError) {
+      ErrorToast({
+        title: "Tier Verification Required",
+        descriptions: [
+          "To create a foreign currency account, you need to complete tier verification.",
+          "Please upgrade your tier by verifying your identity in Settings."
+        ],
+      });
+      return;
+    }
+
     if (hasPhoneError || hasEmailError) {
       // Determine what's missing based on user data and error message
       const hasPhone = !!user?.phoneNumber;

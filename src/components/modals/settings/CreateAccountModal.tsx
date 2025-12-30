@@ -41,8 +41,26 @@ const CreateAccountModal: React.FC<CreateAccountModalProps> = ({ isOpen, onClose
       ? errorMessage
       : [errorMessage || "Failed to create account"];
 
-    // Check if the error is about missing phone number or email (only for foreign accounts)
+    // Check if the error is about ID validation (tier verification required) - only for foreign accounts
     if (accountType === "foreign") {
+      const hasIdValidationError = errorMessages.some((msg: string) =>
+        msg.toLowerCase().includes("unable to validate") || 
+        msg.toLowerCase().includes("verify provided id") ||
+        msg.toLowerCase().includes("invalid id number")
+      );
+
+      if (hasIdValidationError) {
+        ErrorToast({
+          title: "Tier Verification Required",
+          descriptions: [
+            "To create a foreign currency account, you need to complete tier verification.",
+            "Please upgrade your tier by verifying your identity in Settings."
+          ],
+        });
+        return;
+      }
+
+      // Check if the error is about missing phone number or email
       const hasPhoneError = errorMessages.some((msg: string) =>
         msg.toLowerCase().includes("phone number") && msg.toLowerCase().includes("required")
       );

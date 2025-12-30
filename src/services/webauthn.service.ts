@@ -333,20 +333,31 @@ const convertCoseToPem = (coseKeyBuffer: ArrayBuffer): string => {
   
   // COSE key structure for ES256:
   // { 1: 2 (kty: EC2), 3: -7 (alg: ES256), -1: 1 (crv: P-256), -2: x, -3: y }
-  // Note: CBOR decoder stores all map keys as strings, so:
-  // - Positive integers: "1", "3"
-  // - Negative integers: "-1", "-2", "-3"
-  const kty = coseKey["1"] ?? coseKey[1];
-  const crv = coseKey["-1"] ?? (coseKey as any)[-1];
-  const x = coseKey["-2"] ?? (coseKey as any)[-2];
-  const y = coseKey["-3"] ?? (coseKey as any)[-3];
+  // CBOR decoder now stores keys as both strings and numbers, so try both
+  const kty = coseKey[1] ?? coseKey["1"];
+  const crv = coseKey[-1] ?? coseKey["-1"];
+  const x = coseKey[-2] ?? coseKey["-2"];
+  const y = coseKey[-3] ?? coseKey["-3"];
+  
+  // Debug: Log the actual structure if kty is undefined
+  if (kty === undefined) {
+    const allKeys = Object.keys(coseKey);
+    const keyValues = allKeys.map(k => {
+      const val = coseKey[k];
+      if (val instanceof Uint8Array) {
+        return `${k}: Uint8Array(${val.length})`;
+      }
+      return `${k}: ${typeof val} = ${JSON.stringify(val)}`;
+    }).join(", ");
+    throw new Error(`Unsupported key type: undefined. Expected EC2 (2). Found keys: ${allKeys.join(", ")}. Key values: ${keyValues}`);
+  }
   
   // Validate key type and curve
   if (kty !== 2) {
     throw new Error(`Unsupported key type: ${kty}. Expected EC2 (2). Found keys: ${Object.keys(coseKey).join(", ")}`);
   }
   
-  if (crv !== 1) {
+  if (crv === undefined || crv !== 1) {
     throw new Error(`Unsupported curve: ${crv}. Expected P-256 (1). Found crv value: ${crv}`);
   }
   
@@ -528,8 +539,13 @@ const cborDecodeAny = (
         offset = k.nextOffset;
         const v = cborDecodeAny(bytes, offset);
         offset = v.nextOffset;
-        // keys can be int or string in our use-case
-        map[String(k.value)] = v.value;
+        // Store key as both string and number (if it's a number) for easier access
+        const keyStr = String(k.value);
+        map[keyStr] = v.value;
+        // Also store as number if it's a valid integer (positive or negative)
+        if (typeof k.value === "number" && Number.isInteger(k.value)) {
+          map[k.value] = v.value;
+        }
       }
       // WebAuthn attestationObject needs authData under key "authData"
       if (map["authData"] instanceof Uint8Array) {
