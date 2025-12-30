@@ -18,9 +18,19 @@ export const useGetEducationBillers = () => {
     queryFn: () => getEducationBillersRequest(),
   });
 
-  // Ensure billers is always an array
-  const billersData = data?.data?.data;
-  const billers: any[] = Array.isArray(billersData) ? billersData : [];
+  // Handle nested data structure: data.data.data
+  const responseData = data?.data?.data?.data || data?.data?.data || [];
+  const rawBillers: any[] = Array.isArray(responseData) ? responseData : [];
+  
+  // Map API response fields to component-expected fields
+  // API returns: billerId, billerName, billerShortName
+  // Component expects: billerCode, name, shortName
+  const billers: any[] = rawBillers.map((biller: any) => ({
+    ...biller,
+    billerCode: biller.billerCode || biller.billerId,
+    name: biller.name || biller.billerName,
+    shortName: biller.shortName || biller.billerShortName || biller.billerName,
+  }));
 
   return { isPending, isError, billers };
 };

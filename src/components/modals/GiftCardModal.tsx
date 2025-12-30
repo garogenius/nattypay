@@ -226,9 +226,9 @@ const GiftCardModal: React.FC<GiftCardModalProps> = ({ isOpen, onClose }) => {
                 {currencyOpen && (
                   <div className="relative">
                     <div className="absolute top-1 left-0 right-0 bg-bg-600 dark:bg-bg-1100 border border-border-800 dark:border-border-700 rounded-lg shadow-lg z-50 overflow-hidden max-h-60 overflow-y-auto">
-                      {allCurrencies.map((c: any) => (
+                      {allCurrencies.map((c: any, index: number) => (
                         <button
-                          key={c.currency}
+                          key={`${c.countryName}-${c.currency}-${index}`}
                           onClick={() => {
                             setSelectedCurrency(c.currency);
                             setSelectedCategory("");

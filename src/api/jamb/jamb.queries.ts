@@ -18,9 +18,19 @@ export const useGetJambPlans = () => {
     queryFn: () => getJambPlansRequest(),
   });
 
-  // Ensure we always return an array
-  const responseData = data?.data?.data;
-  const jambPlans: any[] = Array.isArray(responseData) ? responseData : [];
+  // Handle nested data structure: data.data.data
+  const responseData = data?.data?.data?.data || data?.data?.data || [];
+  const rawPlans: any[] = Array.isArray(responseData) ? responseData : [];
+  
+  // Map API response fields to component-expected fields
+  // API returns: billerId, billerName, billerShortName
+  // Component expects: billerCode, name, shortName
+  const jambPlans: any[] = rawPlans.map((plan: any) => ({
+    ...plan,
+    billerCode: plan.billerCode || plan.billerId,
+    name: plan.name || plan.billerName,
+    shortName: plan.shortName || plan.billerShortName || plan.billerName,
+  }));
 
   return { isPending, isError, jambPlans };
 };

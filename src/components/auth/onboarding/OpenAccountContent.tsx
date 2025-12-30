@@ -290,7 +290,6 @@ const OpenAccountContent = () => {
   const handleOtpVerify = () => {
     if (bvnDetails.bvn && bvnDetails.verificationId && otp.length === 6) {
       validateBvn({
-        bvn: bvnDetails.bvn,
         verificationId: bvnDetails.verificationId,
         otpCode: otp,
         isBusiness: user?.isBusiness || false,

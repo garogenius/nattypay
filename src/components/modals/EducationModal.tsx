@@ -170,15 +170,18 @@ const EducationModal: React.FC<EducationModalProps> = ({ isOpen, onClose }) => {
                         <div className="px-4 py-3 text-white/50 text-sm">No billers available</div>
                       ) : billers.map((b: any) => (
                         <button
-                          key={b.billerCode}
+                          key={b.billerCode || b.billerId}
                           onClick={() => {
-                            setSelectedBiller({ name: b.billerName || b.name, billerCode: b.billerCode });
+                            setSelectedBiller({ 
+                              name: b.name || b.billerName || b.billerShortName, 
+                              billerCode: b.billerCode || b.billerId 
+                            });
                             setSelectedItem(null);
                             setBillerOpen(false);
                           }}
                           className="w-full text-left px-4 py-3 text-white/80 hover:bg-white/5 text-sm"
                         >
-                          {b.billerName || b.name}
+                          {b.name || b.billerName || b.billerShortName}
                         </button>
                       ))}
                     </div>
