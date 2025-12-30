@@ -9,6 +9,7 @@ interface RegistrationData {
   dateOfBirth: string;
   accountType: "PERSONAL" | "BUSINESS";
   companyRegistrationNumber?: string; // Only for BUSINESS
+  invitationCode?: string; // Optional - referral/invitation code
 }
 
 interface States {
