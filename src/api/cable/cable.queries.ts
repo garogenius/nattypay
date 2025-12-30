@@ -12,13 +12,20 @@ import {
 } from "./cable.apis";
 
 export const useGetCablePlans = (payload: IGetCablePlans) => {
-  const { isPending, isError, data } = useQuery({
+  const { isPending, isError, data, error } = useQuery({
     queryKey: ["cable-plan", payload],
     queryFn: () => getCablePlansRequest(payload),
     enabled: payload.isEnabled,
   });
 
-  const cablePlans: CablePlan[] = data?.data?.data;
+  // Handle different possible response structures
+  const responseData = data?.data?.data || data?.data || data;
+  const cablePlans: CablePlan[] = Array.isArray(responseData) ? responseData : [];
+
+  // Debug logging (remove in production if needed)
+  if (isError && error) {
+    console.error("Cable plans fetch error:", error);
+  }
 
   return { isPending, isError, cablePlans };
 };

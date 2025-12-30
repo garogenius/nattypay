@@ -4,28 +4,45 @@ import React from "react";
 import { FiPlus } from "react-icons/fi";
 import StartNewPlanModal from "@/components/modals/StartNewPlanModal";
 import TargetSavingsModal from "@/components/modals/savings/TargetSavingsModal";
-import FixedSavingsModal from "@/components/modals/savings/FixedSavingsModal";
+import FixedDepositModal from "@/components/modals/finance/FixedDepositModal";
 import EasyLifeSavingsModal from "@/components/modals/savings/EasyLifeSavingsModal";
 import SavingsPlanCard from "@/components/user/savings/SavingsPlanCard";
 import SavingsPlanViewModal, { SavingsPlanData } from "@/components/modals/savings/SavingsPlanViewModal";
 import BreakPlanModal from "@/components/modals/savings/BreakPlanModal";
 import { useGetSavingsPlans } from "@/api/savings/savings.queries";
 import { SavingsPlan, SavingsPlanStatus } from "@/api/savings/savings.types";
+import { useGetEasyLifePlans } from "@/api/easylife-savings/easylife-savings.queries";
+import type { EasyLifePlan, EasyLifePlanStatus } from "@/api/easylife-savings/easylife-savings.types";
+import { useGetFixedDeposits } from "@/api/fixed-deposits/fixed-deposits.queries";
+import type { FixedDeposit, FixedDepositStatus } from "@/api/fixed-deposits/fixed-deposits.types";
+import FinancePlanViewModal, { FinancePlanData } from "@/components/modals/finance/FinancePlanViewModal";
 
 const SavingsContent: React.FC = () => {
   const [tab, setTab] = React.useState<"fixed" | "target" | "easylife">("fixed");
   const [subTab, setSubTab] = React.useState<"active" | "completed" | "broken">("active");
   const [open, setOpen] = React.useState(false);
   const [openTarget, setOpenTarget] = React.useState(false);
-  const [openFixed, setOpenFixed] = React.useState(false);
+  const [openFixedDeposit, setOpenFixedDeposit] = React.useState(false);
   const [openEasy, setOpenEasy] = React.useState(false);
   const [viewOpen, setViewOpen] = React.useState(false);
   const [selectedPlan, setSelectedPlan] = React.useState<SavingsPlanData | null>(null);
+  const [financeViewOpen, setFinanceViewOpen] = React.useState(false);
+  const [selectedFinancePlan, setSelectedFinancePlan] = React.useState<FinancePlanData | null>(null);
   const [breakOpen, setBreakOpen] = React.useState(false);
   const [planToBreak, setPlanToBreak] = React.useState<string>("");
 
-  // Fetch savings plans
-  const { plans, isPending, refetch } = useGetSavingsPlans();
+  // Fetch savings plans (Target/Natty Auto Save)
+  const { plans: savingsPlans, isPending: savingsPending, refetch: refetchSavings } = useGetSavingsPlans();
+  // Fetch EasyLife plans
+  const { plans: easyLifePlans, isPending: easyLifePending, refetch: refetchEasyLife } = useGetEasyLifePlans();
+  // Fetch Fixed deposits
+  const { fixedDeposits, isPending: fixedPending, refetch: refetchFixed } = useGetFixedDeposits();
+  const isPending = savingsPending || easyLifePending || fixedPending;
+  const refetch = () => {
+    refetchSavings();
+    refetchEasyLife();
+    refetchFixed();
+  };
 
   // Helper function to format date
   const formatDate = (dateString: string) => {
@@ -43,31 +60,40 @@ const SavingsContent: React.FC = () => {
   };
 
   // Filter plans by type and status
-  const getFilteredPlans = () => {
-    let filtered = plans;
+  const getFilteredPlans = (): Array<SavingsPlan | EasyLifePlan | FixedDeposit> => {
+    let filtered: Array<SavingsPlan | EasyLifePlan | FixedDeposit> = [];
 
-    // Filter by plan type (tab)
-    if (tab === "fixed") {
-      // Fixed savings - typically NATTY_AUTO_SAVE with fixed duration
-      filtered = filtered.filter(p => p.planType === "NATTY_AUTO_SAVE" && p.duration);
-    } else if (tab === "target") {
-      // Target savings - FLEX_SAVE with target amount
-      filtered = filtered.filter(p => p.planType === "FLEX_SAVE" && p.targetAmount);
+    if (tab === "target") {
+      filtered = savingsPlans.filter((p) => (p.type || p.planType) === "FLEX_SAVE");
+    } else if (tab === "fixed") {
+      filtered = fixedDeposits;
     } else if (tab === "easylife") {
-      // Easy-life savings - NATTY_AUTO_SAVE without fixed duration or FLEX_SAVE
-      filtered = filtered.filter(p => 
-        (p.planType === "NATTY_AUTO_SAVE" && !p.duration) || 
-        (p.planType === "FLEX_SAVE" && !p.targetAmount)
-      );
+      filtered = easyLifePlans;
     }
 
     // Filter by status (subTab)
     if (subTab === "active") {
-      filtered = filtered.filter(p => p.status === "ACTIVE");
+      filtered = filtered.filter((p) => {
+        if (tab === "fixed") {
+          const st = (p as FixedDeposit).status as FixedDepositStatus;
+          return st === "ACTIVE" || st === "MATURED";
+        }
+        return (p as SavingsPlan | EasyLifePlan).status === "ACTIVE";
+      });
     } else if (subTab === "completed") {
-      filtered = filtered.filter(p => p.status === "COMPLETED");
+      filtered = filtered.filter((p) => {
+        if (tab === "fixed") {
+          return (p as FixedDeposit).status === "PAID_OUT";
+        }
+        return (p as SavingsPlan | EasyLifePlan).status === "COMPLETED";
+      });
     } else if (subTab === "broken") {
-      filtered = filtered.filter(p => p.status === "BROKEN");
+      filtered = filtered.filter((p) => {
+        if (tab === "fixed") {
+          return (p as FixedDeposit).status === "EARLY_WITHDRAWN";
+        }
+        return (p as SavingsPlan | EasyLifePlan).status === "BROKEN";
+      });
     }
 
     return filtered;
@@ -75,27 +101,73 @@ const SavingsContent: React.FC = () => {
 
   const filteredPlans = getFilteredPlans();
 
+  const isSavingsPlan = (p: SavingsPlan | EasyLifePlan | FixedDeposit): p is SavingsPlan => {
+    return (p as SavingsPlan).type === "FLEX_SAVE" || (p as SavingsPlan).type === "NATTY_AUTO_SAVE";
+  };
+  const isFixedDeposit = (p: SavingsPlan | EasyLifePlan | FixedDeposit): p is FixedDeposit => {
+    return "principalAmount" in (p as FixedDeposit);
+  };
+
   // Convert API plan to card data
-  const convertPlanToCardData = (plan: SavingsPlan) => {
-    const statusMap: Record<SavingsPlanStatus, "active" | "completed" | "broken"> = {
+  const convertPlanToCardData = (plan: SavingsPlan | EasyLifePlan | FixedDeposit) => {
+    const statusMap: Record<
+      SavingsPlanStatus | EasyLifePlanStatus | FixedDepositStatus,
+      "active" | "completed" | "broken"
+    > = {
       ACTIVE: "active",
       COMPLETED: "completed",
       BROKEN: "broken",
+      MATURED: "active",
+      PAID_OUT: "completed",
+      EARLY_WITHDRAWN: "broken",
     };
 
+    const totalDeposited = isFixedDeposit(plan)
+      ? plan.principalAmount
+      : "totalDeposited" in plan
+      ? plan.totalDeposited
+      : 0;
+    const totalInterestAccrued = isFixedDeposit(plan)
+      ? 0
+      : "totalInterestAccrued" in plan
+      ? plan.totalInterestAccrued
+      : 0;
+
+    const today = new Date();
+    const maturity = new Date(plan.maturityDate);
+    const diffTime = maturity.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const daysLeft = diffDays > 0 ? diffDays : 0;
+
+    const isEasyLife = tab === "easylife";
+    const planType = !isEasyLife && isSavingsPlan(plan) ? plan.type || plan.planType : undefined;
+
+    const startDate =
+      isFixedDeposit(plan)
+        ? plan.startDate || plan.createdAt || plan.maturityDate
+        : plan.startDate;
+
     return {
-      name: plan.name,
-      amount: plan.currentAmount,
-      earned: plan.interestEarned,
-      startDate: formatDate(plan.startDate),
+      name: isFixedDeposit(plan) ? `Fixed Deposit (${String(plan.planType)})` : plan.name,
+      amount: totalDeposited,
+      earned: totalInterestAccrued,
+      startDate: formatDate(startDate),
       maturityDate: formatDate(plan.maturityDate),
-      interestRate: `${plan.interestRate}% per annum`,
+      interestRate: isFixedDeposit(plan)
+        ? plan.interestRate !== undefined
+          ? `${(plan.interestRate * 100).toFixed(2)}% per annum`
+          : ""
+        : `${((plan as SavingsPlan | EasyLifePlan).interestRate * 100).toFixed(2)}% per annum`,
       status: statusMap[plan.status],
-      penaltyFee: plan.penaltyFee || 0,
-      brokenDate: plan.brokenDate ? formatDate(plan.brokenDate) : "",
-      breakReason: plan.breakReason || "",
+      penaltyFee: 0,
+      brokenDate: "",
+      breakReason: "",
+      goalAmount: isFixedDeposit(plan) ? undefined : plan.goalAmount,
+      planType,
+      currency: plan.currency || "NGN",
+      daysLeft,
       planId: plan.id,
-      plan: plan, // Store full plan for modal
+      plan: isFixedDeposit(plan) ? undefined : plan,
     };
   };
 
@@ -117,16 +189,18 @@ const SavingsContent: React.FC = () => {
 
       <div className="rounded-2xl bg-bg-600 dark:bg-bg-1100 p-6 flex flex-col gap-6">
         <div className="w-full bg-white/10 rounded-full p-1.5 sm:p-2 grid grid-cols-3 gap-1.5 sm:gap-2">
-          {[
-            { key: "fixed", label: "Fixed Savings" },
-            { key: "target", label: "Target Savings" },
-            { key: "easylife", label: "Easy-life Savings" },
-          ].map((t) => (
+          {(
+            [
+              { key: "fixed", label: "Fixed Savings" },
+              { key: "target", label: "Target Savings" },
+              { key: "easylife", label: "Easy-life Savings" },
+            ] as const
+          ).map((t) => (
             <button
               key={t.key}
-              onClick={() => setTab(t.key as any)}
+              onClick={() => setTab(t.key)}
               className={`rounded-full py-1.5 sm:py-2 text-[11px] xs:text-xs sm:text-sm font-medium transition-colors whitespace-nowrap flex items-center justify-center ${
-                tab === (t.key as any) ? "bg-white/15 text-white" : "text-white/70 hover:text-white"
+                tab === t.key ? "bg-white/15 text-white" : "text-white/70 hover:text-white"
               }`}
             >
               {t.label}
@@ -142,7 +216,7 @@ const SavingsContent: React.FC = () => {
           ].map((st) => (
             <button
               key={st.key}
-              onClick={() => setSubTab(st.key as any)}
+              onClick={() => setSubTab(st.key as "active" | "completed" | "broken")}
               className={`px-3 sm:px-4 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
                 subTab === st.key ? "bg-white/10 text-white" : "text-white/60 hover:text-white"
               }`}
@@ -202,26 +276,61 @@ const SavingsContent: React.FC = () => {
                   penaltyFee={cardData.penaltyFee}
                   brokenDate={cardData.brokenDate}
                   breakReason={cardData.breakReason}
+                  goalAmount={cardData.goalAmount}
+                  planType={cardData.planType}
+                  currency={cardData.currency}
+                  daysLeft={cardData.daysLeft}
                   onView={() => {
-                    const daysLeft = calculateDaysLeft(plan.maturityDate);
+                    if (tab === "fixed") {
+                      const fd = plan as FixedDeposit;
+                      const status =
+                        fd.status === "PAID_OUT"
+                          ? "PAID_OUT"
+                          : fd.status === "MATURED"
+                          ? "MATURED"
+                          : "ACTIVE";
+                      setSelectedFinancePlan({
+                        name: `Fixed Deposit #${fd.id.slice(-8).toUpperCase()}`,
+                        amount: fd.principalAmount,
+                        earned: 0,
+                        startDate: fd.startDate ? formatDate(fd.startDate) : "",
+                        endDate: formatDate(fd.maturityDate),
+                        interestRate: fd.interestRate !== undefined ? `${(fd.interestRate * 100).toFixed(2)}% per annum` : "",
+                        duration: fd.durationMonths ? `${fd.durationMonths} months` : "",
+                        type: "fixed_deposit",
+                        fixedDepositId: fd.id,
+                        status,
+                      });
+                      setFinanceViewOpen(true);
+                      return;
+                    }
+
+                    const sp = plan as SavingsPlan | EasyLifePlan;
+                    const daysLeft = calculateDaysLeft(sp.maturityDate);
+                    const currentAmount = sp.totalDeposited ?? 0;
+                    const interestEarned = sp.totalInterestAccrued ?? 0;
                     setSelectedPlan({
-                      name: plan.name,
-                      amount: plan.currentAmount,
-                      earned: plan.interestEarned,
+                      name: sp.name,
+                      amount: currentAmount,
+                      earned: interestEarned,
                       startDate: cardData.startDate,
                       maturityDate: cardData.maturityDate,
                       interestRate: cardData.interestRate,
                       daysLeft,
                       type: tab,
-                      planId: plan.id,
-                      plan: plan,
+                      planId: sp.id,
+                      plan: sp,
                     });
                     setViewOpen(true);
                   }}
-                  onBreak={() => {
-                    setPlanToBreak(plan.id);
-                    setBreakOpen(true);
-                  }}
+                  onBreak={
+                    tab === "fixed"
+                      ? undefined
+                      : () => {
+                          setPlanToBreak((plan as SavingsPlan | EasyLifePlan).id);
+                          setBreakOpen(true);
+                        }
+                  }
                 />
               );
             })}
@@ -235,22 +344,29 @@ const SavingsContent: React.FC = () => {
         onSelect={(type) => {
           setOpen(false);
           if (type === "target") setOpenTarget(true);
-          if (type === "fixed") setOpenFixed(true);
+          if (type === "fixed") setOpenFixedDeposit(true);
           if (type === "easylife") setOpenEasy(true);
         }}
       />
 
       <TargetSavingsModal isOpen={openTarget} onClose={()=> { setOpenTarget(false); refetch(); }} />
-      <FixedSavingsModal isOpen={openFixed} onClose={()=> { setOpenFixed(false); refetch(); }} />
+      <FixedDepositModal isOpen={openFixedDeposit} onClose={()=> { setOpenFixedDeposit(false); refetch(); }} />
       <EasyLifeSavingsModal isOpen={openEasy} onClose={()=> { setOpenEasy(false); refetch(); }} />
 
       <SavingsPlanViewModal isOpen={viewOpen} onClose={()=> setViewOpen(false)} plan={selectedPlan} />
+      <FinancePlanViewModal
+        isOpen={financeViewOpen}
+        onClose={() => setFinanceViewOpen(false)}
+        plan={selectedFinancePlan}
+        onRefresh={refetch}
+      />
       
       <BreakPlanModal 
         isOpen={breakOpen} 
         onClose={()=> { setBreakOpen(false); setPlanToBreak(""); refetch(); }} 
         planName={filteredPlans.find(p => p.id === planToBreak)?.name || planToBreak}
         planId={planToBreak}
+        planType={tab === "easylife" ? "easylife" : "target"}
         onConfirm={() => {
           setBreakOpen(false);
           setPlanToBreak("");

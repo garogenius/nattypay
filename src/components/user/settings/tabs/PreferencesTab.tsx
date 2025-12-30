@@ -39,9 +39,19 @@ const PreferencesTab: React.FC = () => {
       if (k === 'darkMode') {
         const isDark = next.darkMode;
         if (typeof document !== 'undefined') {
-          document.documentElement.classList.toggle('dark', isDark);
+          if (isDark) {
+            document.documentElement.setAttribute("data-mode", "dark");
+            document.documentElement.className = "dark";
+          } else {
+            document.documentElement.setAttribute("data-mode", "light");
+            document.documentElement.className = "";
+          }
         }
-        try { localStorage.setItem('theme', isDark ? 'dark' : 'light'); } catch {}
+        try { 
+          localStorage.setItem('theme', isDark ? 'dark' : 'light');
+          // Dispatch custom event to notify ThemeProvider
+          window.dispatchEvent(new Event('themechange'));
+        } catch {}
       }
       return next;
     });
@@ -78,7 +88,7 @@ const PreferencesTab: React.FC = () => {
       </div>
 
       {/* Themes */}
-      <div className="w-full bg-bg-600 dark:bg-bg-1100 border border-white/10 rounded-2xl p-4 sm:p-5">
+      {/* <div className="w-full bg-bg-600 dark:bg-bg-1100 border border-white/10 rounded-2xl p-4 sm:p-5">
         <p className="text-white font-semibold mb-3">Themes</p>
         <div className="divide-y divide-white/10">
           <div className="w-full flex items-center justify-between gap-3 py-3">
@@ -89,7 +99,7 @@ const PreferencesTab: React.FC = () => {
             <Toggle checked={prefs.darkMode} onToggle={() => toggle("darkMode")} />
           </div>
         </div>
-      </div>
+      </div> */}
     </div>
   );
 };

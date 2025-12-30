@@ -5,7 +5,6 @@ import SpinnerLoader from "@/components/Loader/SpinnerLoader";
 import { CURRENCY } from "@/constants/types";
 import useUserStore from "@/store/user.store";
 import { formatNumberWithCommas } from "@/utils/utilityFunctions";
-import Image from "next/image";
 
 import { useState } from "react";
 import toast from "react-hot-toast";
@@ -197,19 +196,13 @@ const TransferNgnProcess = () => {
                   ) : (
                     <>
                       {qrCode ? (
-                        <div className="flex flex-col gap-1 w-full">
-                          {/* <label
-                        className="w-full text-sm sm:text-base text-text-200 dark:text-text-800 mb-1 flex items-start "
-                        htmlFor={"amount"}
-                      >
-                        Amount{" "}
-                      </label>{" "} */}
-                          <Image
+                        <div className="flex flex-col gap-1 w-full items-center">
+                          {/* Use regular img tag for base64 data URLs */}
+                          <img
                             src={qrCode}
                             alt="QR Code"
-                            width={200}
-                            height={200}
-                            className="w-full 2xs:w-[70%] xs:w-[60%] sm:w-[50%] md:w-[40%] lg:w-[50%] xl:w-[40%]"
+                            className="w-full 2xs:w-[70%] xs:w-[60%] sm:w-[50%] md:w-[40%] lg:w-[50%] xl:w-[40%] max-w-[300px]"
+                            style={{ imageRendering: 'crisp-edges' }}
                           />
                         </div>
                       ) : (

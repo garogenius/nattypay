@@ -258,10 +258,10 @@ const TwoFactorAuthContent = () => {
             </div>
           </div>
           <h1 className="text-4xl font-bold text-white mb-4">
-            Ultimate Security
+            Two-Factor Authentication
           </h1>
           <p className="text-lg text-white/90 text-center max-w-md">
-            Secure your future with simple, flexible investment plans and opportunities
+            Verify your identity with a code sent to your email. This adds an extra layer of security to protect your account from unauthorized access.
           </p>
         </div>
       </div>

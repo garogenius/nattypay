@@ -11,12 +11,15 @@ import TabGroup from "@/components/shared/TabGroup";
 import PayBillsTab from "@/components/user/payments/PayBillsTab";
 import SchedulePaymentsTab from "@/components/user/payments/SchedulePaymentsTab";
 import usePaymentSettingsStore from "@/store/paymentSettings.store";
+import QRCodeModal from "@/components/modals/QRCodeModal";
+import { IoQrCodeOutline } from "react-icons/io5";
 
 const PaymentsContent: React.FC = () => {
   const navigate = useNavigate();
   const [tab, setTab] = React.useState<"transfer" | "bills" | "schedule">("transfer");
   const [transferType, setTransferType] = React.useState<"nattypay" | "bank" | "merchant" | null>("nattypay");
   const [openSettings, setOpenSettings] = React.useState(false);
+  const [isQRCodeOpen, setIsQRCodeOpen] = React.useState(false);
   const { selectedWalletIndex } = usePaymentSettingsStore();
 
   return (
@@ -26,13 +29,22 @@ const PaymentsContent: React.FC = () => {
           <h1 className="text-xl sm:text-2xl font-semibold text-white">Payments</h1>
           <p className="text-white/60 text-sm">Pay bills securely, and manage scheduled payments easily</p>
         </div>
+        <div className="flex items-center gap-2">
+          <button
+            className="hidden sm:flex items-center gap-2 rounded-xl border border-[#2C3947] px-3 py-2 text-white/80 hover:bg-white/5 transition-colors"
+            onClick={() => setIsQRCodeOpen(true)}
+          >
+            <IoQrCodeOutline />
+            <span className="text-sm">QR Code</span>
+          </button>
         <button
-          className="hidden sm:flex items-center gap-2 rounded-xl border border-[#2C3947] px-3 py-2 text-white/80 hover:bg-white/5"
+            className="hidden sm:flex items-center gap-2 rounded-xl border border-[#2C3947] px-3 py-2 text-white/80 hover:bg-white/5 transition-colors"
           onClick={()=> setOpenSettings(true)}
         >
           <CgOptions />
           <span className="text-sm">Settings</span>
         </button>
+        </div>
       </div>
 
       {/* Top Tabs (Savings-style) */}
@@ -57,6 +69,15 @@ const PaymentsContent: React.FC = () => {
       {tab === "transfer" && <PaymentTransferTab transferType={transferType} setTransferType={setTransferType} />}
 
       <PaymentSettingsModal isOpen={openSettings} onClose={()=> setOpenSettings(false)} />
+
+      <QRCodeModal 
+        isOpen={isQRCodeOpen} 
+        onClose={() => setIsQRCodeOpen(false)}
+        onQRDecoded={(data) => {
+          // Handle decoded QR data - could pre-fill transfer form
+          console.log("QR Decoded:", data);
+        }}
+      />
 
       {tab === "bills" && <PayBillsTab />}
 

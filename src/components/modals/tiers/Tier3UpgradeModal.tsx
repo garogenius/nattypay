@@ -51,6 +51,10 @@ const Tier3UpgradeModal: React.FC<Tier3UpgradeModalProps> = ({
     });
     reset();
     onClose();
+    // Refresh the page after a short delay to ensure user data is updated
+    setTimeout(() => {
+      window.location.reload();
+    }, 1000);
   };
 
   const onError = (error: any) => {

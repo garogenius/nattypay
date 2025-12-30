@@ -77,9 +77,13 @@ const AirtimeModal: React.FC<AirtimeModalProps> = ({ isOpen, onClose }) => {
   const { errors, isValid } = formState;
   const watchedPhone = watch("phone");
 
+  // Clean phone number for API call (remove any non-digits)
+  const cleanedPhone = watchedPhone?.replace(/\D/g, "") || "";
+
   // Re-enable auto-detection for proper airtime plan fetching
-  const { data: airtimePlan, isPending: isAirtimePlanLoading } = useGetAirtimePlan({
-    phone: watchedPhone,
+  // The API expects 11 digits with leading 0, formatPhoneForAPI will handle it
+  const { data: airtimePlan, isPending: isAirtimePlanLoading, isError: isAirtimePlanError, error: airtimePlanError } = useGetAirtimePlan({
+    phone: cleanedPhone,
     currency: "NGN",
   });
 
@@ -122,10 +126,14 @@ const AirtimeModal: React.FC<AirtimeModalProps> = ({ isOpen, onClose }) => {
         logo: provider?.logo,
       });
       setOperatorId(plan.operatorId);
-    } else {
+    } else if ((cleanedPhone.length === 10 || cleanedPhone.length === 11) && isAirtimePlanError) {
+      // If phone is valid but API failed, clear provider to allow manual selection
+      setSelectedProvider(null);
+    } else if (cleanedPhone.length !== 10 && cleanedPhone.length !== 11) {
+      // If phone is not 10 or 11 digits, clear provider
       setSelectedProvider(null);
     }
-  }, [airtimePlan?.data?.data]);
+  }, [airtimePlan?.data?.data, cleanedPhone, isAirtimePlanError]);
 
   const handleClose = () => {
     setStep("form");
@@ -150,8 +158,25 @@ const AirtimeModal: React.FC<AirtimeModalProps> = ({ isOpen, onClose }) => {
   const handleConfirmPayment = () => {
     if (!formData || !operatorId || walletPin.length !== 4) return;
     
+    // Format phone number to local format: ensure 11 digits with leading 0
+    // e.g., 07043742886 -> 07043742886 (keep as is)
+    // e.g., 7043742886 -> 07043742886 (add leading 0)
+    const cleaned = formData.phone.replace(/\D/g, "");
+    let phoneForPayment = cleaned;
+    
+    // If phone is 10 digits (without leading 0), add leading 0
+    if (cleaned.length === 10) {
+      phoneForPayment = `0${cleaned}`;
+    } else if (cleaned.length === 11 && !cleaned.startsWith("0")) {
+      // If 11 digits but doesn't start with 0, ensure it does
+      phoneForPayment = `0${cleaned.slice(1)}`;
+    } else if (cleaned.length === 11 && cleaned.startsWith("0")) {
+      // Already in correct format (11 digits with leading 0)
+      phoneForPayment = cleaned;
+    }
+    
     PayForAirtime({
-      phone: formData.phone,
+      phone: phoneForPayment,
       currency: "NGN",
       walletPin: walletPin,
       operatorId: operatorId,
@@ -203,7 +228,13 @@ const AirtimeModal: React.FC<AirtimeModalProps> = ({ isOpen, onClose }) => {
                 placeholder="Enter mobile number"
                 type="text"
                 maxLength={11}
-                {...register("phone")}
+                {...register("phone", {
+                  onChange: (e) => {
+                    // Clean input to only allow digits
+                    const cleaned = e.target.value.replace(/\D/g, "").slice(0, 11);
+                    e.target.value = cleaned;
+                  }
+                })}
                 onKeyDown={handleNumericKeyDown}
                 onPaste={handleNumericPaste}
               />
@@ -237,7 +268,7 @@ const AirtimeModal: React.FC<AirtimeModalProps> = ({ isOpen, onClose }) => {
                   className="w-full bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-3 px-4 text-white text-sm outline-none cursor-pointer flex items-center justify-between"
                 >
                   <div className="flex items-center gap-3">
-                    {isAirtimePlanLoading && watchedPhone && !errors.phone ? (
+                    {isAirtimePlanLoading && (cleanedPhone.length === 10 || cleanedPhone.length === 11) && !errors.phone ? (
                       <div className="flex items-center gap-2 text-white/70">
                         <SpinnerLoader width={16} height={16} color="#D4B139" />
                         <span className="text-sm">Detecting network...</span>
@@ -253,6 +284,8 @@ const AirtimeModal: React.FC<AirtimeModalProps> = ({ isOpen, onClose }) => {
                         />
                         <span>{selectedProvider.name}</span>
                       </>
+                    ) : (cleanedPhone.length === 10 || cleanedPhone.length === 11) && isAirtimePlanError ? (
+                      <span className="text-yellow-400 text-sm">Network detection failed - select manually</span>
                     ) : (
                       <span className="text-white/50">Enter phone number</span>
                     )}
@@ -398,9 +431,58 @@ const AirtimeModal: React.FC<AirtimeModalProps> = ({ isOpen, onClose }) => {
               {/* Transaction Details */}
               {transactionResult.success && (
                 <div className="w-full space-y-3 mt-4">
+                  <div className="bg-white/5 border border-white/10 rounded-lg p-4 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-white/70 text-sm">Transaction Reference</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-white text-sm font-mono">
+                          {transactionResult?.data?.data?.transactionRef || transactionResult?.data?.data?.transaction?.transactionRef || transactionResult?.data?.data?.transactionId || "N/A"}
+                        </span>
+                        {(transactionResult?.data?.data?.transactionRef || transactionResult?.data?.data?.transaction?.transactionRef || transactionResult?.data?.data?.transactionId) && (
+                          <button
+                            onClick={() => {
+                              const ref = transactionResult?.data?.data?.transactionRef || transactionResult?.data?.data?.transaction?.transactionRef || transactionResult?.data?.data?.transactionId;
+                              if (ref) navigator.clipboard.writeText(String(ref));
+                            }}
+                            className="p-1 rounded hover:bg-white/10"
+                            title="Copy"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-4 h-4 text-white/70">
+                              <path fill="currentColor" d="M7 21q-.825 0-1.412-.587T5 19V7q0-.825.588-1.412T7 5h8q.825 0 1.413.588T17 7v12q0 .825-.587 1.413T15 21zm0-2h8V7H7zm10-2V5H9V3h8q.825 0 1.413.588T19 5v12z"/>
+                            </svg>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    {transactionResult?.data?.data?.pin && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-white/70 text-sm">PIN</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-white text-sm font-mono">{transactionResult.data.data.pin}</span>
+                          <button
+                            onClick={() => navigator.clipboard.writeText(transactionResult.data.data.pin)}
+                            className="p-1 rounded hover:bg-white/10"
+                            title="Copy"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-4 h-4 text-white/70">
+                              <path fill="currentColor" d="M7 21q-.825 0-1.412-.587T5 19V7q0-.825.588-1.412T7 5h8q.825 0 1.413.588T17 7v12q0 .825-.587 1.413T15 21zm0-2h8V7H7zm10-2V5H9V3h8q.825 0 1.413.588T19 5v12z"/>
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                    {transactionResult?.data?.data?.transactionId && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-white/70 text-sm">Transaction ID</span>
+                        <span className="text-white text-sm font-mono">{transactionResult.data.data.transactionId}</span>
+                      </div>
+                    )}
+                  </div>
                   <div className="flex justify-between items-center py-2">
                     <span className="text-white/70 text-sm">Transaction ID</span>
-                    <span className="text-white text-sm font-medium">odjdkgjh783676</span>
+                    <span className="text-white text-sm font-medium">
+                      {transactionResult?.data?.data?.transactionRef || transactionResult?.data?.data?.transaction?.transactionRef || transactionResult?.data?.data?.transactionId || "N/A"}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center py-2">
                     <span className="text-white/70 text-sm">Date & Time</span>

@@ -140,13 +140,29 @@ export const registerToken = async (): Promise<void> => {
     await registerFCMToken(payload);
     console.log("FCM token registered successfully");
   } catch (error: any) {
-    // Handle 404 specifically - endpoint might not be implemented yet
-    if (error?.response?.status === 404) {
+    const statusCode = error?.response?.status;
+    
+    // Handle 404 - endpoint might not be implemented yet
+    if (statusCode === 404) {
       console.warn("FCM token registration endpoint not available (404). This feature may not be implemented yet.");
       return;
     }
+    
+    // Handle 500 - server-side error, likely temporary or configuration issue
+    if (statusCode === 500) {
+      console.warn("FCM token registration failed due to server error (500). Push notifications may not be available.");
+      // Only log detailed error in development
+      if (process.env.NODE_ENV === "development") {
+        console.debug("FCM registration error details:", error?.response?.data || error?.message);
+      }
+      return;
+    }
+    
     // Handle other errors gracefully
-    console.error("Failed to register FCM token:", error?.response?.status || error?.message || error);
+    // Use warn instead of error since this is non-critical functionality
+    if (process.env.NODE_ENV === "development") {
+      console.warn("Failed to register FCM token:", statusCode || error?.message || error);
+    }
     // Don't throw - token registration failure shouldn't block the app
   }
 };

@@ -18,7 +18,9 @@ export const useGetEducationBillers = () => {
     queryFn: () => getEducationBillersRequest(),
   });
 
-  const billers: any[] = data?.data?.data || [];
+  // Ensure billers is always an array
+  const billersData = data?.data?.data;
+  const billers: any[] = Array.isArray(billersData) ? billersData : [];
 
   return { isPending, isError, billers };
 };
@@ -32,7 +34,9 @@ export const useGetEducationBillerItems = (
     enabled: !!payload.billerCode,
   });
 
-  const items: any[] = data?.data?.data || [];
+  // Ensure items is always an array
+  const itemsData = data?.data?.data;
+  const items: any[] = Array.isArray(itemsData) ? itemsData : [];
   return { isLoading, isError, items };
 };
 

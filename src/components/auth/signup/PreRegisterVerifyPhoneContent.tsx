@@ -14,7 +14,7 @@ import images from "../../../public/images";
 import useAuthEmailStore from "@/store/authEmail.store";
 import useTimerStore from "@/store/timer.store";
 import SpinnerLoader from "../Loader/SpinnerLoader";
-import icons from "../../../public/icons";
+import icons from "../../../../public/icons";
 import { useVerifyPhoneNumber, useValidatePhoneNumber } from "@/api/user/user.queries";
 
 const PreRegisterVerifyPhoneContent = () => {
@@ -119,7 +119,7 @@ const PreRegisterVerifyPhoneContent = () => {
           <div className="w-full max-w-md mb-8 flex items-center justify-center">
             <div className="w-64 h-64 bg-white/20 rounded-full flex items-center justify-center">
               <Image
-                src={icons.padlock}
+                src={icons.authIcons.lock}
                 alt="Padlock"
                 width={120}
                 height={120}

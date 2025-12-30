@@ -154,7 +154,7 @@ const CurrencySelectionContent = () => {
       {/* Left Panel - Yellow/Gold Background */}
       <div className="hidden lg:flex lg:w-[40%] bg-[#D4B139] relative items-center justify-center">
         <div className="w-full h-full flex flex-col items-center justify-center px-8 py-12">
-          {/* Illustration placeholder */}
+          {/* Currency Icon */}
           <div className="w-full max-w-md mb-8 flex items-center justify-center">
             <div className="w-64 h-64 bg-white/20 rounded-full flex items-center justify-center">
               <svg
@@ -174,7 +174,7 @@ const CurrencySelectionContent = () => {
           </div>
           <h1 className="text-4xl font-bold text-white mb-4">Choose Your Currency</h1>
           <p className="text-lg text-white/90 text-center max-w-md">
-            Secure your future with simple, flexible investment plans and opportunities
+            Select your preferred currency to get started. You can manage multiple currencies and exchange rates in real-time.
           </p>
         </div>
       </div>

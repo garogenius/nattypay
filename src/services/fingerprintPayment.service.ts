@@ -4,7 +4,12 @@
  * Uses WebAuthn to verify wallet PIN via fingerprint/Face ID
  */
 
-import { isWebAuthnSupported, isPlatformAuthenticatorAvailable, authenticateBiometric } from "./webauthn.service";
+import {
+  arrayBufferToBase64Url,
+  authenticateBiometric,
+  isPlatformAuthenticatorAvailable,
+  isWebAuthnSupported,
+} from "./webauthn.service";
 import { getBiometricChallengeRequest } from "@/api/auth/auth.apis";
 
 /**
@@ -29,22 +34,15 @@ export const verifyPinWithBiometric = async (): Promise<string> => {
       throw new Error("Biometric credential not found. Please register biometric authentication first.");
     }
 
-    let challenge: string | undefined;
-
-    try {
-      const challengeResponse = await getBiometricChallengeRequest(storedCredentialId);
-      challenge = challengeResponse?.data?.challenge;
-    } catch (error) {
-      console.warn("Backend challenge endpoint not available, using client-side challenge");
+    const challengeResponse = await getBiometricChallengeRequest(storedCredentialId);
+    const challenge = challengeResponse?.data?.challenge as string | undefined;
+    if (!challenge) {
+      throw new Error("Unable to start biometric verification. Please use your PIN.");
     }
 
-    // Authenticate with biometric
-    const credential = await authenticateBiometric(challenge, storedCredentialId);
-
-    // Convert ArrayBuffers to base64 for potential backend verification
-    const authenticatorData = arrayBufferToBase64(credential.response.authenticatorData);
-    const clientDataJSON = arrayBufferToBase64(credential.response.clientDataJSON);
-    const signature = arrayBufferToBase64(credential.response.signature);
+    // Authenticate with biometric (server challenge required)
+    const assertion = await authenticateBiometric(challenge, storedCredentialId);
+    const signature = arrayBufferToBase64Url(assertion.response.signature);
 
     // NOTE: In a production implementation, the backend would:
     // 1. Receive the biometric signature data
@@ -55,7 +53,7 @@ export const verifyPinWithBiometric = async (): Promise<string> => {
     // For now, we return a special marker that indicates biometric verification succeeded
     // The backend transaction APIs should be updated to accept this as equivalent to PIN
     // Format: "BIOMETRIC_VERIFIED:{credentialId}:{signature}" for backend verification
-    return `BIOMETRIC_VERIFIED:${credential.id}:${signature}`;
+    return `BIOMETRIC_VERIFIED:${assertion.credentialId}:${signature}`;
   } catch (error: any) {
     if (error.name === "NotAllowedError") {
       throw new Error("Biometric authentication was cancelled or denied");
@@ -65,18 +63,6 @@ export const verifyPinWithBiometric = async (): Promise<string> => {
     }
     throw new Error(error.message || "Failed to authenticate with biometric");
   }
-};
-
-/**
- * Helper: Convert ArrayBuffer to Base64
- */
-const arrayBufferToBase64 = (buffer: ArrayBuffer): string => {
-  const bytes = new Uint8Array(buffer);
-  let binary = "";
-  for (let i = 0; i < bytes.byteLength; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  return btoa(binary);
 };
 
 /**

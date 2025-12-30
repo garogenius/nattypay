@@ -7,7 +7,7 @@ import ChangePinModal from "@/components/modals/cards/ChangePinModal";
 import ResetPinModal from "@/components/modals/cards/ResetPinModal";
 import SpendingLimitModal from "@/components/modals/cards/SpendingLimitModal";
 import ConfirmActionModal from "@/components/modals/cards/ConfirmActionModal";
-import { useGetCards, useCreateCard, useFreezeCard, useUnfreezeCard, useBlockCard, useCloseCard } from "@/api/currency/currency.queries";
+import { useGetCards, useCreateCard, useFreezeCard, useUnfreezeCard, useBlockCard, useCloseCard, useGetCurrencyAccounts } from "@/api/currency/currency.queries";
 import { IVirtualCard } from "@/api/currency/currency.types";
 import ErrorToast from "@/components/toast/ErrorToast";
 import SuccessToast from "@/components/toast/SuccessToast";
@@ -36,6 +36,10 @@ const CardsContent: React.FC = () => {
   // Fetch virtual USD cards
   const { cards, isPending: cardsLoading, refetch: refetchCards } = useGetCards();
   const virtualCards = cards.filter((card: IVirtualCard) => card.isVirtual && card.currency === "USD");
+
+  // Fetch currency accounts to check for USD account
+  const { accounts: currencyAccounts } = useGetCurrencyAccounts();
+  const hasUsdAccount = currencyAccounts.some((acc: any) => (acc.currency || "").toUpperCase() === "USD");
 
   const onCreateCardError = (error: any) => {
     const errorMessage = error?.response?.data?.message;
@@ -154,6 +158,14 @@ const CardsContent: React.FC = () => {
   const { mutate: closeCard } = useCloseCard(onCloseError, onCloseSuccess);
 
   const handleCreateCard = () => {
+    if (!hasUsdAccount) {
+      ErrorToast({
+        title: "USD Account Required",
+        descriptions: ["You must have a USD account before creating a virtual card. Please create a USD account first."],
+      });
+      return;
+    }
+
     if (!cardLabel.trim()) {
       ErrorToast({
         title: "Validation Error",
@@ -205,12 +217,26 @@ const CardsContent: React.FC = () => {
       <div className="w-32 h-24 sm:w-40 sm:h-28 rounded-xl bg-white/5 flex items-center justify-center border-4 border-white/10">
         <FiCreditCard className="text-4xl text-white/40" />
       </div>
-      <div className="text-center max-w-md">
+      <div className="text-center max-w-md space-y-3">
+        <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4 mb-2">
+          <p className="text-yellow-400 text-xs sm:text-sm font-medium mb-1">Important Notice</p>
+          <p className="text-white/80 text-xs sm:text-sm">• NGN cards are not available</p>
+          <p className="text-white/80 text-xs sm:text-sm">• Only USD virtual cards are available for now</p>
+          <p className="text-white/80 text-xs sm:text-sm">• You must have a USD account before creating a virtual card</p>
+        </div>
+        {!hasUsdAccount ? (
+          <div className="space-y-2">
+            <p className="text-white/60 text-sm">You need a USD account to create a virtual card.</p>
+            <p className="text-white/40 text-xs">Please create a USD account in the Accounts page first.</p>
+          </div>
+        ) : (
         <p className="text-white text-sm sm:text-base mb-2">You currently do not have any virtual USD card linked to this account.</p>
+        )}
       </div>
       <CustomButton
         onClick={() => setOpenCreateCard(true)}
-        className="bg-[#D4B139] hover:bg-[#c7a42f] text-black px-6 sm:px-8 py-2.5 sm:py-3 rounded-lg text-xs sm:text-sm font-medium transition-colors"
+        disabled={!hasUsdAccount}
+        className="bg-[#D4B139] hover:bg-[#c7a42f] text-black px-6 sm:px-8 py-2.5 sm:py-3 rounded-lg text-xs sm:text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       >
         Create Virtual Card
       </CustomButton>
@@ -218,39 +244,55 @@ const CardsContent: React.FC = () => {
   );
 
   const renderPhysical = () => (
-    <div className="flex flex-col gap-4">
-      <CardPreview cardholder="John Doe" maskedNumber="•••• •••• •••• 1234" expiry="07/28" brand="mastercard" variant="gold" issuerName="NattyPay" status={isFrozen ? "frozen" : "active"} />
-
-      <div className="grid grid-cols-2 gap-3">
-        <button onClick={()=> setOpenDetails(true)} className="flex items-center justify-center gap-2 py-2.5 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-white transition-colors">
-          <FiEye />
-          <span className="text-sm">Show Details</span>
-        </button>
-        <button onClick={() => setOpenFreeze(true)} className="flex items-center justify-center gap-2 py-2.5 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-white transition-colors">
-          {isFrozen ? <FiUnlock /> : <FiLock />}
-          <span className="text-sm">{isFrozen ? "Un-freeze Card" : "Freeze Card"}</span>
-        </button>
+    <div className="relative">
+      {/* Overlay - blocks all interactions */}
+      <div className="absolute inset-0 z-50 bg-black/80 backdrop-blur-sm rounded-xl flex items-center justify-center pointer-events-auto">
+        <div className="text-center px-6">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[#D4B139]/20 flex items-center justify-center border-2 border-[#D4B139]">
+            <FiCreditCard className="text-3xl text-[#D4B139]" />
+          </div>
+          <h3 className="text-white text-xl font-semibold mb-2">Coming Soon</h3>
+          <p className="text-white/70 text-sm">Physical cards will be available soon</p>
+        </div>
       </div>
 
-      <div className="mt-2 rounded-xl border border-white/10 bg-white/5 p-3">
-        <p className="text-white/80 text-sm mb-2">Manage Card</p>
-        <div className="divide-y divide-white/10">
-          <button onClick={()=> setOpenChangePin(true)} className="w-full flex items-center justify-between py-3 text-left">
-            <span className="text-white text-sm">Change Pin</span>
-            <FiLock className="text-white/70" />
+      {/* Content - disabled with pointer-events-none */}
+      <div className="flex flex-col gap-4 items-center pointer-events-none opacity-50">
+        <div className="flex justify-center w-full">
+          <CardPreview cardholder="John Doe" maskedNumber="•••• •••• •••• 1234" expiry="07/28" brand="mastercard" variant="gold" issuerName="NattyPay" status={isFrozen ? "frozen" : "active"} className="h-44 sm:h-48 max-w-sm w-full" />
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 w-full max-w-sm">
+          <button onClick={()=> setOpenDetails(true)} className="flex items-center justify-center gap-2 py-2.5 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-white transition-colors">
+            <FiEye />
+            <span className="text-sm">Show Details</span>
           </button>
-          <button onClick={()=> setOpenResetPin(true)} className="w-full flex items-center justify-between py-3 text-left">
-            <span className="text-white text-sm">Reset Pin</span>
-            <FiLock className="text-white/70" />
+          <button onClick={() => setOpenFreeze(true)} className="flex items-center justify-center gap-2 py-2.5 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-white transition-colors">
+            {isFrozen ? <FiUnlock /> : <FiLock />}
+            <span className="text-sm">{isFrozen ? "Un-freeze Card" : "Freeze Card"}</span>
           </button>
-          <button onClick={()=> setOpenLimit(true)} className="w-full flex items-center justify-between py-3 text-left">
-            <span className="text-white text-sm">Set Spending Limit</span>
-            <FiAlertCircle className="text-white/70" />
-          </button>
-          <button onClick={()=> setOpenBlock(true)} className="w-full flex items-center justify-between py-3 text-left">
-            <span className="text-red-400 text-sm">Block Card</span>
-            <FiAlertCircle className="text-red-400" />
-          </button>
+        </div>
+
+        <div className="mt-2 rounded-xl border border-white/10 bg-white/5 p-3 w-full max-w-sm">
+          <p className="text-white/80 text-sm mb-2">Manage Card</p>
+          <div className="divide-y divide-white/10">
+            <button onClick={()=> setOpenChangePin(true)} className="w-full flex items-center justify-between py-3 text-left">
+              <span className="text-white text-sm">Change Pin</span>
+              <FiLock className="text-white/70" />
+            </button>
+            <button onClick={()=> setOpenResetPin(true)} className="w-full flex items-center justify-between py-3 text-left">
+              <span className="text-white text-sm">Reset Pin</span>
+              <FiLock className="text-white/70" />
+            </button>
+            <button onClick={()=> setOpenLimit(true)} className="w-full flex items-center justify-between py-3 text-left">
+              <span className="text-white text-sm">Set Spending Limit</span>
+              <FiAlertCircle className="text-white/70" />
+            </button>
+            <button onClick={()=> setOpenBlock(true)} className="w-full flex items-center justify-between py-3 text-left">
+              <span className="text-red-400 text-sm">Block Card</span>
+              <FiAlertCircle className="text-red-400" />
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -277,18 +319,21 @@ const CardsContent: React.FC = () => {
           
           return (
             <div key={card.id} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="flex flex-col gap-4">
-                <CardPreview
-                  cardholder={card.cardholder || "CARDHOLDER"}
-                  maskedNumber={card.maskedNumber}
-                  expiry={formatExpiry(card)}
-                  brand={card.brand || "visa"}
-                  variant="dark"
-                  issuerName="NattyPay"
-                  status={isFrozen ? "frozen" : card.status === "ACTIVE" ? "active" : "frozen"}
-                  isVirtual={true}
-                />
-                <div className="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/10">
+              <div className="flex flex-col gap-4 items-center md:items-start">
+                <div className="flex justify-center w-full">
+                  <CardPreview
+                    cardholder={card.cardholder || "CARDHOLDER"}
+                    maskedNumber={card.maskedNumber}
+                    expiry={formatExpiry(card)}
+                    brand={card.brand || "visa"}
+                    variant="dark"
+                    issuerName="NattyPay"
+                    status={isFrozen ? "frozen" : card.status === "ACTIVE" ? "active" : "frozen"}
+                    isVirtual={true}
+                    className="h-44 sm:h-48 max-w-sm w-full"
+                  />
+                </div>
+                <div className="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/10 w-full max-w-sm">
                   <div>
                     <p className="text-white/60 text-xs">Balance</p>
                     <p className="text-white text-lg font-semibold">${card.balance.toLocaleString()}</p>
@@ -305,7 +350,7 @@ const CardsContent: React.FC = () => {
                     </p>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-3 w-full max-w-sm">
                   <CustomButton
                     onClick={() => {
                       setSelectedCard(card);
@@ -517,6 +562,17 @@ const CardsContent: React.FC = () => {
           <div className="absolute inset-0 bg-black/80" onClick={() => { setOpenCreateCard(false); setCardLabel(""); }} />
           <div className="relative w-full max-w-md bg-bg-600 dark:bg-bg-1100 border border-white/10 rounded-2xl p-5 z-10">
             <h2 className="text-white text-base font-semibold mb-4">Create Virtual USD Card</h2>
+            {!hasUsdAccount && (
+              <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3 mb-4">
+                <p className="text-yellow-400 text-xs font-medium mb-1">USD Account Required</p>
+                <p className="text-white/80 text-xs">You must have a USD account before creating a virtual card. Please create a USD account in the Accounts page first.</p>
+              </div>
+            )}
+            <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 mb-4">
+              <p className="text-blue-400 text-xs font-medium mb-1">Note</p>
+              <p className="text-white/80 text-xs">• NGN cards are not available</p>
+              <p className="text-white/80 text-xs">• Only USD virtual cards are available for now</p>
+            </div>
             <div className="flex flex-col gap-3">
               <div className="flex flex-col gap-1">
                 <label className="text-white/70 text-xs">Card Label</label>
@@ -536,9 +592,9 @@ const CardsContent: React.FC = () => {
                 </CustomButton>
                 <CustomButton
                   onClick={handleCreateCard}
-                  disabled={creatingCard || !cardLabel.trim()}
+                  disabled={creatingCard || !cardLabel.trim() || !hasUsdAccount}
                   isLoading={creatingCard}
-                  className="flex-1 bg-[#D4B139] hover:bg-[#c7a42f] text-black rounded-lg py-2.5"
+                  className="flex-1 bg-[#D4B139] hover:bg-[#c7a42f] text-black rounded-lg py-2.5 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Create Card
                 </CustomButton>

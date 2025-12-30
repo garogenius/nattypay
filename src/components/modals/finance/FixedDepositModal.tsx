@@ -1,8 +1,15 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { CgClose } from "react-icons/cg";
-import { FiArrowRight, FiMinus, FiPlus } from "react-icons/fi";
+import { FiArrowRight } from "react-icons/fi";
+import useUserStore from "@/store/user.store";
+import { useCreateFixedDeposit, useGetFixedDepositPlans } from "@/api/fixed-deposits/fixed-deposits.queries";
+import { useVerifyWalletPin } from "@/api/user/user.queries";
+import ErrorToast from "@/components/toast/ErrorToast";
+import SuccessToast from "@/components/toast/SuccessToast";
+import CustomButton from "@/components/shared/Button";
+import type { FixedDepositPlan, FixedDepositPlanType } from "@/api/fixed-deposits/fixed-deposits.types";
 
 interface FixedDepositModalProps {
   isOpen: boolean;
@@ -10,11 +17,20 @@ interface FixedDepositModalProps {
 }
 
 const FixedDepositModal: React.FC<FixedDepositModalProps> = ({ isOpen, onClose }) => {
-  const [amount, setAmount] = useState<number>(50000);
-  const [duration, setDuration] = useState<number>(3);
-  const [step, setStep] = useState<1 | 2>(1);
+  const { user } = useUserStore();
+  const wallets = user?.wallet || [];
+  const ngnWallet = wallets.find((w) => w.currency?.toUpperCase() === "NGN");
 
-  if (!isOpen) return null;
+  const { plans, isPending: plansLoading } = useGetFixedDepositPlans();
+  const [selectedPlanType, setSelectedPlanType] = useState<FixedDepositPlanType>("SHORT_TERM_90");
+  const selectedPlan: FixedDepositPlan | undefined = plans.find((p) => p.planType === selectedPlanType) || plans[0];
+
+  const minDeposit = selectedPlan?.minimumDeposit ?? 0;
+  const [amount, setAmount] = useState<number>(minDeposit || 0);
+  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [walletPin, setWalletPin] = useState("");
+  const [transactionResult, setTransactionResult] = useState<unknown>(null);
+  const [selectedWalletId, setSelectedWalletId] = useState<string | null>(ngnWallet?.id || null);
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseFloat(e.target.value.replace(/[^0-9.]/g, '')) || 0;
@@ -30,27 +46,148 @@ const FixedDepositModal: React.FC<FixedDepositModalProps> = ({ isOpen, onClose }
     }).format(value);
   };
 
-  const calculateInterest = (): number => {
-    // Fixed deposit rates (example)
-    const rates: Record<number, number> = {
-      1: 0.10,  // 10% for 1 month
-      3: 0.12,  // 12% for 3 months
-      6: 0.15,  // 15% for 6 months
-      12: 0.18, // 18% for 12 months
-    };
-    
-    // Get the closest lower duration if exact match not found
-    const rate = rates[duration] || rates[12];
-    return amount * (rate / 12) * duration;
+  const onError = (error: unknown) => {
+    const errorMessage = (error as { response?: { data?: { message?: unknown } } })?.response?.data
+      ?.message as unknown;
+    const descriptions = Array.isArray(errorMessage)
+      ? (errorMessage as string[])
+      : [typeof errorMessage === "string" ? errorMessage : "Failed to create fixed deposit"];
+
+    ErrorToast({
+      title: "Creation Failed",
+      descriptions,
+    });
   };
 
-  const totalPayout = amount + calculateInterest();
-  const interestRate = (() => {
-    if (duration === 1) return "10% per annum";
-    if (duration === 3) return "12% per annum";
-    if (duration === 6) return "15% per annum";
-    return "18% per annum";
-  })();
+  const onSuccess = (data: unknown) => {
+    const payload = (data as { data?: { data?: unknown } })?.data?.data;
+    setTransactionResult(payload ?? null);
+    setStep(3);
+    SuccessToast({
+      title: "Fixed Deposit Created Successfully!",
+      description: "Your fixed deposit has been created. It will mature on the specified date.",
+    });
+  };
+
+  const { mutate: createFixedDeposit, isPending: creating } = useCreateFixedDeposit(onError, onSuccess);
+
+  const onVerifyPinError = (error: unknown) => {
+    const errorMessage = (error as { response?: { data?: { message?: unknown } } })?.response?.data
+      ?.message as unknown;
+    const descriptions = Array.isArray(errorMessage)
+      ? (errorMessage as string[])
+      : [typeof errorMessage === "string" ? errorMessage : "Invalid PIN"];
+    ErrorToast({ title: "Verification Failed", descriptions });
+  };
+
+  const onVerifyPinSuccess = () => {
+    if (!selectedPlan) return;
+    createFixedDeposit({
+      planType: selectedPlan.planType,
+      principalAmount: amount,
+      currency: "NGN",
+      interestPaymentFrequency: "AT_MATURITY",
+      reinvestInterest: false,
+      autoRenewal: false,
+    });
+  };
+
+  const { mutate: verifyPin, isPending: verifyingPin } = useVerifyWalletPin(
+    onVerifyPinError,
+    onVerifyPinSuccess
+  );
+
+  const handleCreate = () => {
+    if (!selectedPlan) {
+      ErrorToast({
+        title: "Validation Error",
+        descriptions: ["Please select a fixed deposit plan"],
+      });
+      return;
+    }
+
+    if (amount < minDeposit) {
+      ErrorToast({
+        title: "Validation Error",
+        descriptions: [`Minimum deposit for this plan is ₦${Number(minDeposit).toLocaleString()}`],
+      });
+      return;
+    }
+
+    if (walletPin.length !== 4) {
+      ErrorToast({
+        title: "Validation Error",
+        descriptions: ["Please enter a valid 4-digit PIN"],
+      });
+      return;
+    }
+
+    if (!ngnWallet) {
+      ErrorToast({
+        title: "Wallet Required",
+        descriptions: ["NGN wallet not found"],
+      });
+      return;
+    }
+
+    if (Number(amount) > Number(ngnWallet.balance || 0)) {
+      ErrorToast({
+        title: "Insufficient Balance",
+        descriptions: ["You don't have enough NGN balance to create this fixed deposit"],
+      });
+      return;
+    }
+
+    verifyPin({ pin: walletPin });
+  };
+
+  const resetAndClose = () => {
+    setStep(1);
+    setAmount(minDeposit || 0);
+    setWalletPin("");
+    setTransactionResult(null);
+    onClose();
+  };
+
+  useEffect(() => {
+    // When plans load, ensure we have a sensible default amount
+    if (minDeposit > 0 && (!amount || amount < minDeposit)) {
+      setAmount(minDeposit);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [minDeposit]);
+
+  useEffect(() => {
+    // Sync selectedWalletId with ngnWallet
+    if (ngnWallet?.id && selectedWalletId !== ngnWallet.id) {
+      setSelectedWalletId(ngnWallet.id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ngnWallet?.id]);
+
+  const interestRateText = selectedPlan
+    ? `${(selectedPlan.interestRate * 100).toFixed(2)}% per annum`
+    : "N/A";
+
+  const tr = transactionResult as null | Partial<{
+    principalAmount: number;
+    planType: string;
+    interestRate: number;
+    maturityDate: string;
+  }>;
+
+  const displayPrincipal = tr?.principalAmount ?? amount;
+  const displayPlanType = tr?.planType ?? selectedPlan?.planType;
+  const displayInterestRate = tr?.interestRate
+    ? `${(tr.interestRate * 100).toFixed(2)}% per annum`
+    : interestRateText;
+  const displayMaturityDate = tr?.maturityDate
+    ? new Date(tr.maturityDate).toLocaleDateString("en-GB")
+    : selectedPlan
+    ? new Date(Date.now() + selectedPlan.durationDays * 24 * 60 * 60 * 1000).toLocaleDateString("en-GB")
+    : "";
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -71,7 +208,7 @@ const FixedDepositModal: React.FC<FixedDepositModalProps> = ({ isOpen, onClose }
             <div className="space-y-6">
               <div>
                 <label className="block text-sm font-medium text-white/70 mb-2">
-                  Amount to Deposit (Minimum ₦50,000)
+                  Amount to Deposit {minDeposit ? `(Minimum ₦${Number(minDeposit).toLocaleString()})` : ""}
                 </label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/60">₦</span>
@@ -101,25 +238,38 @@ const FixedDepositModal: React.FC<FixedDepositModalProps> = ({ isOpen, onClose }
 
               <div>
                 <label className="block text-sm font-medium text-white/70 mb-2">
-                  Duration
+                  Plan
                 </label>
-                <div className="grid grid-cols-4 gap-2">
-                  {[1, 3, 6, 12].map((months) => (
-                    <button
-                      key={months}
-                      onClick={() => setDuration(months)}
-                      className={`py-2 text-sm rounded-lg ${
-                        duration === months
-                          ? 'bg-[#D4B139] text-black font-medium'
-                          : 'bg-bg-500 dark:bg-bg-900 text-white/70 hover:bg-white/10'
-                      }`}
-                    >
-                      {months} {months === 1 ? 'Month' : 'Months'}
-                    </button>
-                  ))}
+                <div className="grid grid-cols-1 gap-2">
+                  {plansLoading ? (
+                    <div className="text-white/60 text-sm">Loading plans...</div>
+                  ) : (
+                    plans.map((p) => (
+                      <button
+                        key={p.planType}
+                        onClick={() => {
+                          setSelectedPlanType(p.planType);
+                          setAmount((prev) => (prev < p.minimumDeposit ? p.minimumDeposit : prev));
+                        }}
+                        className={`py-2 text-sm rounded-lg text-left px-3 border ${
+                          (selectedPlan?.planType || selectedPlanType) === p.planType
+                            ? "bg-[#D4B139] text-black border-transparent"
+                            : "bg-bg-500 dark:bg-bg-900 text-white/80 border-white/10 hover:bg-white/10"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium">{p.name}</span>
+                          <span className="text-xs">{(p.interestRate * 100).toFixed(2)}%</span>
+                        </div>
+                        <div className="text-[11px] opacity-80 mt-0.5">
+                          Min ₦{Number(p.minimumDeposit).toLocaleString()} • {p.durationDays} days
+                        </div>
+                      </button>
+                    ))
+                  )}
                 </div>
                 <div className="mt-2 text-xs text-white/60">
-                  Interest Rate: <span className="text-[#D4B139]">{interestRate}</span>
+                  Interest Rate: <span className="text-[#D4B139]">{interestRateText}</span>
                 </div>
               </div>
 
@@ -128,30 +278,116 @@ const FixedDepositModal: React.FC<FixedDepositModalProps> = ({ isOpen, onClose }
                   <span className="text-white/70">Principal Amount:</span>
                   <span className="text-white font-medium">{formatCurrency(amount)}</span>
                 </div>
-                <div className="flex justify-between mb-2">
-                  <span className="text-white/70">Interest ({duration} months):</span>
-                  <span className="text-[#D4B139] font-medium">+{formatCurrency(calculateInterest())}</span>
-                </div>
                 <div className="h-px bg-white/10 my-3" />
                 <div className="flex justify-between">
-                  <span className="text-white/70">Maturity Amount:</span>
-                  <span className="text-white font-medium">{formatCurrency(totalPayout)}</span>
+                  <span className="text-white/70">Maturity:</span>
+                  <span className="text-white/80 text-sm">Calculated by server</span>
                 </div>
               </div>
 
-              <button
+              <CustomButton
                 onClick={() => setStep(2)}
-                disabled={amount < 50000}
-                className={`w-full py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 ${
-                  amount >= 50000
-                    ? 'bg-[#D4B139] hover:bg-[#c7a42f] text-black'
-                    : 'bg-gray-500 cursor-not-allowed text-gray-300'
-                }`}
+                disabled={!!minDeposit && amount < minDeposit}
+                className="w-full bg-[#D4B139] hover:bg-[#c7a42f] text-black py-3 rounded-lg font-medium"
               >
-                Continue <FiArrowRight />
-              </button>
+                Continue <FiArrowRight className="inline ml-2" />
+              </CustomButton>
             </div>
           </>
+        ) : step === 2 ? (
+          <div className="space-y-6">
+            <h2 className="text-xl font-semibold text-white mb-4">Confirm Fixed Deposit</h2>
+            
+            <div className="bg-bg-500 dark:bg-bg-900 p-4 rounded-lg">
+              <div className="flex justify-between mb-2">
+                <span className="text-white/70">Principal Amount:</span>
+                <span className="text-white font-medium">{formatCurrency(amount)}</span>
+              </div>
+              <div className="flex justify-between mb-2">
+                <span className="text-white/70">Plan:</span>
+                <span className="text-white">{selectedPlan?.name || selectedPlanType}</span>
+              </div>
+              <div className="flex justify-between mb-2">
+                <span className="text-white/70">Interest Rate:</span>
+                <span className="text-[#D4B139]">{interestRateText}</span>
+              </div>
+              <div className="h-px bg-white/10 my-3" />
+              <div className="flex justify-between mb-2">
+                <span className="text-white/70">Maturity Date:</span>
+                <span className="text-white">
+                  {selectedPlan
+                    ? new Date(Date.now() + selectedPlan.durationDays * 24 * 60 * 60 * 1000).toLocaleDateString("en-GB")
+                    : ""}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-white/70">Maturity Amount:</span>
+                <span className="text-white/80 text-sm">Calculated by server</span>
+              </div>
+            </div>
+
+            {/* Wallet Selection */}
+            {ngnWallet && (
+              <div>
+                <label className="block text-sm font-medium text-white/70 mb-2">
+                  Select Wallet
+                </label>
+                <div className="rounded-lg border border-white/10 bg-transparent divide-y divide-white/10">
+                  {wallets.filter(w => w.currency?.toUpperCase() === "NGN").map((w) => (
+                    <label key={w.id} className="flex items-center justify-between py-3 px-3 cursor-pointer">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-white grid place-items-center">
+                          <span className="text-black font-bold">{w.currency?.slice(0,1) || 'N'}</span>
+                        </div>
+                        <div className="flex flex-col">
+                          <p className="text-white text-sm font-medium">{w.bankName || w.currency}</p>
+                          <p className="text-white/60 text-xs">₦{Number(w.balance || 0).toLocaleString()}</p>
+                        </div>
+                      </div>
+                      <input 
+                        type="radio" 
+                        checked={selectedWalletId === w.id} 
+                        onChange={() => setSelectedWalletId(w.id)} 
+                        className="w-4 h-4 accent-[#D4B139]" 
+                      />
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* PIN Input */}
+            <div>
+              <label className="block text-sm font-medium text-white/70 mb-2">
+                Enter Transaction PIN
+              </label>
+              <input
+                type="password"
+                maxLength={4}
+                value={walletPin}
+                onChange={(e) => setWalletPin(e.target.value.replace(/\D/g, ""))}
+                className="w-full bg-bg-500 dark:bg-bg-1000 border border-border-700 dark:border-border-600 rounded-lg py-3 px-4 text-white text-center text-2xl tracking-widest focus:outline-none focus:ring-2 focus:ring-[#D4B139] focus:border-transparent"
+                placeholder="••••"
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <CustomButton
+                onClick={() => setStep(1)}
+                className="flex-1 bg-transparent border border-white/10 text-white hover:bg-white/5 py-3 rounded-lg"
+              >
+                Back
+              </CustomButton>
+              <CustomButton
+                onClick={handleCreate}
+                disabled={walletPin.length !== 4 || creating || verifyingPin}
+                isLoading={creating || verifyingPin}
+                className="flex-1 bg-[#D4B139] hover:bg-[#c7a42f] text-black py-3 rounded-lg font-medium"
+              >
+                Create Fixed Deposit
+              </CustomButton>
+            </div>
+          </div>
         ) : (
           <div className="text-center">
             <div className="w-16 h-16 bg-[#D4B139]/10 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -161,47 +397,45 @@ const FixedDepositModal: React.FC<FixedDepositModalProps> = ({ isOpen, onClose }
               </svg>
             </div>
             <h2 className="text-xl font-semibold text-white mb-2">Fixed Deposit Created!</h2>
-            <p className="text-white/70 mb-6">Your fixed deposit of {formatCurrency(amount)} has been successfully created.</p>
+            <p className="text-white/70 mb-6">Your fixed deposit of {formatCurrency(displayPrincipal)} has been successfully created.</p>
             
             <div className="bg-bg-500 dark:bg-bg-900 p-4 rounded-lg mb-6 text-left">
               <div className="flex justify-between mb-2">
                 <span className="text-white/70">Principal:</span>
-                <span className="text-white">{formatCurrency(amount)}</span>
+                <span className="text-white">{formatCurrency(displayPrincipal)}</span>
               </div>
               <div className="flex justify-between mb-2">
-                <span className="text-white/70">Duration:</span>
-                <span className="text-white">{duration} {duration === 1 ? 'Month' : 'Months'}</span>
+                <span className="text-white/70">Plan Type:</span>
+                <span className="text-white">{String(displayPlanType || "")}</span>
               </div>
               <div className="flex justify-between mb-2">
                 <span className="text-white/70">Interest Rate:</span>
-                <span className="text-[#D4B139]">{interestRate}</span>
+                <span className="text-[#D4B139]">{displayInterestRate}</span>
               </div>
               <div className="h-px bg-white/10 my-2" />
               <div className="flex justify-between">
                 <span className="text-white/70">Maturity Date:</span>
-                <span className="text-white">
-                  {new Date(new Date().setMonth(new Date().getMonth() + duration)).toLocaleDateString('en-GB')}
-                </span>
+                <span className="text-white">{displayMaturityDate}</span>
               </div>
               <div className="flex justify-between mt-2">
                 <span className="text-white/70">Maturity Amount:</span>
-                <span className="text-white font-medium">{formatCurrency(totalPayout)}</span>
+                <span className="text-white/80 text-sm">Calculated by server</span>
               </div>
             </div>
 
             <div className="flex flex-col gap-3">
-              <button
-                onClick={onClose}
-                className="w-full bg-[#D4B139] hover:bg-[#c7a42f] text-black py-3 rounded-lg font-medium transition-colors"
+              <CustomButton
+                onClick={resetAndClose}
+                className="w-full bg-[#D4B139] hover:bg-[#c7a42f] text-black py-3 rounded-lg font-medium"
               >
                 View Fixed Deposit
-              </button>
-              <button
-                onClick={onClose}
-                className="w-full bg-transparent hover:bg-white/5 text-white py-3 rounded-lg font-medium border border-white/10 transition-colors"
+              </CustomButton>
+              <CustomButton
+                onClick={resetAndClose}
+                className="w-full bg-transparent hover:bg-white/5 text-white py-3 rounded-lg font-medium border border-white/10"
               >
                 Close
-              </button>
+              </CustomButton>
             </div>
           </div>
         )}

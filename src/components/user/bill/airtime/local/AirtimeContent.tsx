@@ -85,8 +85,25 @@ const AirtimeContent = () => {
             currency={currency}
             type={BILL_TYPE.AIRTIME}
             payFunction={(walletPin: string) => {
+              // Format phone number to local format: ensure 11 digits with leading 0
+              // e.g., 07043742886 -> 07043742886 (keep as is)
+              // e.g., 7043742886 -> 07043742886 (add leading 0)
+              const cleaned = phone.replace(/\D/g, "");
+              let phoneForPayment = cleaned;
+              
+              // If phone is 10 digits (without leading 0), add leading 0
+              if (cleaned.length === 10) {
+                phoneForPayment = `0${cleaned}`;
+              } else if (cleaned.length === 11 && !cleaned.startsWith("0")) {
+                // If 11 digits but doesn't start with 0, ensure it does
+                phoneForPayment = `0${cleaned.slice(1)}`;
+              } else if (cleaned.length === 11 && cleaned.startsWith("0")) {
+                // Already in correct format (11 digits with leading 0)
+                phoneForPayment = cleaned;
+              }
+              
               PayForAirtime({
-                phone,
+                phone: phoneForPayment,
                 currency,
                 walletPin,
                 operatorId: operatorId!,

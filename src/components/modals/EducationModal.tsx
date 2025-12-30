@@ -13,6 +13,7 @@ import {
 } from "@/api/education/education.queries";
 import SpinnerLoader from "@/components/Loader/SpinnerLoader";
 import ErrorToast from "@/components/toast/ErrorToast";
+import SuccessToast from "@/components/toast/SuccessToast";
 import useUserStore from "@/store/user.store";
 
 interface EducationModalProps {
@@ -31,6 +32,7 @@ const EducationModal: React.FC<EducationModalProps> = ({ isOpen, onClose }) => {
   const [walletPin, setWalletPin] = useState<string>("");
   const [resultSuccess, setResultSuccess] = useState<boolean | null>(null);
   const [verifiedCustomer, setVerifiedCustomer] = useState<any>(null);
+  const [transactionData, setTransactionData] = useState<any>(null);
   const { user } = useUserStore();
 
   const billerRef = useRef<HTMLDivElement>(null);
@@ -60,6 +62,7 @@ const EducationModal: React.FC<EducationModalProps> = ({ isOpen, onClose }) => {
     setWalletPin("");
     setResultSuccess(null);
     setVerifiedCustomer(null);
+    setTransactionData(null);
     onClose();
   };
 
@@ -91,6 +94,7 @@ const EducationModal: React.FC<EducationModalProps> = ({ isOpen, onClose }) => {
   };
 
   const onPaySuccess = (data: any) => {
+    setTransactionData(data?.data);
     setResultSuccess(true);
     setStep("result");
   };
@@ -162,7 +166,9 @@ const EducationModal: React.FC<EducationModalProps> = ({ isOpen, onClose }) => {
                         <div className="flex items-center justify-center py-4">
                           <SpinnerLoader width={20} height={20} color="#D4B139" />
                         </div>
-                      ) : (billers || []).map((b: any) => (
+                      ) : billers.length === 0 ? (
+                        <div className="px-4 py-3 text-white/50 text-sm">No billers available</div>
+                      ) : billers.map((b: any) => (
                         <button
                           key={b.billerCode}
                           onClick={() => {
@@ -195,7 +201,9 @@ const EducationModal: React.FC<EducationModalProps> = ({ isOpen, onClose }) => {
                           <div className="flex items-center justify-center py-4">
                             <SpinnerLoader width={20} height={20} color="#D4B139" />
                           </div>
-                        ) : (items || []).map((it: any) => (
+                        ) : items.length === 0 ? (
+                          <div className="px-4 py-3 text-white/50 text-sm">No items available</div>
+                        ) : items.map((it: any) => (
                           <button
                             key={it.itemCode}
                             onClick={() => {
@@ -288,8 +296,71 @@ const EducationModal: React.FC<EducationModalProps> = ({ isOpen, onClose }) => {
                   )}
                 </svg>
               </div>
-              <span className={`${resultSuccess ? 'text-emerald-400' : 'text-red-400'} text-sm font-medium`}>{resultSuccess ? 'Successful' : 'Failed'}</span>
+              <span className={`${resultSuccess ? 'text-emerald-400' : 'text-red-400'} text-sm font-medium`}>{resultSuccess ? 'Payment Successful' : 'Payment Failed'}</span>
               <span className="text-white text-2xl font-bold">₦{Number(selectedItem?.amount || amount || 0).toLocaleString()}.00</span>
+              
+              {resultSuccess && transactionData && (
+                <div className="w-full bg-white/5 border border-white/10 rounded-lg p-4 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-white/70 text-sm">Transaction Reference</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-white text-sm font-mono">
+                        {transactionData?.transactionRef || transactionData?.transaction?.transactionRef || transactionData?.transactionId || "N/A"}
+                      </span>
+                      {(transactionData?.transactionRef || transactionData?.transaction?.transactionRef || transactionData?.transactionId) && (
+                        <button
+                          onClick={() => {
+                            const ref = transactionData?.transactionRef || transactionData?.transaction?.transactionRef || transactionData?.transactionId;
+                            if (ref) {
+                              navigator.clipboard.writeText(String(ref));
+                              SuccessToast({
+                                title: "Copied",
+                                description: "Transaction reference copied to clipboard",
+                              });
+                            }
+                          }}
+                          className="p-1 rounded hover:bg-white/10"
+                          title="Copy"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-4 h-4 text-white/70">
+                            <path fill="currentColor" d="M7 21q-.825 0-1.412-.587T5 19V7q0-.825.588-1.412T7 5h8q.825 0 1.413.588T17 7v12q0 .825-.587 1.413T15 21zm0-2h8V7H7zm10-2V5H9V3h8q.825 0 1.413.588T19 5v12z"/>
+                          </svg>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  {transactionData?.pin && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-white/70 text-sm">PIN</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-white text-sm font-mono">{transactionData.pin}</span>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(transactionData.pin);
+                            SuccessToast({
+                              title: "Copied",
+                              description: "PIN copied to clipboard",
+                            });
+                          }}
+                          className="p-1 rounded hover:bg-white/10"
+                          title="Copy"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-4 h-4 text-white/70">
+                            <path fill="currentColor" d="M7 21q-.825 0-1.412-.587T5 19V7q0-.825.588-1.412T7 5h8q.825 0 1.413.588T17 7v12q0 .825-.587 1.413T15 21zm0-2h8V7H7zm10-2V5H9V3h8q.825 0 1.413.588T19 5v12z"/>
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  {transactionData?.transactionId && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-white/70 text-sm">Transaction ID</span>
+                      <span className="text-white text-sm font-mono">{transactionData.transactionId}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+              
               <div className="flex gap-3 mt-4 w-full">
                 <CustomButton onClick={handleClose} className="flex-1 bg-transparent border border-border-600 text-white hover:bg-white/5 py-3 rounded-lg">Contact Support</CustomButton>
                 <CustomButton onClick={handleClose} className="flex-1 bg-[#D4B139] hover:bg-[#D4B139]/90 text-black py-3 rounded-lg">Download Receipt</CustomButton>

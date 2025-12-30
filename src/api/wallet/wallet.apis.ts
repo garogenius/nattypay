@@ -5,6 +5,8 @@ import {
   IInitiateTransfer,
   IValidateBvnVerification,
   IVerifyAccount,
+  IDecodeQRCode,
+  IGenerateQRCode,
 } from "./wallet.types";
 import {
   TRANSACTION_CATEGORY,
@@ -91,9 +93,18 @@ export const getTransactions = ({
   });
 };
 
-export const getQrCode = ({ amount }: { amount: number }) => {
+export const generateQRCodeRequest = async (params: IGenerateQRCode) => {
   return request({
-    url: `/wallet/generate-qrcode?amount=${amount}`,
+    url: `/wallet/generate-qrcode?amount=${params.amount}`,
+    method: "get",
+  });
+};
+
+export const decodeQRCodeRequest = async (formdata: IDecodeQRCode) => {
+  return request({
+    url: "/wallet/decode-qrcode",
+    method: "post",
+    data: formdata,
   });
 };
 

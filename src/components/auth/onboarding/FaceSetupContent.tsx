@@ -259,9 +259,7 @@ const FaceSetupContent = () => {
       if (user?.phoneNumber) {
         formData.append("phoneNumber", user.phoneNumber);
       }
-      if (user?.dateOfBirth) {
-        formData.append("dateOfBirth", user.dateOfBirth);
-      }
+      // Don't add dateOfBirth - it's not allowed in profile updates
 
       uploadFaceImageMutation(formData);
     } catch (error) {
@@ -306,7 +304,7 @@ const FaceSetupContent = () => {
       {/* Left Panel - Yellow/Gold Background */}
       <div className="hidden lg:flex lg:w-[40%] bg-[#D4B139] relative items-center justify-center">
         <div className="w-full h-full flex flex-col items-center justify-center px-8 py-12">
-          {/* Illustration placeholder */}
+          {/* Face Recognition Icon */}
           <div className="w-full max-w-md mb-8 flex items-center justify-center">
             <div className="w-64 h-64 bg-white/20 rounded-full flex items-center justify-center">
               <svg
@@ -319,7 +317,7 @@ const FaceSetupContent = () => {
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
-                  d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
                 />
               </svg>
             </div>

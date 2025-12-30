@@ -16,13 +16,20 @@ import { ElectricityVariationProps } from "@/constants/types";
 import { ElectricityPlan } from "@/constants/types";
 
 export const useGetElectricityPlans = (payload: IGetElectricityPlans) => {
-  const { isPending, isError, data } = useQuery({
+  const { isPending, isError, data, error } = useQuery({
     queryKey: ["electricity-plan", payload],
     queryFn: () => getElectricityPlansRequest(payload),
     enabled: payload.isEnabled,
   });
 
-  const electricityPlans: ElectricityPlan[] = data?.data?.data;
+  // Handle different possible response structures
+  const responseData = data?.data?.data || data?.data || data;
+  const electricityPlans: ElectricityPlan[] = Array.isArray(responseData) ? responseData : [];
+
+  // Debug logging (remove in production if needed)
+  if (isError && error) {
+    console.error("Electricity plans fetch error:", error);
+  }
 
   return { isPending, isError, electricityPlans };
 };

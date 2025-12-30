@@ -2,64 +2,78 @@ export type SavingsPlanType = "FLEX_SAVE" | "NATTY_AUTO_SAVE";
 export type SavingsPlanStatus = "ACTIVE" | "COMPLETED" | "BROKEN";
 
 export interface ICreateSavingsPlan {
+  type: SavingsPlanType; // "FLEX_SAVE" or "NATTY_AUTO_SAVE"
   name: string;
-  planType: SavingsPlanType;
-  targetAmount?: number; // Required for FLEX_SAVE
-  duration?: number; // Duration in days
-  interestRate?: number; // Interest rate percentage
-  penaltyRate?: number; // Penalty rate percentage (default 10%)
-  startDate?: string; // ISO date string
-  endDate?: string; // ISO date string
-  frequency?: "Daily" | "Weekly" | "Monthly" | "Yearly"; // For auto-save
-  topUpAmount?: number; // For auto-save
-  walletId?: string; // Wallet ID for funding
-  isAutoSave?: boolean; // Whether it's auto-save mode
+  description?: string;
+  goalAmount: number; // Required for FLEX_SAVE, positive number
+  currency: string; // e.g., "NGN"
+  durationMonths: number; // Integer between 1-60
 }
 
 export interface IFundSavingsPlan {
   planId: string;
   amount: number;
-  walletPin: string;
-  walletId?: string; // Optional wallet ID
+  currency: string; // e.g., "NGN"
 }
 
-export interface IWithdrawSavingsPlan {
-  planId: string;
-  walletPin: string;
-  reason?: string; // Reason for early withdrawal
+export interface IWithdrawSavingsPlanResponse {
+  plan: {
+    id: string;
+    status: SavingsPlanStatus;
+    totalDeposited: number;
+    totalInterestAccrued: number;
+  };
+  payoutAmount: number;
+  interest: number;
+  penalty: number;
 }
 
 export interface SavingsPlan {
   id: string;
+  userId?: string;
   name: string;
-  planType: SavingsPlanType;
+  type: SavingsPlanType; // API returns "type" not "planType"
   status: SavingsPlanStatus;
-  targetAmount?: number;
-  currentAmount: number;
-  interestEarned: number;
-  interestRate: number;
-  penaltyRate: number;
+  description?: string;
+  goalAmount: number; // API returns "goalAmount" not "targetAmount"
+  currency: string;
+  durationMonths: number; // API returns "durationMonths" not "duration"
+  interestRate: number; // Decimal (e.g., 0.03 = 3%)
+  penaltyRate: number; // Decimal (e.g., 0.1 = 10%)
+  minMonthlyDeposit?: number | null;
+  autoDebitEnabled?: boolean;
+  autoDebitChargeDay?: number;
+  totalDeposited: number; // API returns "totalDeposited" not "currentAmount"
+  totalInterestAccrued: number; // API returns "totalInterestAccrued" not "interestEarned"
   startDate: string;
   maturityDate: string;
-  duration: number;
+  lockedUntil: string;
+  lastDepositDate?: string | null;
   createdAt: string;
   updatedAt: string;
   deposits?: SavingsDeposit[];
-  isAutoSave?: boolean;
-  frequency?: string;
-  topUpAmount?: number;
   brokenDate?: string;
   breakReason?: string;
   penaltyFee?: number;
+  // Legacy fields for backward compatibility
+  planType?: SavingsPlanType;
+  targetAmount?: number;
+  currentAmount?: number;
+  interestEarned?: number;
+  duration?: number;
+  isAutoSave?: boolean;
+  frequency?: string;
+  topUpAmount?: number;
 }
 
 export interface SavingsDeposit {
   id: string;
   planId: string;
+  walletId?: string;
   amount: number;
-  type: "DEPOSIT" | "WITHDRAWAL";
+  currency: string;
+  transactionId?: string;
   createdAt: string;
-  description?: string;
 }
 
 export interface SavingsWithdrawResponse {

@@ -33,7 +33,9 @@ export const useGetSavingsPlans = () => {
     queryFn: getSavingsPlansRequest,
   });
 
-  const plans: SavingsPlan[] = data?.data?.data || [];
+  // Ensure plans is always an array
+  const plansData = data?.data?.data;
+  const plans: SavingsPlan[] = Array.isArray(plansData) ? plansData : [];
 
   return { plans, isPending, isError, refetch };
 };
@@ -76,8 +78,7 @@ export const useWithdrawSavingsPlan = (
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ planId, formdata }: { planId: string; formdata: any }) =>
-      withdrawSavingsPlanRequest(planId, formdata),
+    mutationFn: ({ planId }: { planId: string }) => withdrawSavingsPlanRequest(planId),
     onError,
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["savings-plans"] });

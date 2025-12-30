@@ -52,6 +52,7 @@ const MainSidebar = () => {
                   "/user/internet",
                   "/user/wallet",
                   "/user/invest",
+                  "/user/bills",
                 ];
                 const shouldHide = hidePrefixes.some((p) => item.path.startsWith(p));
                 return !shouldHide;

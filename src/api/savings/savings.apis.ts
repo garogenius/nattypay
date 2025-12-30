@@ -2,7 +2,6 @@ import { request } from "@/utils/axios-utils";
 import {
   ICreateSavingsPlan,
   IFundSavingsPlan,
-  IWithdrawSavingsPlan,
 } from "./savings.types";
 
 export const createSavingsPlanRequest = async (
@@ -37,14 +36,10 @@ export const fundSavingsPlanRequest = async (formdata: IFundSavingsPlan) => {
   });
 };
 
-export const withdrawSavingsPlanRequest = async (
-  planId: string,
-  formdata: IWithdrawSavingsPlan
-) => {
+export const withdrawSavingsPlanRequest = async (planId: string) => {
   return request({
     url: `/savings/plans/${planId}/withdraw`,
     method: "post",
-    data: formdata,
   });
 };
 

@@ -5,6 +5,8 @@ import { CgClose } from "react-icons/cg";
 import CustomButton from "@/components/shared/Button";
 import useUserStore from "@/store/user.store";
 import { useFundSavingsPlan } from "@/api/savings/savings.queries";
+import { useFundEasyLifePlan } from "@/api/easylife-savings/easylife-savings.queries";
+import { useVerifyWalletPin } from "@/api/user/user.queries";
 import ErrorToast from "@/components/toast/ErrorToast";
 import SuccessToast from "@/components/toast/SuccessToast";
 
@@ -13,21 +15,30 @@ interface SavingsDepositModalProps {
   onClose: () => void;
   planName: string;
   planId?: string;
+  planType?: "target" | "easylife";
 }
 
-const SavingsDepositModal: React.FC<SavingsDepositModalProps> = ({ isOpen, onClose, planName, planId }) => {
+const SavingsDepositModal: React.FC<SavingsDepositModalProps> = ({
+  isOpen,
+  onClose,
+  planName,
+  planId,
+  planType = "target",
+}) => {
   const { user } = useUserStore();
   const wallets = user?.wallet || [];
   const [amount, setAmount] = React.useState("");
   const [selectedWalletIndex, setSelectedWalletIndex] = React.useState(0);
   const [walletPin, setWalletPin] = React.useState("");
   const [showPinStep, setShowPinStep] = React.useState(false);
+  const [pendingFund, setPendingFund] = React.useState<null | { amount: number; currency: string }>(null);
 
-  const onError = (error: any) => {
-    const errorMessage = error?.response?.data?.message;
+  const onError = (error: unknown) => {
+    const errorMessage = (error as { response?: { data?: { message?: unknown } } })?.response?.data
+      ?.message as unknown;
     const descriptions = Array.isArray(errorMessage)
-      ? errorMessage
-      : [errorMessage || "Failed to fund savings plan"];
+      ? (errorMessage as string[])
+      : [typeof errorMessage === "string" ? errorMessage : "Failed to fund savings plan"];
 
     ErrorToast({
       title: "Funding Failed",
@@ -49,7 +60,34 @@ const SavingsDepositModal: React.FC<SavingsDepositModalProps> = ({ isOpen, onClo
     onClose();
   };
 
-  const { mutate: fundPlan, isPending: funding } = useFundSavingsPlan(onError, onSuccess);
+  const { mutate: fundSavingsPlan, isPending: fundingSavings } = useFundSavingsPlan(onError, onSuccess);
+  const { mutate: fundEasyLifePlan, isPending: fundingEasyLife } = useFundEasyLifePlan(onError, onSuccess);
+
+  const onVerifyPinError = (error: unknown) => {
+    const errorMessage = (error as { response?: { data?: { message?: unknown } } })?.response?.data
+      ?.message as unknown;
+    const descriptions = Array.isArray(errorMessage)
+      ? (errorMessage as string[])
+      : [typeof errorMessage === "string" ? errorMessage : "Invalid PIN"];
+    ErrorToast({ title: "Verification Failed", descriptions });
+  };
+
+  const onVerifyPinSuccess = () => {
+    if (!pendingFund || !planId) return;
+    if (planType === "easylife") {
+      fundEasyLifePlan({ planId, amount: pendingFund.amount, currency: pendingFund.currency });
+    } else {
+      fundSavingsPlan({ planId, amount: pendingFund.amount, currency: pendingFund.currency });
+    }
+    setPendingFund(null);
+  };
+
+  const { mutate: verifyPin, isPending: verifyingPin } = useVerifyWalletPin(
+    onVerifyPinError,
+    onVerifyPinSuccess
+  );
+
+  const funding = fundingSavings || fundingEasyLife || verifyingPin;
 
   React.useEffect(()=>{ 
     if (isOpen){ 
@@ -115,12 +153,9 @@ const SavingsDepositModal: React.FC<SavingsDepositModalProps> = ({ isOpen, onClo
     }
 
     const selectedWallet = wallets[selectedWalletIndex];
-    fundPlan({
-      planId,
-      amount: Number(amount),
-      walletPin,
-      walletId: selectedWallet?.id,
-    });
+    const currency = selectedWallet?.currency || "NGN";
+    setPendingFund({ amount: Number(amount), currency });
+    verifyPin({ pin: walletPin });
   };
 
   if (!isOpen) return null;

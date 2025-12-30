@@ -4,7 +4,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   bvnFaceVerificationRequest,
   getAllBanks,
-  getQrCode,
+  generateQRCodeRequest,
+  decodeQRCodeRequest,
   getTransactions,
   getTransferFee,
   initiateBvnVerificationRequest,
@@ -154,16 +155,32 @@ export const useGetTransactions = ({
   return { transactionsData, isPending, isError };
 };
 
-export const useGetQrCode = ({ amount }: { amount: number }) => {
+export const useGenerateQRCode = (params: { amount: number; enabled?: boolean }) => {
   const { data, isPending, isError } = useQuery({
-    queryKey: ["qrCode", { amount }],
-    queryFn: () => getQrCode({ amount }),
-    enabled: amount !== undefined && amount !== 0,
+    queryKey: ["qrCode", params.amount],
+    queryFn: () => generateQRCodeRequest({ amount: params.amount }),
+    enabled: params.enabled !== false && params.amount > 0,
   });
 
-  const qrCode: string = data?.data?.data;
+  // API response structure: { message, statusCode, data: "data:image/png;base64,..." }
+  // Axios wraps it, so: data.data = API response, data.data.data = base64 string
+  const qrCode: string = data?.data?.data || "";
 
   return { qrCode, isPending, isError };
+};
+
+// Alias for useGenerateQRCode - used in TransferNgnProcess
+export const useGetQrCode = useGenerateQRCode;
+
+export const useDecodeQRCode = (
+  onError: (error: any) => void,
+  onSuccess: (data: any) => void
+) => {
+  return useMutation({
+    mutationFn: decodeQRCodeRequest,
+    onError,
+    onSuccess,
+  });
 };
 
 export const useBvnFaceVerification = (

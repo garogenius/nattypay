@@ -6,7 +6,7 @@ import Link from "next/link";
 import useUserStore from "@/store/user.store";
 import { useGetNotifications } from "@/api/notifications/notifications.queries";
 import { format, formatDistanceToNow } from "date-fns";
-import { FiArrowDownLeft, FiArrowUpRight, FiCheckCircle, FiXCircle, FiChevronDown, FiPlus } from "react-icons/fi";
+import { FiArrowDownLeft, FiArrowUpRight, FiCheckCircle, FiXCircle, FiChevronDown, FiPlus, FiClock, FiCopy } from "react-icons/fi";
 import { LuWifi } from "react-icons/lu";
 import { getCurrencyIconByString } from "@/utils/utilityFunctions";
 import useOnClickOutside from "@/hooks/useOnClickOutside";
@@ -16,13 +16,15 @@ import CardPreview from "@/components/user/cards/CardPreview";
 import ShowCardDetailsModal from "@/components/modals/cards/ShowCardDetailsModal";
 import ChangePinModal from "@/components/modals/cards/ChangePinModal";
 import ConfirmActionModal from "@/components/modals/cards/ConfirmActionModal";
-import { useGetCurrencyAccounts, useCreateCurrencyAccount } from "@/api/currency/currency.queries";
-import { ICurrencyAccount } from "@/api/currency/currency.types";
+import { useGetCurrencyAccounts, useCreateCurrencyAccount, useGetCards, useCreateCard } from "@/api/currency/currency.queries";
+import { ICurrencyAccount, IVirtualCard } from "@/api/currency/currency.types";
 import ErrorToast from "@/components/toast/ErrorToast";
 import SuccessToast from "@/components/toast/SuccessToast";
 import CustomButton from "@/components/shared/Button";
 import Tier2UpgradeModal from "@/components/modals/tiers/Tier2UpgradeModal";
 import Tier3UpgradeModal from "@/components/modals/tiers/Tier3UpgradeModal";
+import ProfileInfoRequiredModal from "@/components/modals/ProfileInfoRequiredModal";
+import { FiCreditCard } from "react-icons/fi";
 
 const AccountsContent: React.FC = () => {
   const { user } = useUserStore();
@@ -35,11 +37,25 @@ const AccountsContent: React.FC = () => {
   // Fetch currency accounts
   const { accounts: currencyAccounts, isPending: accountsLoading, refetch: refetchAccounts } = useGetCurrencyAccounts();
 
+  // Fetch cards
+  const { cards, isPending: cardsLoading, refetch: refetchCards } = useGetCards();
+  
+  // Initialize currency state first
   const currencies: Array<"NGN" | "USD" | "EUR" | "GBP"> = ["NGN", "USD", "EUR", "GBP"];
   const initialCurrency = (user?.wallet?.[0]?.currency || "NGN").toUpperCase() as typeof currencies[number];
   const [selectedCurrency, setSelectedCurrency] = useState<typeof currencies[number]>(initialCurrency);
   const [showCreateAccount, setShowCreateAccount] = useState(false);
   const [accountLabel, setAccountLabel] = useState("");
+  const [showProfileInfoModal, setShowProfileInfoModal] = useState(false);
+  const [missingInfo, setMissingInfo] = useState<"phone" | "email" | "both">("both");
+  
+  // Filter cards for selected currency (including NGN)
+  const currencyCards = useMemo(() => {
+    return cards.filter((card: IVirtualCard) => 
+      card.isVirtual && 
+      (card.currency || "").toUpperCase() === selectedCurrency
+    );
+  }, [cards, selectedCurrency]);
 
   // Find currency account for selected currency
   const currencyAccount = useMemo(() => {
@@ -63,9 +79,13 @@ const AccountsContent: React.FC = () => {
   const bankName = selectedCurrency === "NGN" 
     ? (activeWallet?.bankName || "NattyPay")
     : (currencyAccount?.bankName || "NattyPay");
+  const displayName = (user?.accountType === "BUSINESS" || user?.isBusiness) && user?.businessName
+    ? user.businessName
+    : user?.fullname || "-";
+  
   const accountName = selectedCurrency === "NGN"
-    ? (activeWallet?.accountName || user?.fullname || "-")
-    : (currencyAccount?.label || user?.fullname || "-");
+    ? (activeWallet?.accountName || displayName)
+    : (currencyAccount?.label || displayName);
   const cardHolderOnly = (accountName || "").split("/").pop()?.trim() || accountName;
   const accountNumber = selectedCurrency === "NGN"
     ? (activeWallet?.accountNumber || "-")
@@ -73,17 +93,50 @@ const AccountsContent: React.FC = () => {
   const balance = selectedCurrency === "NGN"
     ? (activeWallet?.balance || 0)
     : (currencyAccount?.balance || 0);
-  const tier = user?.tierLevel ? `Tier ${user.tierLevel === "one" ? "1" : user.tierLevel === "two" ? "2" : "3"}` : "Tier 1";
+  const tier = user?.tierLevel ? `Tier ${user.tierLevel === "one" ? "1" : user.tierLevel === "two" ? "2" : user.tierLevel === "three" ? "3" : "1"}` : "Tier 1";
 
   const onCreateAccountError = (error: any) => {
     const errorMessage = error?.response?.data?.message;
-    const descriptions = Array.isArray(errorMessage)
+    const errorMessages = Array.isArray(errorMessage)
       ? errorMessage
       : [errorMessage || "Failed to create currency account"];
 
+    // Check if the error is about missing phone number or email
+    const hasPhoneError = errorMessages.some((msg: string) =>
+      msg.toLowerCase().includes("phone number") && msg.toLowerCase().includes("required")
+    );
+    const hasEmailError = errorMessages.some((msg: string) =>
+      msg.toLowerCase().includes("email") && msg.toLowerCase().includes("required")
+    );
+
+    if (hasPhoneError || hasEmailError) {
+      // Determine what's missing based on user data and error message
+      const hasPhone = !!user?.phoneNumber;
+      const hasEmail = !!user?.email;
+
+      if (hasPhoneError && !hasEmailError) {
+        setMissingInfo("phone");
+      } else if (hasEmailError && !hasPhoneError) {
+        setMissingInfo("email");
+      } else {
+        // Both are missing or error is ambiguous
+        if (!hasPhone && !hasEmail) {
+          setMissingInfo("both");
+        } else if (!hasPhone) {
+          setMissingInfo("phone");
+        } else if (!hasEmail) {
+          setMissingInfo("email");
+        } else {
+          setMissingInfo("both");
+        }
+      }
+      setShowProfileInfoModal(true);
+      return;
+    }
+
     ErrorToast({
       title: "Creation Failed",
-      descriptions,
+      descriptions: errorMessages,
     });
   };
 
@@ -101,6 +154,73 @@ const AccountsContent: React.FC = () => {
     onCreateAccountError,
     onCreateAccountSuccess
   );
+
+  const onCreateCardError = (error: any) => {
+    const errorMessage = error?.response?.data?.message;
+    const descriptions = Array.isArray(errorMessage)
+      ? errorMessage
+      : [errorMessage || "Failed to create virtual card"];
+
+    ErrorToast({
+      title: "Creation Failed",
+      descriptions,
+    });
+  };
+
+  const onCreateCardSuccess = () => {
+    SuccessToast({
+      title: "Card Created Successfully!",
+      description: `Your virtual ${selectedCurrency} card has been created.`,
+    });
+    setOpenCreateCard(false);
+    setCardLabel("");
+    refetchCards();
+  };
+
+  const { mutate: createCard, isPending: creatingCard } = useCreateCard(
+    onCreateCardError,
+    onCreateCardSuccess
+  );
+
+  const handleCreateCard = () => {
+    if (selectedCurrency !== "USD") {
+      ErrorToast({
+        title: "Card Not Available",
+        descriptions: [`${selectedCurrency} virtual cards are not available. Only USD virtual cards are available for now.`],
+      });
+      return;
+    }
+
+    if (!currencyAccount) {
+      ErrorToast({
+        title: "USD Account Required",
+        descriptions: ["You must have a USD account before creating a virtual card. Please create a USD account first."],
+      });
+      return;
+    }
+
+    if (!cardLabel.trim()) {
+      ErrorToast({
+        title: "Validation Error",
+        descriptions: ["Card label is required"],
+      });
+      return;
+    }
+
+    createCard({
+      label: cardLabel.trim(),
+      currency: "USD",
+    });
+  };
+
+  const formatExpiry = (card: IVirtualCard) => {
+    if (card.expiryMonth && card.expiryYear) {
+      const month = String(card.expiryMonth).padStart(2, "0");
+      const year = String(card.expiryYear).slice(-2);
+      return `${month}/${year}`;
+    }
+    return "MM/YY";
+  };
 
   const handleCreateAccount = () => {
     if (!accountLabel.trim()) {
@@ -128,6 +248,9 @@ const AccountsContent: React.FC = () => {
   const [openBlock, setOpenBlock] = useState(false);
   const [openTier2Modal, setOpenTier2Modal] = useState(false);
   const [openTier3Modal, setOpenTier3Modal] = useState(false);
+  const [openCreateCard, setOpenCreateCard] = useState(false);
+  const [cardLabel, setCardLabel] = useState("");
+  const [selectedCard, setSelectedCard] = useState<IVirtualCard | null>(null);
 
   return (
     <div className="flex flex-col gap-6 pb-10">
@@ -250,6 +373,24 @@ const AccountsContent: React.FC = () => {
             </div>
           ) : (
             <>
+              {/* Copy All Account Details Button */}
+              <div className="mb-4">
+                <CustomButton
+                  onClick={() => {
+                    const accountDetails = `Account Name: ${accountName}\nAccount Number: ${accountNumber}\nBank Name: ${bankName}\nCurrency: ${selectedCurrency}`;
+                    navigator.clipboard.writeText(accountDetails);
+                    SuccessToast({
+                      title: "Account Details Copied",
+                      description: "All account details have been copied to clipboard",
+                    });
+                  }}
+                  className="w-full bg-[#D4B139] hover:bg-[#c7a42f] text-black font-medium py-2.5 rounded-lg flex items-center justify-center gap-2"
+                >
+                  <FiCopy />
+                  <span>Copy Account Details</span>
+                </CustomButton>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                 <div>
                   <p className="text-white/60">Bank Name</p>
@@ -261,7 +402,13 @@ const AccountsContent: React.FC = () => {
                     <p className="text-white truncate">{accountName}</p>
                     <button
                       title="Copy"
-                      onClick={() => navigator.clipboard.writeText(accountName)}
+                      onClick={() => {
+                        navigator.clipboard.writeText(accountName);
+                        SuccessToast({
+                          title: "Copied",
+                          description: "Account name copied to clipboard",
+                        });
+                      }}
                       className="p-1 rounded hover:bg-white/10"
                     >
                       <LuCopy className="w-4 h-4 text-white/80" />
@@ -274,7 +421,13 @@ const AccountsContent: React.FC = () => {
                     <p className="text-white">{accountNumber}</p>
                     <button
                       title="Copy"
-                      onClick={() => navigator.clipboard.writeText(accountNumber)}
+                      onClick={() => {
+                        navigator.clipboard.writeText(accountNumber);
+                        SuccessToast({
+                          title: "Copied",
+                          description: "Account number copied to clipboard",
+                        });
+                      }}
                       className="p-1 rounded hover:bg-white/10"
                     >
                       <LuCopy className="w-4 h-4 text-white/80" />
@@ -299,17 +452,145 @@ const AccountsContent: React.FC = () => {
                 )}
               </div>
 
-              {/* Virtual Card - Only for NGN */}
+              {/* Virtual Cards - For non-NGN currencies */}
+              {selectedCurrency !== "NGN" && (
+                <div className="mt-5">
+                  <h4 className="text-white font-medium mb-3">Virtual Cards</h4>
+                  {selectedCurrency !== "USD" && (
+                    <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4 mb-4">
+                      <p className="text-yellow-400 text-sm font-medium mb-2">{selectedCurrency} Cards Not Available</p>
+                      <p className="text-white/80 text-xs mb-1">• {selectedCurrency} virtual cards are not available at this time</p>
+                      <p className="text-white/80 text-xs mb-1">• Only USD virtual cards are available for now</p>
+                      <p className="text-white/80 text-xs">• You must have a USD account before creating a virtual card</p>
+                    </div>
+                  )}
+                  {selectedCurrency === "USD" && (
+                    <>
+                      <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 mb-4">
+                        <p className="text-blue-400 text-xs font-medium mb-1">Note</p>
+                        <p className="text-white/80 text-xs">• NGN cards are not available</p>
+                        <p className="text-white/80 text-xs">• Only USD virtual cards are available for now</p>
+                        <p className="text-white/80 text-xs">• You must have a USD account before creating a virtual card</p>
+                      </div>
+                      {cardsLoading ? (
+                        <div className="flex items-center justify-center py-8">
+                          <div className="w-8 h-8 border-2 border-[#D4B139] border-t-transparent rounded-full animate-spin"></div>
+                        </div>
+                      ) : currencyCards.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-8 gap-4 border border-white/10 rounded-xl bg-white/5">
+                          <div className="w-16 h-12 rounded-lg bg-white/5 flex items-center justify-center border border-white/10">
+                            <FiCreditCard className="text-2xl text-white/40" />
+                          </div>
+                          <div className="text-center">
+                            <p className="text-white/60 text-sm mb-2">No virtual USD card created</p>
+                            {!currencyAccount ? (
+                              <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3 mt-3">
+                                <p className="text-yellow-400 text-xs font-medium mb-1">USD Account Required</p>
+                                <p className="text-white/80 text-xs">You must have a USD account before creating a virtual card. Please create a USD account above first.</p>
+                              </div>
+                            ) : !openCreateCard ? (
+                              <CustomButton
+                                onClick={() => setOpenCreateCard(true)}
+                                className="bg-[#D4B139] hover:bg-[#c7a42f] text-black px-6 py-2 rounded-lg text-sm font-medium"
+                              >
+                                Create Virtual Card
+                              </CustomButton>
+                            ) : (
+                              <div className="w-full max-w-sm flex flex-col gap-3">
+                                <div className="flex flex-col gap-1">
+                                  <label className="text-white/70 text-xs">Card Label</label>
+                                  <input
+                                    className="w-full bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-2 px-3 text-white text-sm placeholder:text-white/50 outline-none"
+                                    placeholder="e.g., Personal USD Card"
+                                    value={cardLabel}
+                                    onChange={(e) => setCardLabel(e.target.value)}
+                                  />
+                                </div>
+                                <div className="flex gap-2">
+                                  <CustomButton
+                                    onClick={() => {
+                                      setOpenCreateCard(false);
+                                      setCardLabel("");
+                                    }}
+                                    className="flex-1 bg-transparent border border-white/15 text-white rounded-lg py-2"
+                                  >
+                                    Cancel
+                                  </CustomButton>
+                                  <CustomButton
+                                    onClick={handleCreateCard}
+                                    disabled={creatingCard || !cardLabel.trim() || !currencyAccount}
+                                    isLoading={creatingCard}
+                                    className="flex-1 bg-[#D4B139] hover:bg-[#c7a42f] text-black rounded-lg py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                  >
+                                    Create Card
+                                  </CustomButton>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col gap-3">
+                          {currencyCards.map((card: IVirtualCard) => (
+                            <div key={card.id} className="border border-white/10 rounded-xl p-4 bg-white/5">
+                              <CardPreview
+                                variant="dark"
+                                brand={card.brand || "visa"}
+                                cardholder={card.cardholder || cardHolderOnly}
+                                maskedNumber={card.maskedNumber}
+                                expiry={formatExpiry(card)}
+                                issuerName="NattyPay"
+                                status={card.status === "ACTIVE" ? "active" : card.status === "FROZEN" ? "frozen" : "frozen"}
+                                isVirtual={true}
+                                className="h-44 sm:h-48 max-w-sm w-full"
+                              />
+                              <div className="mt-3 flex items-center justify-between">
+                                <div>
+                                  <p className="text-white/60 text-xs">Balance</p>
+                                  <p className="text-white text-lg font-semibold">{card.currency} {card.balance.toLocaleString()}</p>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-white/60 text-xs">Status</p>
+                                  <p className={`text-xs font-medium capitalize ${
+                                    card.status === "ACTIVE" ? "text-green-400" :
+                                    card.status === "FROZEN" ? "text-yellow-400" :
+                                    card.status === "BLOCKED" ? "text-red-400" :
+                                    "text-gray-400"
+                                  }`}>
+                                    {card.status.toLowerCase()}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="mt-3 flex gap-2">
+                                <CustomButton
+                                  onClick={() => {
+                                    setSelectedCard(card);
+                                    setOpenDetails(true);
+                                  }}
+                                  className="flex-1 bg-white/5 hover:bg-white/10 border border-white/10 text-white py-2 rounded-lg text-sm"
+                                >
+                                  View Details
+                                </CustomButton>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* Virtual Cards - For NGN */}
               {selectedCurrency === "NGN" && (
                 <div className="mt-5">
-                  <CardPreview
-                    variant="gold"
-                    brand="mastercard"
-                    cardholder={cardHolderOnly}
-                    maskedNumber={`•••• •••• •••• ${String(accountNumber).slice(-4).padStart(4, "•")}`}
-                    issuerName="NattyPay"
-                    className="h-52 sm:h-56 max-w-sm w-full"
-                  />
+                  <h4 className="text-white font-medium mb-3">Virtual Cards</h4>
+                  <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4 mb-4">
+                    <p className="text-yellow-400 text-sm font-medium mb-2">NGN Cards Not Available</p>
+                    <p className="text-white/80 text-xs mb-1">• NGN virtual cards are not available at this time</p>
+                    <p className="text-white/80 text-xs mb-1">• Only USD virtual cards are available for now</p>
+                    <p className="text-white/80 text-xs">• You must have a USD account before creating a virtual card</p>
+                  </div>
                 </div>
               )}
             </>
@@ -368,7 +649,7 @@ const AccountsContent: React.FC = () => {
                 <li>Address</li>
                 <li>Address Verification</li>
               </ul>
-              {user?.tierLevel !== "three" && (
+              {user?.tierLevel === "two" && (
                 <button
                   onClick={() => setOpenTier3Modal(true)}
                   className="inline-flex mt-2 text-xs text-black bg-[#D4B139] hover:bg-[#c7a42f] font-semibold px-3 py-1 rounded-lg w-max"
@@ -419,13 +700,21 @@ const AccountsContent: React.FC = () => {
             })}
           </ul>
         ) : (
-          <div className="text-center text-text-200/70 py-8">No activity</div>
+          <div className="flex flex-col items-center justify-center py-12 gap-4">
+            <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center border border-white/10">
+              <FiClock className="text-3xl text-white/40" />
+            </div>
+            <div className="text-center">
+              <p className="text-white/80 text-sm font-medium mb-1">No Recent Activity</p>
+              <p className="text-white/60 text-xs">Your login history, transactions, and other activities will appear here</p>
+            </div>
+          </div>
         )}
       </div>
 
       {/* Modals */}
-      <ShowCardDetailsModal isOpen={openDetails} onClose={() => setOpenDetails(false)} />
-      <ChangePinModal isOpen={openChangePin} onClose={() => setOpenChangePin(false)} />
+      <ShowCardDetailsModal isOpen={openDetails} onClose={() => { setOpenDetails(false); setSelectedCard(null); }} card={selectedCard} />
+      <ChangePinModal isOpen={openChangePin} onClose={() => { setOpenChangePin(false); setSelectedCard(null); }} cardId={selectedCard?.id} />
       <ConfirmActionModal
         isOpen={openBlock}
         onClose={() => setOpenBlock(false)}
@@ -437,6 +726,11 @@ const AccountsContent: React.FC = () => {
       />
       <Tier2UpgradeModal isOpen={openTier2Modal} onClose={() => setOpenTier2Modal(false)} />
       <Tier3UpgradeModal isOpen={openTier3Modal} onClose={() => setOpenTier3Modal(false)} />
+      <ProfileInfoRequiredModal
+        isOpen={showProfileInfoModal}
+        onClose={() => setShowProfileInfoModal(false)}
+        missingInfo={missingInfo}
+      />
     </div>
   );
 };

@@ -5,7 +5,7 @@ import NextImage from "next/image";
 import images from "../../../../public/images";
 import useTransactionViewModalStore from "@/store/transactionViewModal.store";
 import { format } from "date-fns";
-import { Transaction, TRANSACTION_CATEGORY } from "@/constants/types";
+import { Transaction, TRANSACTION_CATEGORY, TRANSACTION_STATUS } from "@/constants/types";
 
 const Row = ({ label, value, strong = false }: { label: string; value: React.ReactNode; strong?: boolean }) => (
   <div className="w-full">
@@ -244,7 +244,20 @@ const TransactionViewModal: React.FC = () => {
             <Row label="Beneficiary Bank" value={beneficiaryBank} />
 
             <Row label="Narration" value={narration} />
-            <Row label="Status" value={<span className="text-green-400 font-semibold">{status}</span>} />
+            <Row 
+              label="Status" 
+              value={
+                <span className={`font-semibold ${
+                  status === TRANSACTION_STATUS.success 
+                    ? "text-green-400" 
+                    : status === TRANSACTION_STATUS.failed 
+                    ? "text-red-400" 
+                    : "text-yellow-400"
+                }`}>
+                  {status}
+                </span>
+              } 
+            />
           </div>
 
           <div className="mt-5 text-[11px] text-white/60 leading-relaxed">

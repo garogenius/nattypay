@@ -54,7 +54,11 @@ const PaymentTransferForm: React.FC<PaymentTransferFormProps> = ({ type, account
   useOnClickOutside(bankDropdownRef, () => setOpenBanks(false));
 
   const onVerifyAccountError = (error: any) => {
-    const errorMessage = error?.response?.data?.message;
+    // Extract error message from various possible response formats
+    const errorMessage = error?.response?.data?.message || 
+                        error?.message || 
+                        error?.response?.data?.error ||
+                        "An error occurred during account verification";
     const descriptions = Array.isArray(errorMessage) ? errorMessage : [errorMessage];
     ErrorToast({ title: "Error during Account Verification", descriptions });
     setAccountName("");
@@ -102,7 +106,11 @@ const PaymentTransferForm: React.FC<PaymentTransferFormProps> = ({ type, account
   const [resultStatus, setResultStatus] = useState<"success" | "failed">("success");
 
   const onTransferError = (error: any) => {
-    const errorMessage = error?.response?.data?.message;
+    // Extract error message from various possible response formats
+    const errorMessage = error?.response?.data?.message || 
+                        error?.message || 
+                        error?.response?.data?.error ||
+                        "An error occurred during transfer";
     const descriptions = Array.isArray(errorMessage) ? errorMessage : [errorMessage];
     ErrorToast({ title: "Error during transfer", descriptions });
     setResultStatus("failed");
@@ -112,6 +120,7 @@ const PaymentTransferForm: React.FC<PaymentTransferFormProps> = ({ type, account
       meta: {
         transactionId: error?.response?.data?.transactionRef || "",
         dateTime: now,
+        errorMessage: errorMessage, // Store error message for display in modal
       },
     });
     setOpenResult(true);
@@ -314,6 +323,7 @@ const PaymentTransferForm: React.FC<PaymentTransferFormProps> = ({ type, account
         recipientAccount={accountNumber}
         bankName={type === "nattypay" ? "NattyPay" : bankName}
         narration={narration}
+        errorMessage={resultPayload?.meta?.errorMessage}
       />
     </div>
   );

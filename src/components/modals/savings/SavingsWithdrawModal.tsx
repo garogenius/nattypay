@@ -4,62 +4,101 @@ import React from "react";
 import { CgClose } from "react-icons/cg";
 import CustomButton from "@/components/shared/Button";
 import { useWithdrawSavingsPlan, useGetSavingsPlanById } from "@/api/savings/savings.queries";
+import { useGetEasyLifePlanById, useWithdrawEasyLifePlan } from "@/api/easylife-savings/easylife-savings.queries";
+import { useVerifyWalletPin } from "@/api/user/user.queries";
 import ErrorToast from "@/components/toast/ErrorToast";
 import SuccessToast from "@/components/toast/SuccessToast";
+import type { SavingsPlan } from "@/api/savings/savings.types";
+import type { EasyLifePlan } from "@/api/easylife-savings/easylife-savings.types";
 
 interface SavingsWithdrawModalProps {
   isOpen: boolean;
   onClose: () => void;
   planName: string;
   planId?: string;
+  planType?: "target" | "easylife";
 }
 
-const SavingsWithdrawModal: React.FC<SavingsWithdrawModalProps> = ({ isOpen, onClose, planName, planId }) => {
+const SavingsWithdrawModal: React.FC<SavingsWithdrawModalProps> = ({
+  isOpen,
+  onClose,
+  planName,
+  planId,
+  planType = "target",
+}) => {
   const [walletPin, setWalletPin] = React.useState("");
-  const [showConfirm, setShowConfirm] = React.useState(false);
   const [reason, setReason] = React.useState("");
 
-  const { plan } = useGetSavingsPlanById(planId || null);
+  const { plan: savingsPlan } = useGetSavingsPlanById(
+    planType === "target" ? planId || null : null
+  );
+  const { plan: easyLifePlan } = useGetEasyLifePlanById(
+    planType === "easylife" ? planId || null : null
+  );
+  const plan: SavingsPlan | EasyLifePlan | null = planType === "easylife" ? easyLifePlan : savingsPlan;
 
-  const onError = (error: any) => {
-    const errorMessage = error?.response?.data?.message;
+  const onError = (error: unknown) => {
+    const errorMessage = (error as { response?: { data?: { message?: unknown } } })?.response?.data
+      ?.message as unknown;
     const descriptions = Array.isArray(errorMessage)
-      ? errorMessage
-      : [errorMessage || "Failed to withdraw from savings plan"];
+      ? (errorMessage as string[])
+      : [typeof errorMessage === "string" ? errorMessage : "Failed to withdraw from savings plan"];
 
     ErrorToast({
       title: "Withdrawal Failed",
       descriptions,
     });
-    setShowConfirm(false);
     setWalletPin("");
+    setPendingWithdraw(false);
   };
 
-  const onSuccess = (data: any) => {
-    const response = data?.data?.data;
-    const isEarly = response?.isEarlyWithdrawal;
-    const penalty = response?.penaltyApplied || 0;
-    const interest = response?.interestPaid || 0;
-    const total = response?.totalReceived || 0;
+  const onSuccess = (data: unknown) => {
+    const response = (data as { data?: { data?: { penalty?: number; interest?: number; payoutAmount?: number } } })
+      ?.data?.data;
+    const penalty = response?.penalty ?? 0;
+    const interest = response?.interest ?? 0;
+    const total = response?.payoutAmount ?? 0;
 
     SuccessToast({
       title: "Withdrawal Successful!",
-      description: isEarly
-        ? `₦${total.toLocaleString()} has been withdrawn. Penalty of ₦${penalty.toLocaleString()} applied.`
-        : `₦${total.toLocaleString()} has been withdrawn. Interest earned: ₦${interest.toLocaleString()}.`,
+      description: `Payout ₦${Number(total).toLocaleString()} processed. Interest: ₦${Number(interest).toLocaleString()}, Penalty: ₦${Number(penalty).toLocaleString()}.`,
     });
-    setShowConfirm(false);
     setWalletPin("");
     setReason("");
     onClose();
   };
 
-  const { mutate: withdrawPlan, isPending: withdrawing } = useWithdrawSavingsPlan(onError, onSuccess);
+  const { mutate: withdrawSavings, isPending: withdrawingSavings } = useWithdrawSavingsPlan(onError, onSuccess);
+  const { mutate: withdrawEasyLife, isPending: withdrawingEasyLife } = useWithdrawEasyLifePlan(onError, onSuccess);
+
+  const onVerifyPinError = (error: unknown) => {
+    const errorMessage = (error as { response?: { data?: { message?: unknown } } })?.response?.data
+      ?.message as unknown;
+    const descriptions = Array.isArray(errorMessage)
+      ? (errorMessage as string[])
+      : [typeof errorMessage === "string" ? errorMessage : "Invalid PIN"];
+    ErrorToast({ title: "Verification Failed", descriptions });
+  };
+
+  const onVerifyPinSuccess = () => {
+    if (!planId) return;
+    if (planType === "easylife") {
+      withdrawEasyLife({ planId });
+    } else {
+      withdrawSavings({ planId });
+    }
+  };
+
+  const { mutate: verifyPin, isPending: verifyingPin } = useVerifyWalletPin(
+    onVerifyPinError,
+    onVerifyPinSuccess
+  );
+
+  const withdrawing = withdrawingSavings || withdrawingEasyLife || verifyingPin;
 
   React.useEffect(()=>{ 
     if (isOpen){ 
       setWalletPin("");
-      setShowConfirm(false);
       setReason("");
     }
   },[isOpen]);
@@ -81,37 +120,15 @@ const SavingsWithdrawModal: React.FC<SavingsWithdrawModalProps> = ({ isOpen, onC
       return;
     }
 
-    const today = new Date();
-    const maturity = new Date(plan?.maturityDate || "");
-    const isEarly = maturity > today;
-
-    if (isEarly && !reason.trim()) {
-      ErrorToast({
-        title: "Validation Error",
-        descriptions: ["Please provide a reason for early withdrawal"],
-      });
-      return;
-    }
-
-    withdrawPlan({
-      planId,
-      formdata: {
-        walletPin,
-        reason: reason.trim() || undefined,
-      },
-    });
+    // Optional reason (for UX only); backend does not require it for these withdraw endpoints
+    verifyPin({ pin: walletPin });
   };
 
   const today = new Date();
   const maturity = plan ? new Date(plan.maturityDate) : new Date();
   const isEarly = maturity > today;
-  const penaltyRate = plan?.penaltyRate || 10;
-  const currentAmount = plan?.currentAmount || 0;
-  const interestEarned = plan?.interestEarned || 0;
-  const estimatedPenalty = isEarly ? (currentAmount * penaltyRate) / 100 : 0;
-  const estimatedTotal = isEarly 
-    ? currentAmount - estimatedPenalty 
-    : currentAmount + interestEarned;
+  const penaltyRatePercent =
+    typeof plan?.penaltyRate === "number" ? Math.round(plan.penaltyRate * 1000) / 10 : undefined;
 
   if (!isOpen) return null;
   return (
@@ -123,45 +140,32 @@ const SavingsWithdrawModal: React.FC<SavingsWithdrawModalProps> = ({ isOpen, onC
         </button>
         <h3 className="text-white text-base font-semibold mb-4">Withdraw from {planName}</h3>
 
-        {!showConfirm ? (
+        {true ? (
           <>
             {isEarly && (
               <div className="bg-[#ff6b6b]/10 border border-[#ff6b6b]/30 rounded-lg p-3 mb-4">
                 <p className="text-[#ff6b6b] text-xs mb-2">⚠️ Early Withdrawal Penalty</p>
                 <p className="text-white/80 text-xs">
-                  Withdrawing before maturity will result in a {penaltyRate}% penalty (₦{estimatedPenalty.toLocaleString()}) and loss of accrued interest.
+                  Withdrawing before maturity will attract a penalty{penaltyRatePercent !== undefined ? ` (${penaltyRatePercent}%)` : ""}. Final payout is calculated by the server.
                 </p>
               </div>
             )}
 
             <div className="space-y-3 mb-4">
               <div className="flex items-center justify-between">
-                <span className="text-white/60 text-sm">Current Amount</span>
-                <span className="text-white text-sm font-medium">₦{currentAmount.toLocaleString()}</span>
+                <span className="text-white/60 text-sm">Total Deposited</span>
+                <span className="text-white text-sm font-medium">₦{Number(plan?.totalDeposited ?? 0).toLocaleString()}</span>
               </div>
-              {!isEarly && (
+              {typeof plan?.totalInterestAccrued === "number" && (
                 <div className="flex items-center justify-between">
                   <span className="text-white/60 text-sm">Interest Earned</span>
-                  <span className="text-emerald-400 text-sm font-medium">+₦{interestEarned.toLocaleString()}</span>
+                  <span className="text-emerald-400 text-sm font-medium">+₦{Number(plan.totalInterestAccrued).toLocaleString()}</span>
                 </div>
               )}
-              {isEarly && (
-                <>
-                  <div className="flex items-center justify-between">
-                    <span className="text-white/60 text-sm">Penalty ({penaltyRate}%)</span>
-                    <span className="text-[#ff6b6b] text-sm font-medium">-₦{estimatedPenalty.toLocaleString()}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-white/60 text-sm">Interest Forfeited</span>
-                    <span className="text-[#ff6b6b] text-sm font-medium">-₦{interestEarned.toLocaleString()}</span>
-                  </div>
-                </>
-              )}
               <div className="h-px bg-white/10 my-2" />
-              <div className="flex items-center justify-between">
-                <span className="text-white text-sm font-medium">You'll Receive</span>
-                <span className="text-white text-base font-semibold">₦{estimatedTotal.toLocaleString()}</span>
-              </div>
+              <p className="text-white/60 text-xs">
+                You&apos;ll see the exact payout, interest, and any penalty after confirmation.
+              </p>
             </div>
 
             {isEarly && (
@@ -193,7 +197,7 @@ const SavingsWithdrawModal: React.FC<SavingsWithdrawModalProps> = ({ isOpen, onC
               <CustomButton type="button" className="bg-transparent border border-white/15 text-white rounded-lg py-2.5" onClick={onClose}>Cancel</CustomButton>
               <CustomButton 
                 type="button" 
-                disabled={walletPin.length !== 4 || (isEarly && !reason.trim()) || withdrawing} 
+                disabled={walletPin.length !== 4 || withdrawing} 
                 isLoading={withdrawing}
                 className="bg-[#D4B139] hover:bg-[#c7a42f] text-black rounded-lg py-2.5" 
                 onClick={handleWithdraw}

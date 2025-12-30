@@ -85,18 +85,19 @@ const FixedSavingsModal: React.FC<FixedSavingsModalProps> = ({ isOpen, onClose }
       return;
     }
 
-    if (mode === "manual" && (!startDate || !endDate)) {
+    // NATTY_AUTO_SAVE requires minimum ₦100,000
+    if (Number(amount) < 100000) {
       ErrorToast({
         title: "Validation Error",
-        descriptions: ["Start date and end date are required for manual plans"],
+        descriptions: ["NATTY_AUTO_SAVE requires a minimum of ₦100,000"],
       });
       return;
     }
 
-    if (!topUpAmount || Number(topUpAmount) <= 0) {
+    if (mode === "manual" && (!startDate || !endDate)) {
       ErrorToast({
         title: "Validation Error",
-        descriptions: ["Please enter a valid top-up amount"],
+        descriptions: ["Start date and end date are required for manual plans"],
       });
       return;
     }
@@ -110,24 +111,31 @@ const FixedSavingsModal: React.FC<FixedSavingsModalProps> = ({ isOpen, onClose }
       return;
     }
 
-    // Calculate duration in days
-    let duration: number | undefined;
+    // Calculate duration in months
+    let durationMonths: number = 6; // Default to 6 months for NATTY_AUTO_SAVE
     if (startDate && endDate) {
       const start = new Date(startDate);
       const end = new Date(endDate);
-      duration = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+      const years = (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
+      durationMonths = Math.max(1, Math.min(60, Math.round(years * 12)));
+    }
+
+    // NATTY_AUTO_SAVE must be 6, 12, or 18 months
+    if (![6, 12, 18].includes(durationMonths)) {
+      // Round to nearest valid duration
+      if (durationMonths < 6) durationMonths = 6;
+      else if (durationMonths <= 9) durationMonths = 12;
+      else if (durationMonths <= 15) durationMonths = 12;
+      else durationMonths = 18;
     }
 
     const payload = {
+      type: "NATTY_AUTO_SAVE" as const,
       name: name.trim(),
-      planType: "NATTY_AUTO_SAVE" as const,
-      duration,
-      startDate: startDate || undefined,
-      endDate: endDate || undefined,
-      frequency: mode === "auto" ? frequency : undefined,
-      topUpAmount: Number(topUpAmount),
-      walletId: selectedWallet.id,
-      isAutoSave: mode === "auto",
+      description: `Fixed savings plan for ${name.trim()}`,
+      goalAmount: Number(amount),
+      currency: selectedWallet.currency || "NGN",
+      durationMonths,
     };
 
     createPlan(payload);

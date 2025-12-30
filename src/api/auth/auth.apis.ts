@@ -15,9 +15,12 @@ import {
   IResendVerifyEmailPreRegister,
   IVerify2FA,
   IResend2faEmail,
-  IBiometricChallenge,
   IVerifyContact,
   IResendVerifyContact,
+  IBiometricEnrollV1,
+  IBiometricChallengeRequestV1,
+  IBiometricLoginV1,
+  IBiometricDisableV1,
 } from "./auth.types";
 
 export const registerRequest = async (formdata: IRegister) => {
@@ -128,6 +131,46 @@ export const biometricLoginRequest = async (formdata: IBiometricLogin) => {
 export const registerBiometricRequest = async (formdata: IBiometricRegister) => {
   return request({
     url: "/auth/register-biometric",
+    method: "post",
+    data: formdata,
+  });
+};
+
+// --- WebAuthn biometric auth (v1) ---
+export const biometricEnrollV1Request = async (formdata: IBiometricEnrollV1) => {
+  return request({
+    url: "/auth/biometric/enroll",
+    method: "post",
+    data: formdata,
+  });
+};
+
+export const biometricStatusV1Request = async (deviceId: string) => {
+  return request({
+    url: `/auth/biometric/status?deviceId=${encodeURIComponent(deviceId)}`,
+    method: "get",
+  });
+};
+
+export const biometricChallengeV1Request = async (formdata: IBiometricChallengeRequestV1) => {
+  return request({
+    url: "/auth/biometric/challenge",
+    method: "post",
+    data: formdata,
+  });
+};
+
+export const biometricLoginV1Request = async (formdata: IBiometricLoginV1) => {
+  return request({
+    url: "/auth/biometric/login",
+    method: "post",
+    data: formdata,
+  });
+};
+
+export const biometricDisableV1Request = async (formdata: IBiometricDisableV1) => {
+  return request({
+    url: "/auth/biometric/disable",
     method: "post",
     data: formdata,
   });

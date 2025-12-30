@@ -3,7 +3,8 @@
 import React, { useEffect } from "react";
 import { CgClose } from "react-icons/cg";
 import OtpInput from "react-otp-input";
-import { useVerifyPhoneNumber } from "@/api/user/user.queries";
+import { useVerifyContact } from "@/api/auth/auth.queries";
+import { useUpdateUser } from "@/api/user/user.queries";
 import useUserStore from "@/store/user.store";
 import ErrorToast from "@/components/toast/ErrorToast";
 import SuccessToast from "@/components/toast/SuccessToast";
@@ -25,7 +26,7 @@ const VerifyPhoneModal: React.FC<VerifyPhoneModalProps> = ({ isOpen, onClose, ph
     }
   }, [isOpen]);
 
-  const onError = (error: any) => {
+  const onVerifyError = (error: any) => {
     const errorMessage = error?.response?.data?.message;
     const descriptions = Array.isArray(errorMessage)
       ? errorMessage
@@ -37,34 +38,60 @@ const VerifyPhoneModal: React.FC<VerifyPhoneModalProps> = ({ isOpen, onClose, ph
     });
   };
 
-  const onSuccess = () => {
+  const onUpdateError = (error: any) => {
+    const errorMessage = error?.response?.data?.message;
+    const descriptions = Array.isArray(errorMessage)
+      ? errorMessage
+      : [errorMessage || "Failed to update phone number"];
+
+    ErrorToast({
+      title: "Update Failed",
+      descriptions,
+    });
+  };
+
+  const onUpdateSuccess = () => {
     SuccessToast({
-      title: "Phone Verified",
+      title: "Phone Updated",
       description: "Your phone number has been updated successfully",
     });
     onClose();
   };
 
-  const { mutate: verifyPhone, isPending: verifying } = useVerifyPhoneNumber(onError, onSuccess);
-
-  if (!isOpen) return null;
-
-  const valid = otp.length === 4;
-
-  const handleSubmit = async () => {
-    if (!valid || verifying) return;
-
-    if (!user?.email) {
+  const onVerifySuccess = () => {
+    // After verification succeeds, update the profile with the new phone number
+    if (!user) {
       ErrorToast({
         title: "Error",
-        descriptions: ["User email not found"],
+        descriptions: ["User not found"],
       });
       return;
     }
 
-    verifyPhone({
-      email: user.email,
-      otp: otp.trim(),
+    // Create FormData for updateUser API
+    const formData = new FormData();
+    formData.append("fullname", user.fullname || "");
+    formData.append("phoneNumber", phone);
+    formData.append("dateOfBirth", user.dateOfBirth || "");
+
+    updateUser(formData);
+  };
+
+  const { mutate: verifyContact, isPending: verifying } = useVerifyContact(onVerifyError, onVerifySuccess);
+  const { mutate: updateUser, isPending: updating } = useUpdateUser(onUpdateError, onUpdateSuccess);
+
+  if (!isOpen) return null;
+
+  const valid = otp.length === 4;
+  const isProcessing = verifying || updating;
+
+  const handleSubmit = async () => {
+    if (!valid || isProcessing) return;
+
+    // Use verifyContact with identifier (phone number) instead of email
+    verifyContact({
+      identifier: phone,
+      otpCode: otp.trim(),
     });
   };
 
@@ -113,8 +140,8 @@ const VerifyPhoneModal: React.FC<VerifyPhoneModalProps> = ({ isOpen, onClose, ph
           </CustomButton>
           <CustomButton
             onClick={handleSubmit}
-            disabled={!valid || verifying}
-            isLoading={verifying}
+            disabled={!valid || isProcessing}
+            isLoading={isProcessing}
             className="flex-1 rounded-xl py-3 font-semibold bg-[#D4B139] hover:bg-[#c7a42f] text-black"
           >
             Verify

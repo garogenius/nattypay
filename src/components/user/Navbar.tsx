@@ -30,7 +30,7 @@ const Navbar = () => {
     if (!tierLevel || tierLevel === TIER_LEVEL.notSet) {
       return "Tier Not Set";
     }
-    const tierNumber = tierLevel === TIER_LEVEL.one ? "1" : tierLevel === TIER_LEVEL.two ? "2" : "3";
+    const tierNumber = tierLevel === TIER_LEVEL.one ? "1" : tierLevel === TIER_LEVEL.two ? "2" : tierLevel === TIER_LEVEL.three ? "3" : "1";
     return `Tier ${tierNumber} Account`;
   };
 
@@ -78,7 +78,7 @@ const Navbar = () => {
 
     {
       title: "Settings",
-      path: "/user/settings",
+      path: "/user/settings/profile",
     },
     {
       title: "Receipt",
@@ -214,7 +214,7 @@ const Navbar = () => {
           </span>
         )}
         {bellOpen && (
-          <div className="absolute right-0 mt-3 w-80 bg-[#0F1A2A] border border-[#2C3947] rounded-xl shadow-2xl overflow-hidden z-50">
+          <div className="absolute right-0 mt-3 w-80 bg-bg-600 dark:bg-bg-1100 border border-[#2C3947] rounded-xl shadow-2xl overflow-hidden z-50">
             <div className="px-4 py-3 border-b border-[#2C3947] flex items-center justify-between">
               <span className="text-sm text-[#E7EAEE] font-semibold">Notifications</span>
               {notifications.length > 0 && (
@@ -239,7 +239,7 @@ const Navbar = () => {
                     key={n.id}
                     href="/user/notifications"
                     onClick={() => setBellOpen(false)}
-                    className="flex items-start gap-3 px-4 py-3 hover:bg-[#121E2F] border-t border-[#2C3947] first:border-t-0"
+                    className="flex items-start gap-3 px-4 py-3 hover:bg-white/5 border-t border-[#2C3947] first:border-t-0"
                   >
                     <span
                       className={`mt-1 w-2 h-2 rounded-full ${
@@ -269,12 +269,18 @@ const Navbar = () => {
             {imgUrl ? (
               <Image src={imgUrl} alt="profile" fill objectFit="cover" className="w-fit h-fit rounded-full" />
             ) : (
-              <span>{user?.fullname.slice(0, 1)}</span>
+              <span>
+                {(user?.accountType === "BUSINESS" || user?.isBusiness) && user?.businessName
+                  ? user.businessName.slice(0, 1)
+                  : user?.fullname?.slice(0, 1)}
+              </span>
             )}
           </span>
           <div className="hidden md:flex flex-col items-start pr-1">
             <span className="text-[15px] text-[#E7EAEE] font-normal leading-4">
-              {user?.fullname}
+              {(user?.accountType === "BUSINESS" || user?.isBusiness) && user?.businessName
+                ? user.businessName
+                : user?.fullname}
             </span>
             <span className="text-[12px] text-[#9AA3B2] leading-4">
               {getTierDisplayText(user?.tierLevel)}
@@ -284,17 +290,17 @@ const Navbar = () => {
         </button>
 
         {open && (
-          <div className="absolute right-0 top-12 bg-[#0F1A2A] rounded-xl border border-[#2C3947] shadow-2xl w-56 overflow-hidden">
-            <Link href="/user/settings/profile" className="block px-4 py-3 text-sm text-[#E7EAEE] hover:bg-[#121E2F]">
+          <div className="absolute right-0 top-12 bg-bg-600 dark:bg-bg-1100 rounded-xl border border-[#2C3947] shadow-2xl w-56 overflow-hidden">
+            <Link href="/user/settings/profile" className="block px-4 py-3 text-sm text-[#E7EAEE] hover:bg-white/5">
               My Account
             </Link>
-            <Link href="/user/settings/profile" className="block px-4 py-3 text-sm text-[#E7EAEE] border-t border-[#2C3947] hover:bg-[#121E2F]">
+            <Link href="/user/settings/profile" className="block px-4 py-3 text-sm text-[#E7EAEE] border-t border-[#2C3947] hover:bg-white/5">
               Profile Settings
             </Link>
-            <Link href="/user/settings" className="block px-4 py-3 text-sm text-[#E7EAEE] border-t border-[#2C3947] hover:bg-[#121E2F]">
+            <Link href="/user/settings" className="block px-4 py-3 text-sm text-[#E7EAEE] border-t border-[#2C3947] hover:bg-white/5">
               Account Info
             </Link>
-            <Link href="/logout" className="block px-4 py-3 text-sm font-semibold text-red-500 border-t border-[#2C3947] hover:bg-[#121E2F]">
+            <Link href="/logout" className="block px-4 py-3 text-sm font-semibold text-red-500 border-t border-[#2C3947] hover:bg-white/5">
               Logout
             </Link>
           </div>

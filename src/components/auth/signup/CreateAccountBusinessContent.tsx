@@ -150,7 +150,7 @@ const CreateAccountBusinessContent = () => {
       {/* Left Panel - Yellow/Gold Background */}
       <div className="hidden lg:flex lg:w-[40%] bg-[#D4B139] relative items-center justify-center">
         <div className="w-full h-full flex flex-col items-center justify-center px-8 py-12">
-          {/* Investment illustration placeholder */}
+          {/* Business Account Icon */}
           <div className="w-full max-w-md mb-8 flex items-center justify-center">
             <div className="w-64 h-64 bg-white/20 rounded-full flex items-center justify-center">
               <svg
@@ -163,14 +163,14 @@ const CreateAccountBusinessContent = () => {
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
-                  d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                  d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
                 />
               </svg>
             </div>
           </div>
-          <h1 className="text-4xl font-bold text-white mb-4">Investment</h1>
+          <h1 className="text-4xl font-bold text-white mb-4">Business Account</h1>
           <p className="text-lg text-white/90 text-center max-w-md">
-            Secure your future with simple, flexible investment plans and opportunities
+            Create a business account to manage your company finances, accept payments, and access business banking features.
           </p>
         </div>
       </div>

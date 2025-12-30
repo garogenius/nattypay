@@ -11,7 +11,12 @@ import InternationalAirtimeModal from "@/components/modals/InternationalAirtimeM
 import InternetModal from "@/components/modals/InternetModal";
 import TransportModal from "@/components/modals/TransportModal";
 import EducationModal from "@/components/modals/EducationModal";
+import SchoolModal from "@/components/modals/SchoolModal";
+import WaecModal from "@/components/modals/WaecModal";
+import JambModal from "@/components/modals/JambModal";
 import GiftCardModal from "@/components/modals/GiftCardModal";
+import SellGiftCardModal from "@/components/modals/SellGiftCardModal";
+import ConvertCurrencyModal from "@/components/modals/ConvertCurrencyModal";
 import { AiOutlineInsurance, AiOutlineThunderbolt } from "react-icons/ai";
 import { BiCameraMovie } from "react-icons/bi";
 import { CiShop } from "react-icons/ci";
@@ -63,17 +68,17 @@ const sections: { title: string; items: BillItem[] }[] = [
     items: [
       { name: "Movie Tickets", icon: BiCameraMovie, available: false },
       { name: "Flight", icon: SlPlane, available: false },
-      { name: "Bus Tickets", icon: IoBusOutline, onClick: () => {}, available: true },
+      { name: "Bus Tickets", icon: IoBusOutline, available: true },
       { name: "Hotel", icon: LuShieldPlus, available: false },
     ],
   },
   {
     title: "Betting & Currency",
     items: [
-      { name: "Betting", icon: SlTrophy, available: false },
-      { name: "Convert Currency", icon: LiaRedoAltSolid, available: false },
-      { name: "Sell Giftcards", icon: MdCardGiftcard, available: false },
-      { name: "Buy Giftcards", icon: MdCardGiftcard, onClick: () => {}, available: true },
+      { name: "Betting", icon: SlTrophy, available: true },
+      { name: "Convert Currency", icon: LiaRedoAltSolid, available: true },
+      { name: "Sell Giftcards", icon: MdCardGiftcard, available: true },
+      { name: "Buy Giftcards", icon: MdCardGiftcard, available: true },
     ],
   },
   {
@@ -87,8 +92,10 @@ const sections: { title: string; items: BillItem[] }[] = [
   {
     title: "School",
     items: [
-      { name: "Education", icon: IoSchoolOutline, onClick: () => {}, available: true },
-      { name: "Jamb & Waec", icon: IoSchoolOutline, onClick: () => {}, available: true },
+      { name: "Education", icon: IoSchoolOutline, available: true },
+      { name: "School", icon: IoSchoolOutline, available: true },
+      { name: "WAEC", icon: IoSchoolOutline, available: true },
+      { name: "JAMB", icon: IoSchoolOutline, available: true },
     ],
   },
 ];
@@ -102,7 +109,12 @@ const Card: React.FC<BillItem & {
   onInternetClick?: ()=>void;
   onTransportClick?: () => void;
   onEducationClick?: () => void;
+  onSchoolClick?: () => void;
+  onWaecClick?: () => void;
+  onJambClick?: () => void;
   onGiftCardClick?: () => void;
+  onSellGiftCardClick?: () => void;
+  onConvertCurrencyClick?: () => void;
 }> = ({ 
   name, 
   icon: Icon, 
@@ -117,7 +129,12 @@ const Card: React.FC<BillItem & {
   onInternetClick,
   onTransportClick,
   onEducationClick,
+  onSchoolClick,
+  onWaecClick,
+  onJambClick,
   onGiftCardClick,
+  onSellGiftCardClick,
+  onConvertCurrencyClick,
 }) => {
   const navigate = useNavigate();
   const onClick = () => {
@@ -137,10 +154,22 @@ const Card: React.FC<BillItem & {
       onCableClick();
     } else if ((name === "Bus Tickets" || name === "Flight") && onTransportClick) {
       onTransportClick();
-    } else if ((name === "Education" || name === "Jamb & Waec") && onEducationClick) {
+    } else if (name === "Education" && onEducationClick) {
       onEducationClick();
+    } else if (name === "School" && onSchoolClick) {
+      onSchoolClick();
+    } else if (name === "WAEC" && onWaecClick) {
+      onWaecClick();
+    } else if (name === "JAMB" && onJambClick) {
+      onJambClick();
     } else if (name === "Buy Giftcards" && onGiftCardClick) {
       onGiftCardClick();
+    } else if (name === "Sell Giftcards" && onSellGiftCardClick) {
+      onSellGiftCardClick();
+    } else if (name === "Betting") {
+      navigate("/user/betting");
+    } else if (name === "Convert Currency" && onConvertCurrencyClick) {
+      onConvertCurrencyClick();
     } else if (available && path) {
       navigate(path);
     } else {
@@ -171,7 +200,12 @@ const PayBillsTab: React.FC = () => {
   const [isInternetOpen, setIsInternetOpen] = useState(false);
   const [isTransportOpen, setIsTransportOpen] = useState(false);
   const [isEducationOpen, setIsEducationOpen] = useState(false);
+  const [isSchoolOpen, setIsSchoolOpen] = useState(false);
+  const [isWaecOpen, setIsWaecOpen] = useState(false);
+  const [isJambOpen, setIsJambOpen] = useState(false);
   const [isGiftCardOpen, setIsGiftCardOpen] = useState(false);
+  const [isSellGiftCardOpen, setIsSellGiftCardOpen] = useState(false);
+  const [isConvertCurrencyOpen, setIsConvertCurrencyOpen] = useState(false);
 
   return (
     <div className="flex flex-col gap-6">
@@ -191,7 +225,12 @@ const PayBillsTab: React.FC = () => {
                 onInternetClick={() => setIsInternetOpen(true)}
                 onTransportClick={() => setIsTransportOpen(true)}
                 onEducationClick={() => setIsEducationOpen(true)}
+                onSchoolClick={() => setIsSchoolOpen(true)}
+                onWaecClick={() => setIsWaecOpen(true)}
+                onJambClick={() => setIsJambOpen(true)}
                 onGiftCardClick={() => setIsGiftCardOpen(true)}
+                onSellGiftCardClick={() => setIsSellGiftCardOpen(true)}
+                onConvertCurrencyClick={() => setIsConvertCurrencyOpen(true)}
               />
             ))}
           </div>
@@ -238,9 +277,35 @@ const PayBillsTab: React.FC = () => {
         onClose={() => setIsEducationOpen(false)}
       />
 
+      <SchoolModal
+        isOpen={isSchoolOpen}
+        onClose={() => setIsSchoolOpen(false)}
+      />
+
+      <WaecModal
+        isOpen={isWaecOpen}
+        onClose={() => setIsWaecOpen(false)}
+      />
+
+      <JambModal
+        isOpen={isJambOpen}
+        onClose={() => setIsJambOpen(false)}
+      />
+
       <GiftCardModal
         isOpen={isGiftCardOpen}
         onClose={() => setIsGiftCardOpen(false)}
+      />
+
+      <SellGiftCardModal
+        isOpen={isSellGiftCardOpen}
+        onClose={() => setIsSellGiftCardOpen(false)}
+      />
+
+
+      <ConvertCurrencyModal
+        isOpen={isConvertCurrencyOpen}
+        onClose={() => setIsConvertCurrencyOpen(false)}
       />
     </div>
   );

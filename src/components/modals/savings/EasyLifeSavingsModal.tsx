@@ -5,7 +5,7 @@ import { CgClose } from "react-icons/cg";
 import useUserStore from "@/store/user.store";
 import CustomButton from "@/components/shared/Button";
 import CustomSelect from "@/components/CustomSelect";
-import { useCreateSavingsPlan } from "@/api/savings/savings.queries";
+import { useCreateEasyLifePlan } from "@/api/easylife-savings/easylife-savings.queries";
 import ErrorToast from "@/components/toast/ErrorToast";
 import SuccessToast from "@/components/toast/SuccessToast";
 
@@ -31,12 +31,14 @@ const EasyLifeSavingsModal: React.FC<EasyLifeSavingsModalProps> = ({ isOpen, onC
   const [frequency, setFrequency] = React.useState<Frequency>("Monthly");
   const [topUpAmount, setTopUpAmount] = React.useState("");
   const [selectedWalletIndex, setSelectedWalletIndex] = React.useState(0);
+  const [earlyWithdrawalEnabled, setEarlyWithdrawalEnabled] = React.useState(false);
 
-  const onError = (error: any) => {
-    const errorMessage = error?.response?.data?.message;
+  const onError = (error: unknown) => {
+    const errorMessage = (error as { response?: { data?: { message?: unknown } } })?.response?.data
+      ?.message as unknown;
     const descriptions = Array.isArray(errorMessage)
-      ? errorMessage
-      : [errorMessage || "Failed to create savings plan"];
+      ? (errorMessage as string[])
+      : [typeof errorMessage === "string" ? errorMessage : "Failed to create savings plan"];
 
     ErrorToast({
       title: "Creation Failed",
@@ -52,7 +54,7 @@ const EasyLifeSavingsModal: React.FC<EasyLifeSavingsModalProps> = ({ isOpen, onC
     setStep(3);
   };
 
-  const { mutate: createPlan, isPending: creating } = useCreateSavingsPlan(onError, onSuccess);
+  const { mutate: createPlan, isPending: creating } = useCreateEasyLifePlan(onError, onSuccess);
 
   const resetAndClose = () => {
     setStep(1);
@@ -64,6 +66,7 @@ const EasyLifeSavingsModal: React.FC<EasyLifeSavingsModalProps> = ({ isOpen, onC
     setSelectedWalletIndex(0);
     setMode("manual");
     setFrequency("Monthly");
+    setEarlyWithdrawalEnabled(false);
     onClose();
   };
 
@@ -77,10 +80,11 @@ const EasyLifeSavingsModal: React.FC<EasyLifeSavingsModalProps> = ({ isOpen, onC
       return;
     }
 
-    if (!topUpAmount || Number(topUpAmount) <= 0) {
+    const goalAmount = Number(amount);
+    if (!goalAmount || goalAmount < 50000) {
       ErrorToast({
         title: "Validation Error",
-        descriptions: ["Please enter a valid top-up amount"],
+        descriptions: ["Minimum goal amount for EasyLife is ₦50,000"],
       });
       return;
     }
@@ -94,26 +98,49 @@ const EasyLifeSavingsModal: React.FC<EasyLifeSavingsModalProps> = ({ isOpen, onC
       return;
     }
 
-    // Easy-life can be either FLEX_SAVE or NATTY_AUTO_SAVE
-    // If amount is provided, use FLEX_SAVE with target, otherwise NATTY_AUTO_SAVE
-    let duration: number | undefined;
-    if (startDate && endDate) {
-      const start = new Date(startDate);
-      const end = new Date(endDate);
-      duration = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+    if (!startDate || !endDate) {
+      ErrorToast({
+        title: "Validation Error",
+        descriptions: ["Start date and end date are required"],
+      });
+      return;
     }
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end <= start) {
+      ErrorToast({
+        title: "Validation Error",
+        descriptions: ["Please select valid start and end dates"],
+      });
+      return;
+    }
+
+    const durationDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+    if (durationDays < 20) {
+      ErrorToast({
+        title: "Validation Error",
+        descriptions: ["EasyLife duration must be at least 20 days"],
+      });
+      return;
+    }
+
+    const contributionFrequency =
+      frequency === "Daily"
+        ? "DAILY"
+        : frequency === "Weekly"
+        ? "WEEKLY"
+        : "MONTHLY";
 
     const payload = {
       name: name.trim(),
-      planType: amount && Number(amount) > 0 ? "FLEX_SAVE" : "NATTY_AUTO_SAVE",
-      targetAmount: amount && Number(amount) > 0 ? Number(amount) : undefined,
-      duration: duration || undefined,
-      startDate: startDate || undefined,
-      endDate: endDate || undefined,
-      frequency: mode === "auto" ? frequency : undefined,
-      topUpAmount: Number(topUpAmount),
-      walletId: selectedWallet.id,
-      isAutoSave: mode === "auto",
+      description: `EasyLife savings plan for ${name.trim()}`,
+      goalAmount,
+      currency: selectedWallet.currency || "NGN",
+      durationDays,
+      contributionFrequency,
+      autoDebitEnabled: mode === "auto",
+      earlyWithdrawalEnabled,
     };
 
     createPlan(payload);
@@ -199,6 +226,26 @@ const EasyLifeSavingsModal: React.FC<EasyLifeSavingsModalProps> = ({ isOpen, onC
                 </div>
               )}
 
+              <div className="flex items-start justify-between gap-3 bg-white/5 border border-white/10 rounded-lg p-3">
+                <div className="flex-1">
+                  <p className="text-white text-sm font-medium">Allow Early Withdrawal</p>
+                  <p className="text-white/60 text-xs mt-0.5">If enabled, early withdrawal attracts a 1.5% penalty.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEarlyWithdrawalEnabled((v) => !v)}
+                  className={`relative w-12 h-6 rounded-full transition-colors ${
+                    earlyWithdrawalEnabled ? "bg-[#D4B139]" : "bg-white/20"
+                  }`}
+                >
+                  <span
+                    className={`absolute top-0.5 ${
+                      earlyWithdrawalEnabled ? "right-0.5" : "left-0.5"
+                    } w-5 h-5 rounded-full bg-white transition-all`}
+                  />
+                </button>
+              </div>
+
               <div className="flex flex-col gap-1">
                 <label className="text-white/70 text-xs">Top-up Amount</label>
                 <input className="w-full bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-3 px-3 text-white text-sm placeholder:text-white/50 outline-none" placeholder="NGN" value={topUpAmount} onChange={(e)=> setTopUpAmount(e.target.value)} />
@@ -271,7 +318,7 @@ const EasyLifeSavingsModal: React.FC<EasyLifeSavingsModalProps> = ({ isOpen, onC
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22C55E" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
               </div>
               <h3 className="text-white text-base font-semibold">Plan Created Successfully</h3>
-              <p className="text-white/80 text-sm leading-relaxed max-w-md">You're all set — start funding your target and watch your savings grow</p>
+              <p className="text-white/80 text-sm leading-relaxed max-w-md">You&apos;re all set — start funding your target and watch your savings grow</p>
               <CustomButton type="button" className="w-full bg-[#D4B139] hover:bg-[#c7a42f] text-black py-3.5 rounded-xl" onClick={resetAndClose}>
                 View Details
               </CustomButton>

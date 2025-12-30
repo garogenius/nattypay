@@ -2,11 +2,14 @@
 
 import React from "react";
 import { CgClose } from "react-icons/cg";
-import CustomButton from "@/components/shared/Button";
 import BreakPlanDetailsModal from "./BreakPlanDetailsModal";
 import { useWithdrawSavingsPlan, useGetSavingsPlanById } from "@/api/savings/savings.queries";
+import { useGetEasyLifePlanById, useWithdrawEasyLifePlan } from "@/api/easylife-savings/easylife-savings.queries";
+import { useVerifyWalletPin } from "@/api/user/user.queries";
 import ErrorToast from "@/components/toast/ErrorToast";
 import SuccessToast from "@/components/toast/SuccessToast";
+import type { SavingsPlan } from "@/api/savings/savings.types";
+import type { EasyLifePlan } from "@/api/easylife-savings/easylife-savings.types";
 
 interface BreakPlanModalProps {
   isOpen: boolean;
@@ -14,9 +17,17 @@ interface BreakPlanModalProps {
   planName: string;
   planId?: string;
   onConfirm: () => void;
+  planType?: "target" | "easylife";
 }
 
-const BreakPlanModal: React.FC<BreakPlanModalProps> = ({ isOpen, onClose, planName, planId, onConfirm }) => {
+const BreakPlanModal: React.FC<BreakPlanModalProps> = ({
+  isOpen,
+  onClose,
+  planName,
+  planId,
+  onConfirm,
+  planType = "target",
+}) => {
   const [reason, setReason] = React.useState("");
   const [dropdownOpen, setDropdownOpen] = React.useState(false);
   const [showSuccess, setShowSuccess] = React.useState(false);
@@ -24,13 +35,16 @@ const BreakPlanModal: React.FC<BreakPlanModalProps> = ({ isOpen, onClose, planNa
   const [showPinStep, setShowPinStep] = React.useState(false);
   const dropdownRef = React.useRef<HTMLDivElement>(null);
 
-  const { plan } = useGetSavingsPlanById(planId || null);
+  const { plan: savingsPlan } = useGetSavingsPlanById(planType === "target" ? planId || null : null);
+  const { plan: easyLifePlan } = useGetEasyLifePlanById(planType === "easylife" ? planId || null : null);
+  const plan: SavingsPlan | EasyLifePlan | null = planType === "easylife" ? easyLifePlan : savingsPlan;
 
-  const onError = (error: any) => {
-    const errorMessage = error?.response?.data?.message;
+  const onError = (error: unknown) => {
+    const errorMessage = (error as { response?: { data?: { message?: unknown } } })?.response?.data
+      ?.message as unknown;
     const descriptions = Array.isArray(errorMessage)
-      ? errorMessage
-      : [errorMessage || "Failed to break savings plan"];
+      ? (errorMessage as string[])
+      : [typeof errorMessage === "string" ? errorMessage : "Failed to break savings plan"];
 
     ErrorToast({
       title: "Breaking Plan Failed",
@@ -40,10 +54,11 @@ const BreakPlanModal: React.FC<BreakPlanModalProps> = ({ isOpen, onClose, planNa
     setWalletPin("");
   };
 
-  const onSuccess = (data: any) => {
-    const response = data?.data?.data;
-    const penalty = response?.penaltyApplied || 0;
-    const total = response?.totalReceived || 0;
+  const onSuccess = (data: unknown) => {
+    const response = (data as { data?: { data?: { penalty?: number; payoutAmount?: number } } })?.data
+      ?.data;
+    const penalty = response?.penalty ?? 0;
+    const total = response?.payoutAmount ?? 0;
 
     SuccessToast({
       title: "Plan Broken Successfully!",
@@ -55,7 +70,30 @@ const BreakPlanModal: React.FC<BreakPlanModalProps> = ({ isOpen, onClose, planNa
     onConfirm();
   };
 
-  const { mutate: withdrawPlan, isPending: breaking } = useWithdrawSavingsPlan(onError, onSuccess);
+  const { mutate: withdrawSavings, isPending: breakingSavings } = useWithdrawSavingsPlan(onError, onSuccess);
+  const { mutate: withdrawEasyLife, isPending: breakingEasyLife } = useWithdrawEasyLifePlan(onError, onSuccess);
+
+  const onVerifyPinError = (error: unknown) => {
+    const errorMessage = (error as { response?: { data?: { message?: unknown } } })?.response?.data
+      ?.message as unknown;
+    const descriptions = Array.isArray(errorMessage)
+      ? (errorMessage as string[])
+      : [typeof errorMessage === "string" ? errorMessage : "Invalid PIN"];
+    ErrorToast({ title: "Verification Failed", descriptions });
+  };
+
+  const onVerifyPinSuccess = () => {
+    if (!planId) return;
+    if (planType === "easylife") withdrawEasyLife({ planId });
+    else withdrawSavings({ planId });
+  };
+
+  const { mutate: verifyPin, isPending: verifyingPin } = useVerifyWalletPin(
+    onVerifyPinError,
+    onVerifyPinSuccess
+  );
+
+  const breaking = breakingSavings || breakingEasyLife || verifyingPin;
 
   React.useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -113,22 +151,23 @@ const BreakPlanModal: React.FC<BreakPlanModalProps> = ({ isOpen, onClose, planNa
       return;
     }
 
-    withdrawPlan({
-      planId,
-      formdata: {
-        walletPin,
-        reason: reasons.find(r => r.value === reason)?.label || reason,
-      },
-    });
+    verifyPin({ pin: walletPin });
   };
 
   if (!isOpen) return null;
 
-  const currentAmount = plan?.currentAmount || 0;
-  const interestEarned = plan?.interestEarned || 0;
-  const penaltyRate = plan?.penaltyRate || 10;
-  const estimatedPenalty = (currentAmount * penaltyRate) / 100;
-  const estimatedTotal = currentAmount - estimatedPenalty;
+  // Use API fields, fallback to legacy fields for backward compatibility
+  const currentAmount = plan?.totalDeposited ?? plan?.currentAmount ?? 0;
+  const interestEarned = plan?.totalInterestAccrued ?? plan?.interestEarned ?? 0;
+  const penaltyRatePercent =
+    typeof plan?.penaltyRate === "number" ? Math.round(plan.penaltyRate * 1000) / 10 : undefined;
+
+  const now = new Date();
+  const maturityDate = plan?.maturityDate ? new Date(plan.maturityDate) : null;
+  const isEarly = maturityDate ? now < maturityDate : true;
+  const earlyEnabledForEasyLife =
+    planType !== "easylife" ? true : !!(plan as EasyLifePlan | null)?.earlyWithdrawalEnabled;
+  const canBreak = isEarly && earlyEnabledForEasyLife;
 
   const reasons = [
     { value: "emergency", label: "Emergency Expenses" },
@@ -161,11 +200,13 @@ const BreakPlanModal: React.FC<BreakPlanModalProps> = ({ isOpen, onClose, planNa
               </svg>
             </div>
             <div className="flex flex-col gap-1.5 text-[11px] text-[#ff6b6b]">
-              <p>Breaking this savings plan early will result in:</p>
+              <p>Breaking this savings plan early may result in:</p>
               <ul className="list-disc list-inside space-y-0.5 pl-1">
-                <li>Loss of all accrued interest (₦5,000.00)</li>
-                <li>Early termination penalty of 2.5% (₦5,000)</li>
-                <li>Funds will be available within 24 hours</li>
+                <li>Forfeiture of accrued interest (if applicable)</li>
+                <li>
+                  Early withdrawal penalty{penaltyRatePercent !== undefined ? ` (${penaltyRatePercent}%)` : ""}
+                </li>
+                <li>Final payout is calculated by the server</li>
               </ul>
             </div>
           </div>
@@ -181,13 +222,13 @@ const BreakPlanModal: React.FC<BreakPlanModalProps> = ({ isOpen, onClose, planNa
               <span className="text-white">₦{interestEarned.toLocaleString()}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-white/60">Early Termination Penalty ({penaltyRate}%)</span>
-              <span className="text-white">₦{estimatedPenalty.toLocaleString()}</span>
+              <span className="text-white/60">Penalty</span>
+              <span className="text-white">Calculated by server</span>
             </div>
             <div className="h-px bg-white/10 my-1" />
             <div className="flex items-center justify-between font-medium">
-              <span className="text-white">You'll Receive</span>
-              <span className="text-white">₦{estimatedTotal.toLocaleString()}</span>
+              <span className="text-white">You&apos;ll Receive</span>
+              <span className="text-white">Calculated by server</span>
             </div>
           </div>
 
@@ -245,10 +286,10 @@ const BreakPlanModal: React.FC<BreakPlanModalProps> = ({ isOpen, onClose, planNa
                 </button>
                 <button
                   onClick={handleContinue}
-                  disabled={!reason}
+                  disabled={!reason || !canBreak}
                   className="rounded-lg bg-[#ff6b6b] hover:bg-[#ff5252] text-white py-2.5 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Continue
+                  {canBreak ? "Continue" : "Not Available"}
                 </button>
               </div>
             </>
@@ -274,7 +315,7 @@ const BreakPlanModal: React.FC<BreakPlanModalProps> = ({ isOpen, onClose, planNa
                 </button>
                 <button
                   onClick={handleConfirm}
-                  disabled={walletPin.length !== 4 || breaking}
+                  disabled={!canBreak || walletPin.length !== 4 || breaking}
                   className="rounded-lg bg-[#ff6b6b] hover:bg-[#ff5252] text-white py-2.5 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {breaking ? "Breaking..." : "Confirm Break"}

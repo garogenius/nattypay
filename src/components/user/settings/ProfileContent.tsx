@@ -25,7 +25,6 @@ import ChangeEmailModal from "@/components/modals/settings/ChangeEmailModal";
 import VerifyEmailModal from "@/components/modals/settings/VerifyEmailModal";
 import ChangePhoneInfoModal from "@/components/modals/settings/ChangePhoneInfoModal";
 import ChangePhoneEnterModal from "@/components/modals/settings/ChangePhoneEnterModal";
-import VerifyPhoneModal from "@/components/modals/settings/VerifyPhoneModal";
 import UpdateUsernameModal from "@/components/modals/settings/UpdateUsernameModal";
 import UpdateAddressModal from "@/components/modals/settings/UpdateAddressModal";
 import ChangeTransactionPinModal from "@/components/modals/settings/ChangeTransactionPinModal";
@@ -43,6 +42,21 @@ import { CURRENCY } from "@/constants/types";
 import usePaymentSettingsStore from "@/store/paymentSettings.store";
 import VerifyWalletPinModal from "@/components/modals/settings/VerifyWalletPinModal";
 import { isFingerprintPaymentAvailable } from "@/services/fingerprintPayment.service";
+import ConfirmDialog from "@/components/modals/ConfirmDialog";
+import {
+  clearBiometricCredentials,
+  getBiometricType,
+  hasBiometricCredential,
+  isPlatformAuthenticatorAvailable,
+  isWebAuthnSupported,
+  registerBiometric,
+} from "@/services/webauthn.service";
+import { getDeviceId, getDeviceInfo } from "@/services/fcm.service";
+import {
+  useBiometricDisableV1,
+  useBiometricEnrollV1,
+  useBiometricStatusV1,
+} from "@/api/auth/auth.queries";
 
 const schema = yup.object().shape({
   email: yup
@@ -51,6 +65,7 @@ const schema = yup.object().shape({
     .required("Email is required"),
   username: yup.string().required("Username is required"),
   fullname: yup.string().required("Full Name is required"),
+  businessName: yup.string().optional(),
   phoneNumber: yup.string().optional(),
   dateOfBirth: yup.string().required("Date of birth is required"),
   referralCode: yup.string().optional(),
@@ -74,8 +89,6 @@ const ProfileContent = () => {
   const [pendingEmail, setPendingEmail] = useState<string>("");
   const [openChangePhone, setOpenChangePhone] = useState(false);
   const [openEnterPhone, setOpenEnterPhone] = useState(false);
-  const [openVerifyPhone, setOpenVerifyPhone] = useState(false);
-  const [pendingPhone, setPendingPhone] = useState<string>("");
   const [openUpdateUsername, setOpenUpdateUsername] = useState(false);
   const [openUpdateAddress, setOpenUpdateAddress] = useState(false);
   const [addressDisplay, setAddressDisplay] = useState<string>((user as any)?.address || "");
@@ -92,11 +105,80 @@ const ProfileContent = () => {
   
   const { fingerprintPaymentEnabled, setFingerprintPaymentEnabled } = usePaymentSettingsStore();
   const [isFingerprintAvailable, setIsFingerprintAvailable] = useState(false);
+  const [isBiometricLoginAvailable, setIsBiometricLoginAvailable] = useState(false);
+  const [openDisableBiometricLogin, setOpenDisableBiometricLogin] = useState(false);
+  const [biometricDeviceId] = useState(() => getDeviceId());
 
   useEffect(() => {
     // Check if fingerprint payment is available
     isFingerprintPaymentAvailable().then(setIsFingerprintAvailable);
   }, []);
+
+  useEffect(() => {
+    const check = async () => {
+      if (!isWebAuthnSupported()) {
+        setIsBiometricLoginAvailable(false);
+        return;
+      }
+      const available = await isPlatformAuthenticatorAvailable();
+      setIsBiometricLoginAvailable(available);
+    };
+    check();
+  }, []);
+
+  const {
+    data: biometricStatusResp,
+    isFetching: biometricStatusLoading,
+    refetch: refetchBiometricStatus,
+  } = useBiometricStatusV1(biometricDeviceId);
+  const biometricStatus = (biometricStatusResp as any)?.data as any;
+  const biometricEnabledOnServer = !!biometricStatus?.enabled;
+  const biometricLocked = !!biometricStatus?.locked;
+  const biometricFailedAttempts =
+    typeof biometricStatus?.failedAttempts === "number" ? biometricStatus.failedAttempts : undefined;
+  const hasLocalCredential = hasBiometricCredential();
+
+  const onBiometricEnrollError = (error: any) => {
+    const errorMessage = error?.response?.data?.message;
+    const descriptions = Array.isArray(errorMessage)
+      ? errorMessage
+      : [errorMessage || "Unable to enable biometric login"];
+    ErrorToast({ title: "Biometric Setup Failed", descriptions });
+  };
+
+  const onBiometricEnrollSuccess = () => {
+    SuccessToast({
+      title: "Biometric Login Enabled",
+      description: "You can now log in using fingerprint or Face ID on this device.",
+    });
+    refetchBiometricStatus();
+  };
+
+  const { mutate: enrollBiometric, isPending: enrollingBiometric } = useBiometricEnrollV1(
+    onBiometricEnrollError,
+    onBiometricEnrollSuccess
+  );
+
+  const onBiometricDisableError = (error: any) => {
+    const errorMessage = error?.response?.data?.message;
+    const descriptions = Array.isArray(errorMessage)
+      ? errorMessage
+      : [errorMessage || "Unable to disable biometric login"];
+    ErrorToast({ title: "Biometric Disable Failed", descriptions });
+  };
+
+  const onBiometricDisableSuccess = () => {
+    SuccessToast({
+      title: "Biometric Login Disabled",
+      description: "Biometric login has been disabled on this device.",
+    });
+    refetchBiometricStatus();
+  };
+
+  const { mutate: disableBiometric, isPending: disablingBiometric } = useBiometricDisableV1(
+    onBiometricDisableError,
+    onBiometricDisableSuccess
+  );
 
   useOnClickOutside(datePickerRef as React.RefObject<HTMLElement>, () =>
     setShowDatePicker(false)
@@ -104,11 +186,14 @@ const ProfileContent = () => {
   const accountNumber = user?.wallet?.find(
     (w) => w.currency === CURRENCY.NGN
   )?.accountNumber;
+  const isBusinessAccount = user?.accountType === "BUSINESS" || user?.isBusiness === true;
+  
   const form = useForm<UserFormData>({
     defaultValues: {
       email: user?.email,
       username: user?.username,
       fullname: user?.fullname,
+      businessName: user?.businessName || "",
       phoneNumber: user?.phoneNumber || "",
       dateOfBirth: user?.dateOfBirth || "",
       referralCode: user?.referralCode || "",
@@ -193,15 +278,11 @@ const ProfileContent = () => {
           setImgUrl(imageUrl);
           setSelectedFile(file); // Store the file for form submission
         } else {
-          console.error("Selected file size exceeds the limit (500KB).");
           toast.error("Selected file size exceeds the limit (500KB).", {
             duration: 3000,
           });
         }
       } else {
-        console.error(
-          "Selected file is not a supported image format (JPEG, JPG, PNG, or WebP)."
-        );
         toast.error(
           "Selected file is not a supported image format (JPEG, JPG, PNG, or WebP).",
           {
@@ -222,7 +303,11 @@ const ProfileContent = () => {
     // Add only the required fields from IUpdateUser
     formData.append("fullName", data.fullname);
     formData.append("phoneNumber", data.phoneNumber || "");
-    formData.append("dateOfBirth", data.dateOfBirth);
+
+    // Add business name if it's a business account
+    if (isBusinessAccount && data.businessName) {
+      formData.append("businessName", data.businessName);
+    }
 
     // Add the profile image if one was selected
     if (selectedFile) {
@@ -235,7 +320,7 @@ const ProfileContent = () => {
 
   return (
     <>
-    <div className="flex flex-col gap-6 pb-10 px-3 sm:px-0">
+    <div className="flex flex-col gap-6 md:gap-8 pb-10 overflow-y-auto scroll-area scroll-smooth pr-1">
       <div className="flex flex-col gap-5">
         {/* Page Header */}
         <div className="w-full">
@@ -282,8 +367,13 @@ const ProfileContent = () => {
               <input type="file" style={{ display: "none" }} ref={fileInputRef} onChange={handleFileSelected} />
             </div>
             <div className="flex-1 w-full">
-              <p className="text-white font-semibold text-base sm:text-lg">{user?.fullname}</p>
+              <p className="text-white font-semibold text-base sm:text-lg">
+                {isBusinessAccount && user?.businessName ? user.businessName : user?.fullname}
+              </p>
               <p className="text-white/70 text-sm">{user?.email}</p>
+              {isBusinessAccount && user?.businessName && (
+                <p className="text-white/60 text-xs mt-1">Representative: {user?.fullname}</p>
+              )}
               <div className="mt-3 flex items-center gap-2">
                 <button
                   type="button"
@@ -309,31 +399,87 @@ const ProfileContent = () => {
         <form onSubmit={handleSubmit(onSubmit)} className="w-full flex flex-col gap-8">
           <div className="w-full bg-bg-600 dark:bg-bg-1100 border border-white/10 rounded-2xl p-4 sm:p-5">
             <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
-            <div className="flex flex-col justify-center items-center gap-1 w-full text-black dark:text-white">
-              <label
-                className="w-full text-sm font-medium  text-text-200 dark:text-text-800 mb-0 flex items-start "
-                htmlFor={"fullname"}
-              >
-                Full Name{" "}
-              </label>
-              <div className="relative w-full flex gap-2 justify-center items-center bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-4 px-3">
-                <input
-                  className="disabled:opacity-60 w-full bg-transparent p-0 border-none outline-none text-base text-text-200 dark:text-white placeholder:text-text-200 dark:placeholder:text-text-1000 placeholder:text-sm"
-                  placeholder="Full name"
-                  type="text"
-                  {...register("fullname")}
-                />
-                <button type="button" className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 grid place-items-center rounded-md bg-[#D4B139]/15 text-[#D4B139] border border-[#D4B139]/30">
-                  <FiEdit2 className="text-xs" />
-                </button>
-              </div>
+            {isBusinessAccount ? (
+              <>
+                <div className="flex flex-col justify-center items-center gap-1 w-full text-black dark:text-white">
+                  <label
+                    className="w-full text-sm font-medium  text-text-200 dark:text-text-800 mb-0 flex items-start "
+                    htmlFor={"businessName"}
+                  >
+                    Business Name{" "}
+                  </label>
+                  <div className="relative w-full flex gap-2 justify-center items-center bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-4 px-3">
+                    <input
+                      className="w-full bg-transparent p-0 border-none outline-none text-base text-text-200 dark:text-white placeholder:text-text-200 dark:placeholder:text-text-1000 placeholder:text-sm"
+                      placeholder="Business name"
+                      type="text"
+                      {...register("businessName")}
+                    />
+                    <button type="button" className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 grid place-items-center rounded-md bg-[#D4B139]/15 text-[#D4B139] border border-[#D4B139]/30">
+                      <FiEdit2 className="text-xs" />
+                    </button>
+                  </div>
 
-              {errors?.fullname?.message ? (
-                <p className="flex self-start text-red-500 font-semibold mt-0.5 text-sm">
-                  {errors?.fullname?.message}
-                </p>
-              ) : null}
-            </div>
+                  {errors?.businessName?.message ? (
+                    <p className="flex self-start text-red-500 font-semibold mt-0.5 text-sm">
+                      {errors?.businessName?.message}
+                    </p>
+                  ) : null}
+                </div>
+
+                <div className="flex flex-col justify-center items-center gap-1 w-full text-black dark:text-white">
+                  <label
+                    className="w-full text-sm font-medium  text-text-200 dark:text-text-800 mb-0 flex items-start "
+                    htmlFor={"fullname"}
+                  >
+                    Representative Name{" "}
+                  </label>
+                  <div className="relative w-full flex gap-2 justify-center items-center bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-4 px-3">
+                    <input
+                      className="w-full bg-transparent p-0 border-none outline-none text-base text-text-200 dark:text-white placeholder:text-text-200 dark:placeholder:text-text-1000 placeholder:text-sm"
+                      placeholder="Representative name"
+                      type="text"
+                      {...register("fullname")}
+                    />
+                    <button type="button" className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 grid place-items-center rounded-md bg-[#D4B139]/15 text-[#D4B139] border border-[#D4B139]/30">
+                      <FiEdit2 className="text-xs" />
+                    </button>
+                  </div>
+
+                  {errors?.fullname?.message ? (
+                    <p className="flex self-start text-red-500 font-semibold mt-0.5 text-sm">
+                      {errors?.fullname?.message}
+                    </p>
+                  ) : null}
+                </div>
+              </>
+            ) : (
+              <div className="flex flex-col justify-center items-center gap-1 w-full text-black dark:text-white">
+                <label
+                  className="w-full text-sm font-medium  text-text-200 dark:text-text-800 mb-0 flex items-start "
+                  htmlFor={"fullname"}
+                >
+                  Full Name{" "}
+                </label>
+                <div className="relative w-full flex gap-2 justify-center items-center bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-4 px-3">
+                  <input
+                    className="w-full bg-transparent p-0 border-none outline-none text-base text-text-200 dark:text-white placeholder:text-text-200 dark:placeholder:text-text-1000 placeholder:text-sm"
+                    placeholder="Full name"
+                    type="text"
+                    {...register("fullname")}
+                  />
+                  <button type="button" className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 grid place-items-center rounded-md bg-[#D4B139]/15 text-[#D4B139] border border-[#D4B139]/30">
+                    <FiEdit2 className="text-xs" />
+                  </button>
+                </div>
+
+                {errors?.fullname?.message ? (
+                  <p className="flex self-start text-red-500 font-semibold mt-0.5 text-sm">
+                    {errors?.fullname?.message}
+                  </p>
+                ) : null}
+              </div>
+            )}
 
             <div className="flex flex-col justify-center items-center gap-1 w-full text-black dark:text-white">
               <label
@@ -373,8 +519,8 @@ const ProfileContent = () => {
                 <input
                   className="disabled:opacity-60 w-full bg-transparent p-0 border-none outline-none text-base text-text-200 dark:text-white placeholder:text-text-200 dark:placeholder:text-text-1000 placeholder:text-sm"
                   placeholder="Email"
-                  disabled
                   type="email"
+                  disabled
                   {...register("email")}
                 />
                 <button type="button" onClick={()=> setOpenChangeEmail(true)} className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 grid place-items-center rounded-md bg-[#D4B139]/15 text-[#D4B139] border border-[#D4B139]/30">
@@ -401,6 +547,7 @@ const ProfileContent = () => {
                   className="disabled:opacity-60 w-full bg-transparent p-0 border-none outline-none text-base text-text-200 dark:text-white placeholder:text-text-200 dark:placeholder:text-text-1000 placeholder:text-sm"
                   placeholder="Phone Number"
                   type="text"
+                  disabled
                   {...register("phoneNumber")}
                   onKeyDown={handleNumericKeyDown}
                   onPaste={handleNumericPaste}
@@ -627,6 +774,115 @@ const ProfileContent = () => {
                     <span className={`absolute top-0.5 ${fingerprintPaymentEnabled ? "right-0.5" : "left-0.5"} w-5 h-5 rounded-full bg-white transition-all`} />
                   </button>
                 </div>
+
+                {/* Biometric login toggle */}
+                <div className="w-full flex items-center justify-between gap-3 py-3">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-md bg-white/5 grid place-items-center text-white">
+                      <FiShield className="text-[#D4B139]" />
+                    </div>
+                    <div>
+                      <p className="text-white text-sm sm:text-base font-medium">
+                        Biometric Login
+                      </p>
+                      <p className="text-white/60 text-xs sm:text-sm">
+                        {!isBiometricLoginAvailable
+                          ? "Biometric login is not available on this device."
+                          : biometricLocked
+                          ? "Biometric login is temporarily locked due to multiple failed attempts."
+                          : biometricEnabledOnServer
+                          ? hasLocalCredential
+                            ? "Enabled on this device. Use fingerprint or Face ID to log in."
+                            : "Enabled on your account, but this device is not enrolled. Disable and re-enable to set it up again."
+                          : "Enable fingerprint or Face ID login on this device."}
+                        {typeof biometricFailedAttempts === "number" && biometricFailedAttempts > 0
+                          ? ` (Failed attempts: ${biometricFailedAttempts})`
+                          : ""}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={async () => {
+                      if (!isBiometricLoginAvailable) {
+                        ErrorToast({
+                          title: "Not Available",
+                          descriptions: ["Biometric login is not available on this device"],
+                        });
+                        return;
+                      }
+                      if (biometricLocked) {
+                        ErrorToast({
+                          title: "Biometric Login Locked",
+                          descriptions: ["Biometric login is locked. Please try again later or use password login."],
+                        });
+                        return;
+                      }
+                      if (biometricStatusLoading || enrollingBiometric || disablingBiometric) return;
+
+                      if (biometricEnabledOnServer) {
+                        setOpenDisableBiometricLogin(true);
+                        return;
+                      }
+
+                      if (!user?.id) {
+                        ErrorToast({
+                          title: "Error",
+                          descriptions: ["User ID not found"],
+                        });
+                        return;
+                      }
+
+                      try {
+                        const deviceInfo = getDeviceInfo();
+                        const credential = await registerBiometric({
+                          userId: user.id,
+                          username: user?.email || user?.phoneNumber || user?.username || "user",
+                          displayName:
+                            (user as any)?.businessName ||
+                            user?.fullname ||
+                            user?.username ||
+                            "NattyPay User",
+                        });
+
+                        const type = await getBiometricType();
+                        const biometricType =
+                          type === "face" ? ("faceid" as const) : ("fingerprint" as const);
+
+                        enrollBiometric({
+                          deviceId: biometricDeviceId,
+                          publicKey: credential.publicKey, // Already in PEM format from webauthn.service
+                          biometricType,
+                          deviceName: deviceInfo?.deviceName || "Web Browser",
+                        });
+                      } catch (e: any) {
+                        ErrorToast({
+                          title: "Biometric Setup Failed",
+                          descriptions: [e?.message || "Unable to enable biometric login"],
+                        });
+                      }
+                    }}
+                    disabled={
+                      !isBiometricLoginAvailable ||
+                      biometricLocked ||
+                      biometricStatusLoading ||
+                      enrollingBiometric ||
+                      disablingBiometric
+                    }
+                    className={`relative w-12 h-6 rounded-full transition-colors ${
+                      !isBiometricLoginAvailable || biometricLocked
+                        ? "bg-white/10 cursor-not-allowed"
+                        : biometricEnabledOnServer
+                        ? "bg-[#D4B139]"
+                        : "bg-white/20"
+                    }`}
+                  >
+                    <span
+                      className={`absolute top-0.5 ${
+                        biometricEnabledOnServer ? "right-0.5" : "left-0.5"
+                      } w-5 h-5 rounded-full bg-white transition-all`}
+                    />
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -694,19 +950,10 @@ const ProfileContent = () => {
           isOpen={openEnterPhone}
           onClose={() => setOpenEnterPhone(false)}
           currentPhone={currentPhone}
-          onValidateSuccess={(newPhone: string) => {
-            setPendingPhone(newPhone);
+          onValidateSuccess={() => {
+            // Phone number is already updated, just close the modal
             setOpenEnterPhone(false);
-            setOpenVerifyPhone(true);
           }}
-        />
-        <VerifyPhoneModal
-          isOpen={openVerifyPhone}
-          onClose={() => {
-            setOpenVerifyPhone(false);
-            setPendingPhone("");
-          }}
-          phone={pendingPhone || currentPhone}
         />
 
         {/* Username & Address Modals */}
@@ -744,6 +991,22 @@ const ProfileContent = () => {
               setPendingFingerprintEnable(false);
             }
             setOpenVerifyPinForFingerprint(false);
+          }}
+        />
+
+        {/* Disable Biometric Login Confirmation */}
+        <ConfirmDialog
+          isOpen={openDisableBiometricLogin}
+          title="Disable Biometric Login?"
+          description="You will need to use password login on this device. You can enable biometric login again anytime."
+          confirmText="Disable"
+          cancelText="Cancel"
+          isLoading={disablingBiometric}
+          onCancel={() => setOpenDisableBiometricLogin(false)}
+          onConfirm={() => {
+            setOpenDisableBiometricLogin(false);
+            disableBiometric({ deviceId: biometricDeviceId });
+            clearBiometricCredentials();
           }}
         />
       </div>

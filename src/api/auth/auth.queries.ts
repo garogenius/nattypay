@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   forgotPasswordRequest,
   loginRequest,
@@ -14,6 +14,11 @@ import {
   registerBusinessRequest,
   biometricLoginRequest,
   registerBiometricRequest,
+  biometricEnrollV1Request,
+  biometricStatusV1Request,
+  biometricDisableV1Request,
+  biometricLoginV1Request,
+  biometricChallengeV1Request,
   createPasscodeRequest,
   passcodeLoginRequest,
   verifyEmailPreRegisterRequest,
@@ -21,6 +26,7 @@ import {
   verifyContactRequest,
   resendVerifyContactRequest,
 } from "./auth.apis";
+import Cookies from "js-cookie";
 
 export const useLogin = (
   onError: (error: any) => void,
@@ -156,6 +162,71 @@ export const useRegisterBiometric = (
 ) => {
   return useMutation({
     mutationFn: registerBiometricRequest,
+    onError,
+    onSuccess,
+  });
+};
+
+// --- WebAuthn biometric auth (v1) ---
+export const useBiometricStatusV1 = (deviceId: string) => {
+  const token = Cookies.get("accessToken");
+  return useQuery({
+    queryKey: ["biometric-status", deviceId],
+    queryFn: () => biometricStatusV1Request(deviceId),
+    enabled: !!token && !!deviceId,
+    refetchOnWindowFocus: true,
+    staleTime: 30 * 1000,
+    retry: 1,
+  });
+};
+
+export const useBiometricEnrollV1 = (
+  onError: (error: any) => void,
+  onSuccess: (data: any) => void
+) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: biometricEnrollV1Request,
+    onError,
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["biometric-status"] });
+      onSuccess(data);
+    },
+  });
+};
+
+export const useBiometricDisableV1 = (
+  onError: (error: any) => void,
+  onSuccess: (data: any) => void
+) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: biometricDisableV1Request,
+    onError,
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["biometric-status"] });
+      onSuccess(data);
+    },
+  });
+};
+
+export const useBiometricChallengeV1 = (
+  onError: (error: any) => void,
+  onSuccess: (data: any) => void
+) => {
+  return useMutation({
+    mutationFn: biometricChallengeV1Request,
+    onError,
+    onSuccess,
+  });
+};
+
+export const useBiometricLoginV1 = (
+  onError: (error: any) => void,
+  onSuccess: (data: any) => void
+) => {
+  return useMutation({
+    mutationFn: biometricLoginV1Request,
     onError,
     onSuccess,
   });

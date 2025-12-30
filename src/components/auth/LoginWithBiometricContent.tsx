@@ -4,8 +4,8 @@
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
-import { useLogin, useBiometricLogin } from "@/api/auth/auth.queries";
-import { getBiometricChallengeRequest } from "@/api/auth/auth.apis";
+import { useLogin, useBiometricLoginV1 } from "@/api/auth/auth.queries";
+import { biometricChallengeV1Request } from "@/api/auth/auth.apis";
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import images from "../../../public/images";
@@ -15,7 +15,6 @@ import ErrorToast from "@/components/toast/ErrorToast";
 import SuccessToast from "@/components/toast/SuccessToast";
 import useNavigate from "@/hooks/useNavigate";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
-import { useTheme } from "@/store/theme.store";
 import useAuthEmailStore from "@/store/authEmail.store";
 import { User } from "@/constants/types";
 import {
@@ -24,6 +23,7 @@ import {
   authenticateBiometric,
   hasBiometricCredential,
   getBiometricType,
+  arrayBufferToBase64Url,
 } from "@/services/webauthn.service";
 import {
   getUserIdentifier,
@@ -36,6 +36,7 @@ import VerifyingBiometricModal from "@/components/modals/VerifyingBiometricModal
 import Cookies from "js-cookie";
 import useUserStore from "@/store/user.store";
 import { useQueryClient } from "@tanstack/react-query";
+import { getDeviceId, initializeFCM } from "@/services/fcm.service";
 
 const schema = yup.object().shape({
   identifier: yup.string().when("hasStoredIdentifier", {
@@ -69,7 +70,6 @@ type LoginFormData = yup.InferType<typeof schema>;
 
 const LoginWithBiometricContent = () => {
   const navigate = useNavigate();
-  const theme = useTheme();
   const { setAuthEmail } = useAuthEmailStore();
   const { setUser, setIsLoggedIn } = useUserStore();
   const queryClient = useQueryClient();
@@ -77,6 +77,7 @@ const LoginWithBiometricContent = () => {
   const [showBiometricModal, setShowBiometricModal] = useState(false);
   const [biometricType, setBiometricType] = useState<"fingerprint" | "face">("fingerprint");
   const [isBiometricAvailable, setIsBiometricAvailable] = useState(false);
+  const [showPasscodeForm, setShowPasscodeForm] = useState(false);
   const [storedIdentifier, setStoredIdentifier] = useState<{
     type: "email" | "phone";
     value: string;
@@ -236,7 +237,7 @@ const LoginWithBiometricContent = () => {
 
   const onSuccess = async (data: any) => {
     const user: User = data?.data?.user;
-    const identifier = storedIdentifier?.value || form.getValues("email") || "";
+    const identifier = storedIdentifier?.value || (form.getValues("identifier") as string) || "";
     
     // Clear rate limiting on successful login
     if (identifier) {
@@ -361,29 +362,56 @@ const LoginWithBiometricContent = () => {
 
   const onBiometricLoginSuccess = async (data: any) => {
     setShowBiometricModal(false);
+
+    const accessToken = data?.data?.accessToken;
     const user: User = data?.data?.user;
+
+    if (accessToken && user) {
+      Cookies.set("accessToken", accessToken, {
+        expires: 7,
+        path: "/",
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+      });
+
+      setAuthEmail(user?.email);
+      setUser(user);
+      setIsLoggedIn(true);
+      useUserStore.getState().setInitialized(true);
+
+      initializeFCM().catch(() => {
+        // SECURITY: avoid leaking error details
+      });
+
+      setTimeout(async () => {
+        await queryClient.invalidateQueries({ queryKey: ["user"] });
+        await queryClient.refetchQueries({ queryKey: ["user"] });
+      }, 100);
+
+      SuccessToast({
+        title: "Login successful!",
+        description: "Biometric authentication verified.",
+      });
+      setTimeout(() => {
+        navigate("/user/dashboard", "replace");
+      }, 100);
+      return;
+    }
+
+    // Fallback: preserve existing 2FA-required flow
     const identifier = storedIdentifier?.value || user?.email || "";
-    
-    // Clear rate limiting on successful biometric login
     if (identifier) {
       const { rateLimiter, sanitizeInput } = await import("@/utils/security.utils");
       const sanitizedIdentifier = sanitizeInput(identifier);
       rateLimiter.clearAttempts(sanitizedIdentifier);
     }
-    
+
     const { setInitialized } = useUserStore.getState();
-    
-    // DO NOT set token here - token will be set after 2FA verification
-    // Biometric login also requires 2FA verification
-    
     setAuthEmail(user?.email);
-    
-    // Store user info temporarily (not logged in yet)
     setUser(user);
-    setIsLoggedIn(false); // Not logged in until 2FA is verified
+    setIsLoggedIn(false);
     setInitialized(true);
 
-    // Store user identifier for next time
     if (user?.email) {
       storeUserIdentifier(
         {
@@ -403,17 +431,14 @@ const LoginWithBiometricContent = () => {
         user.fullname || user.username
       );
     }
-    
+
     SuccessToast({
       title: "Login successful!",
       description:
         "A verification code has been sent to your email. Please check and enter the code to continue.",
     });
 
-    // Use setTimeout to ensure state is persisted before navigation
     setTimeout(() => {
-      // After login success, directly navigate to 2FA verification
-      // 2FA code will be sent automatically when user lands on the screen
       navigate("/two-factor-auth");
     }, 100);
   };
@@ -421,38 +446,43 @@ const LoginWithBiometricContent = () => {
   const {
     mutate: biometricLogin,
     isPending: biometricLoginPending,
-  } = useBiometricLogin(onBiometricLoginError, onBiometricLoginSuccess);
+  } = useBiometricLoginV1(onBiometricLoginError, onBiometricLoginSuccess);
 
   const handleBiometricLogin = async () => {
     setShowBiometricModal(true);
     try {
-      // SECURITY: Get challenge from backend if available
       const storedCredentialId = localStorage.getItem("nattypay_credential_id");
-      let challenge: string | undefined;
-      
-      try {
-        // Try to get challenge from backend (more secure)
-        const challengeResponse = await getBiometricChallengeRequest(storedCredentialId || undefined);
-        challenge = challengeResponse?.data?.challenge;
-      } catch (error) {
-        // Backend might not have challenge endpoint yet, use fallback
-        console.warn("Backend challenge endpoint not available, using client-side challenge");
+      if (!storedCredentialId) {
+        throw new Error("Biometric login is not enabled on this device. Please log in with password and enable it in Settings.");
       }
 
-      // Authenticate with biometric (will use backend challenge if available)
-      const credential = await authenticateBiometric(challenge, storedCredentialId || undefined);
+      const deviceId = getDeviceId();
+
+      // Step 1: Generate challenge (server-side)
+      const challengeResponse = await biometricChallengeV1Request({
+        deviceId,
+        credentialId: storedCredentialId,
+      });
+      const challenge = challengeResponse?.data?.challenge as string | undefined;
+      if (!challenge) {
+        throw new Error("Unable to start biometric login. Please try again.");
+      }
+
+      // Step 2: Sign challenge (browser)
+      const assertion = await authenticateBiometric(challenge, storedCredentialId);
       
-      // Convert ArrayBuffers to base64 for API
-      const authenticatorData = arrayBufferToBase64(credential.response.authenticatorData);
-      const clientDataJSON = arrayBufferToBase64(credential.response.clientDataJSON);
-      const signature = arrayBufferToBase64(credential.response.signature);
-      const userHandle = credential.response.userHandle 
-        ? arrayBufferToBase64(credential.response.userHandle)
+      // Convert ArrayBuffers to base64url for API
+      const authenticatorData = arrayBufferToBase64Url(assertion.response.authenticatorData);
+      const clientDataJSON = arrayBufferToBase64Url(assertion.response.clientDataJSON);
+      const signature = arrayBufferToBase64Url(assertion.response.signature);
+      const userHandle = assertion.response.userHandle 
+        ? arrayBufferToBase64Url(assertion.response.userHandle)
         : undefined;
 
-      // Call biometric login API
+      // Step 3: Login
       biometricLogin({
-        credentialId: credential.id,
+        deviceId,
+        credentialId: assertion.credentialId,
         authenticatorData,
         clientDataJSON,
         signature,
@@ -467,15 +497,7 @@ const LoginWithBiometricContent = () => {
     }
   };
 
-  // Helper function to convert ArrayBuffer to base64
-  const arrayBufferToBase64 = (buffer: ArrayBuffer): string => {
-    const bytes = new Uint8Array(buffer);
-    let binary = "";
-    for (let i = 0; i < bytes.byteLength; i++) {
-      binary += String.fromCharCode(bytes[i]);
-    }
-    return btoa(binary);
-  };
+  // (duplicate onBiometricLoginSuccess removed)
 
   return (
     <>
@@ -483,7 +505,7 @@ const LoginWithBiometricContent = () => {
         {/* Left Panel - Yellow/Gold Background */}
         <div className="hidden lg:flex lg:w-[40%] bg-[#D4B139] relative items-center justify-center">
           <div className="w-full h-full flex flex-col items-center justify-center px-8 py-12">
-            {/* Illustration placeholder */}
+            {/* Login/Security Icon */}
             <div className="w-full max-w-md mb-8 flex items-center justify-center">
               <div className="w-64 h-64 bg-white/20 rounded-full flex items-center justify-center">
                 <svg
@@ -496,14 +518,14 @@ const LoginWithBiometricContent = () => {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
                   />
                 </svg>
               </div>
             </div>
-            <h1 className="text-4xl font-bold text-white mb-4">Transfers</h1>
+            <h1 className="text-4xl font-bold text-white mb-4">Secure Login</h1>
             <p className="text-lg text-white/90 text-center max-w-md">
-              Send and receive money locally or globally with ease and speed.
+              Access your account securely with biometric authentication or password. Your financial data is protected with bank-level encryption.
             </p>
           </div>
         </div>
@@ -538,33 +560,35 @@ const LoginWithBiometricContent = () => {
                 </p>
               )}
 
-              {/* Biometric Login Option */}
-              {isBiometricAvailable && (
+              {/* Biometric Login Option - Show when biometric is available and passcode form is hidden */}
+              {isBiometricAvailable && !showPasscodeForm && (
                 <div className="mb-6">
-                  <div className="flex justify-center mb-4">
+                  <div className="flex flex-col items-center">
+                    {/* Fingerprint Icon/Stamp */}
                     <button
                       type="button"
                       onClick={handleBiometricLogin}
-                      className="w-24 h-24 rounded-full border-4 border-gray-300 flex items-center justify-center hover:border-[#D4B139] transition-colors"
+                      disabled={biometricLoginPending}
+                      className="group relative w-32 h-32 rounded-full bg-gradient-to-br from-[#D4B139]/10 to-[#D4B139]/5 border-4 border-[#D4B139]/30 flex items-center justify-center hover:border-[#D4B139] hover:shadow-lg hover:shadow-[#D4B139]/20 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {biometricType === "fingerprint" ? (
                         <svg
-                          className="w-16 h-16 text-gray-700"
+                          className="w-20 h-20 text-[#D4B139] group-hover:scale-110 transition-transform duration-300"
                           fill="none"
                           stroke="currentColor"
+                          strokeWidth={1.5}
                           viewBox="0 0 24 24"
                         >
                           <path
                             strokeLinecap="round"
                             strokeLinejoin="round"
-                            strokeWidth={1.5}
-                            d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 103 0m-3-6V9m0 0a1.5 1.5 0 103 0m-3-3a1.5 1.5 0 103 0m0 3v6m0-6a1.5 1.5 0 103 0m0 0v3m0-3a1.5 1.5 0 103 0"
+                            d="M7.864 4.243A7.5 7.5 0 0119.5 10.5c0 2.92-.556 5.709-1.568 8.268M5.742 6.364A7.465 7.465 0 004.5 10.5c0 2.92.556 5.709 1.568 8.268M2 13h2a2 2 0 002-2V9a2 2 0 00-2-2H2m16 0h-2a2 2 0 00-2 2v4a2 2 0 002 2h2M7 8h2m-2 4h2m6-4h2m-2 4h2"
                           />
                         </svg>
                       ) : (
-                        <div className="w-16 h-16 border-2 border-dashed border-gray-700 rounded-lg flex items-center justify-center">
+                        <div className="w-20 h-20 rounded-full border-4 border-[#D4B139] flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                           <svg
-                            className="w-12 h-12 text-gray-700"
+                            className="w-14 h-14 text-[#D4B139]"
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
@@ -572,29 +596,39 @@ const LoginWithBiometricContent = () => {
                             <path
                               strokeLinecap="round"
                               strokeLinejoin="round"
-                              strokeWidth={1.5}
+                              strokeWidth={2}
                               d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                             />
                           </svg>
                         </div>
                       )}
+                      {biometricLoginPending && (
+                        <div className="absolute inset-0 rounded-full bg-[#D4B139]/20 animate-pulse" />
+                      )}
                     </button>
+                    
+                    <p className="text-base font-medium text-gray-700 mt-4 mb-2">
+                      {biometricType === "fingerprint" ? "Touch to login with Fingerprint" : "Click to login with Face ID"}
+                    </p>
+                    <p className="text-sm text-gray-500 text-center mb-6">
+                      {userName ? `Welcome back, ${userName}!` : "Use your biometric to access your account"}
+                    </p>
                   </div>
-                  <p className="text-sm text-gray-600 text-center mb-4">
-                    Click to log in with {biometricType === "fingerprint" ? "Fingerprint" : "FaceID"}
-                  </p>
+
+                  {/* Login with Passcode Button */}
                   <CustomButton
                     type="button"
-                    onClick={handleBiometricLogin}
-                    className="w-full bg-[#D4B139] hover:bg-[#c7a42f] text-black font-medium py-3 rounded-lg mb-6"
+                    onClick={() => setShowPasscodeForm(true)}
+                    className="w-full bg-transparent border-2 border-gray-300 hover:border-[#D4B139] text-gray-700 hover:text-[#D4B139] font-medium py-3 rounded-lg transition-colors"
                   >
-                    Login With {biometricType === "fingerprint" ? "Fingerprint" : "FaceID"}
+                    Login with Passcode
                   </CustomButton>
                 </div>
               )}
 
-              {/* Passcode Input */}
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+              {/* Passcode Input - Show when passcode form is requested or biometric is not available */}
+              {(showPasscodeForm || !isBiometricAvailable) && (
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                 {!storedIdentifier && (
                   <div className="flex flex-col gap-1">
                     <label className="text-sm font-medium text-gray-700">Email or Phone Number</label>
@@ -641,15 +675,27 @@ const LoginWithBiometricContent = () => {
                   </Link>
                 </div>
 
-                <CustomButton
-                  type="submit"
-                  disabled={!isValid || loginLoading}
-                  isLoading={loginLoading}
-                  className="w-full bg-[#D4B139] hover:bg-[#c7a42f] text-black font-medium py-3 rounded-lg"
-                >
-                  Login
-                </CustomButton>
-              </form>
+                  <CustomButton
+                    type="submit"
+                    disabled={!isValid || loginLoading}
+                    isLoading={loginLoading}
+                    className="w-full bg-[#D4B139] hover:bg-[#c7a42f] text-black font-medium py-3 rounded-lg"
+                  >
+                    Login
+                  </CustomButton>
+                  
+                  {/* Back to Biometric Button - Only show if biometric is available */}
+                  {isBiometricAvailable && (
+                    <CustomButton
+                      type="button"
+                      onClick={() => setShowPasscodeForm(false)}
+                      className="w-full bg-transparent border-2 border-gray-300 hover:border-[#D4B139] text-gray-700 hover:text-[#D4B139] font-medium py-3 rounded-lg transition-colors mt-2"
+                    >
+                      Use Biometric Instead
+                    </CustomButton>
+                  )}
+                </form>
+              )}
 
               {/* Account Options */}
               <div className="mt-6 space-y-2">

@@ -3,7 +3,6 @@ export interface IInitiateBvnVerification {
 }
 
 export interface IValidateBvnVerification {
-  bvn: string;
   verificationId: string;
   isBusiness:boolean
   otpCode: string;
@@ -29,4 +28,21 @@ export interface IInitiateTransfer {
 export interface IBvnFaceVerification {
   bvn: string;
   selfieImage: string; // Base64 encoded image with data URI prefix (data:image/jpeg;base64,...)
+}
+
+// QR Code Types
+export interface IDecodeQRCode {
+  qrCode: string;
+}
+
+export interface IQRCodeDecoded {
+  accountNumber: string;
+  accountName: string;
+  amount?: number;
+  currency: string;
+  bankCode: string;
+}
+
+export interface IGenerateQRCode {
+  amount: number;
 }

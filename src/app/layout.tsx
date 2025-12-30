@@ -10,6 +10,7 @@ import UserProvider from "@/providers/UserProvider";
 import "react-datepicker/dist/react-datepicker.css";
 import ClientOnlyWelcome from "@/components/ClientOnlyWelcome";
 import TransactionViewModal from "@/components/modals/transactions/TransactionViewModal";
+import ClipboardDetector from "@/components/ClipboardDetector";
 
 // Initialize Inter font
 const inter = Inter({
@@ -52,6 +53,7 @@ export default function RootLayout({
               <ClientOnlyWelcome />
               <main className="w-full overflow-hidden">{children}</main>
               <TransactionViewModal />
+              <ClipboardDetector />
             </UserProvider>
           </ReactQueryProvider>
         </ThemeProvider>

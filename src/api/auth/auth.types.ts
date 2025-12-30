@@ -77,6 +77,46 @@ export interface IBiometricRegister {
   counter: number;
 }
 
+// --- WebAuthn biometric login (v1) ---
+export type BiometricTypeV1 = "fingerprint" | "faceid";
+
+export interface IBiometricEnrollV1 {
+  deviceId: string;
+  publicKey: string; // PEM format public key
+  biometricType: BiometricTypeV1;
+  deviceName: string;
+}
+
+export interface IBiometricStatusV1 {
+  enabled: boolean;
+  locked?: boolean;
+  failedAttempts?: number;
+  // backend may include extra fields; keep it permissive in callers
+}
+
+export interface IBiometricChallengeRequestV1 {
+  deviceId: string;
+  credentialId?: string;
+}
+
+export interface IBiometricChallengeResponseV1 {
+  challenge: string; // base64/base64url
+  // optionally: expiresAt, credentialId, etc.
+}
+
+export interface IBiometricLoginV1 {
+  deviceId: string;
+  credentialId: string;
+  authenticatorData: string; // base64url
+  clientDataJSON: string; // base64url
+  signature: string; // base64url
+  userHandle?: string; // base64url
+}
+
+export interface IBiometricDisableV1 {
+  deviceId: string;
+}
+
 export interface ICreatePasscode {
   passcode: string; // 6-digit passcode
 }

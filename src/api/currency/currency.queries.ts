@@ -281,11 +281,13 @@ export const useGetCurrencyRates = (params?: { from?: string; to?: string }) => 
   const { data, isPending, isError } = useQuery({
     queryKey: ["currency-rates", params],
     queryFn: () => getCurrencyRatesRequest(params),
+    enabled: !!params?.from && !!params?.to && params.from !== params.to,
   });
 
-  const rates: ICurrencyRate[] = data?.data?.data || [];
+  // API returns single rate object, not array
+  const rateData: ICurrencyRate | null = data?.data?.data || null;
 
-  return { rates, isPending, isError };
+  return { rateData, isPending, isError };
 };
 
 export const useGetSupportedCurrencies = () => {

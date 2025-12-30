@@ -20,6 +20,7 @@ interface PaymentResultModalProps {
   recipientAccount: string;
   bankName: string;
   narration?: string;
+  errorMessage?: string; // Error message for failed transactions
 }
 
 const PaymentResultModal: React.FC<PaymentResultModalProps> = ({
@@ -35,6 +36,7 @@ const PaymentResultModal: React.FC<PaymentResultModalProps> = ({
   recipientAccount,
   bankName,
   narration,
+  errorMessage,
 }) => {
   if (!isOpen) return null;
 
@@ -72,7 +74,13 @@ const PaymentResultModal: React.FC<PaymentResultModalProps> = ({
             <div className="w-full border-t border-dashed border-white/20" />
             <div className="flex items-center justify-between text-sm py-2">
               <span className="text-white/70">{label as string}</span>
-              <span className={`${label === "Status" && status === "success" ? "text-emerald-400" : "text-white"} font-medium`}>
+              <span className={`${
+                label === "Status" 
+                  ? status === "success" 
+                    ? "text-emerald-400" 
+                    : "text-red-400"
+                  : "text-white"
+              } font-medium`}>
                 {value as string}
               </span>
             </div>
@@ -114,15 +122,37 @@ const PaymentResultModal: React.FC<PaymentResultModalProps> = ({
           <p className="text-white/60 text-sm">View complete information about this transaction</p>
         </div>
 
-        <div className="px-5 sm:px-6 pb-5">
+          <div className="px-5 sm:px-6 pb-5">
           <div className="rounded-xl bg-white/5 border border-white/10 p-4">
-            <div className="w-full rounded-lg bg-[#0E2C25] text-emerald-200 text-sm px-3 py-3 flex items-center justify-between">
+            <div className={`w-full rounded-lg text-sm px-3 py-3 flex items-center justify-between ${
+              status === "success" 
+                ? "bg-[#0E2C25] text-emerald-200" 
+                : "bg-[#2C1A1A] text-red-200"
+            }`}>
               <span className="flex items-center gap-2">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#34D399" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-3-3.87"/><path d="M4 21v-2a4 4 0 0 1 3-3.87"/><circle cx="12" cy="7" r="4"/></svg>
+                {status === "success" ? (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#34D399" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-3-3.87"/>
+                    <path d="M4 21v-2a4 4 0 0 1 3-3.87"/>
+                    <circle cx="12" cy="7" r="4"/>
+                  </svg>
+                ) : (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="8" x2="12" y2="12"/>
+                    <line x1="12" y1="16" x2="12.01" y2="16"/>
+                  </svg>
+                )}
                 {status === "success" ? "Successful" : "Failed"}
               </span>
               <span className="text-white font-semibold">₦{amount.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</span>
             </div>
+
+            {status === "failed" && errorMessage && (
+              <div className="mt-3 rounded-lg bg-red-500/10 border border-red-500/20 p-3">
+                <p className="text-red-400 text-sm font-medium">{errorMessage}</p>
+              </div>
+            )}
 
             <div className="mt-4 grid grid-cols-2 gap-y-2 text-sm">
               <span className="text-white/70">Transaction ID</span><span className="text-white break-all">{transactionId}</span>

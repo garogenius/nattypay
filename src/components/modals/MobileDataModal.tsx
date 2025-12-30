@@ -84,20 +84,22 @@ const MobileDataModal: React.FC<MobileDataModalProps> = ({ isOpen, onClose }) =>
   const watchedPhone = watch("phone");
   const watchedNetwork = watch("network");
 
-  // Remove auto-detection - let user select network manually
-  // const {
-  //   networkPlans,
-  //   network,
-  //   isLoading: isDataPlanPending,
-  //   isError: isDataPlanError,
-  // } = useGetDataPlan({
-  //   phone: watchedPhone,
-  //   currency: "NGN",
-  // });
+  // Clean phone number for API call (remove any non-digits)
+  const cleanedPhone = watchedPhone?.replace(/\D/g, "") || "";
 
-  const isDataPlanLoading = false;
-  const networkPlans: any[] = [];
-  const network = "";
+  // Re-enable auto-detection for data plan fetching
+  // The API expects +234 format, formatPhoneForAPI will handle it
+  const {
+    networkPlans,
+    network,
+    isLoading: isDataPlanPending,
+    isError: isDataPlanError,
+  } = useGetDataPlan({
+    phone: cleanedPhone,
+    currency: "NGN",
+  });
+
+  const isDataPlanLoading = isDataPlanPending && !isDataPlanError;
 
   // Only fetch data variations when a network is selected
   const {
@@ -130,18 +132,31 @@ const MobileDataModal: React.FC<MobileDataModalProps> = ({ isOpen, onClose }) =>
 
   const dataLoading = dataPending && !dataError;
 
-  // Remove auto-detection useEffect - user will select network manually
-  // useEffect(() => {
-  //   if (watchedPhone.length === 11 && network) {
-  //     setSelectedProvider({
-  //       name: network.toLocaleUpperCase(),
-  //       logo: NetworkProvider.find(
-  //         (item) => item.name === network.toLocaleUpperCase()
-  //       )?.logo,
-  //     });
-  //     setSelectedNetworkPlan(networkPlans[0]?.operatorId);
-  //   }
-  // }, [watchedPhone, network, networkPlans]);
+  // Auto-detect network when phone number is entered
+  useEffect(() => {
+    if ((cleanedPhone.length === 10 || cleanedPhone.length === 11) && network && networkPlans && networkPlans.length > 0) {
+      const provider = NetworkProvider.find(
+        (item) => item.name === network.toLocaleUpperCase()
+      );
+      
+      if (provider) {
+        setSelectedProvider({
+          name: network.toLocaleUpperCase(),
+          logo: provider.logo,
+        });
+        setValue("network", network);
+        clearErrors("network");
+        // Use the first network plan's operatorId
+        setSelectedNetworkPlan(networkPlans[0]?.operatorId);
+      }
+    } else if (cleanedPhone.length !== 10 && cleanedPhone.length !== 11) {
+      // Reset when phone is not 10 or 11 digits
+      setSelectedProvider(null);
+      setSelectedNetworkPlan(undefined);
+      setSelectedPlan("");
+      setAmount("");
+    }
+  }, [cleanedPhone, network, networkPlans, setValue, clearErrors]);
 
   const handleClose = () => {
     setStep("form");
@@ -173,8 +188,16 @@ const MobileDataModal: React.FC<MobileDataModalProps> = ({ isOpen, onClose }) =>
   const handleConfirmPayment = () => {
     if (!formData || !operatorId || walletPin.length !== 4) return;
     
+    // Format phone number to +234 format: remove leading 0 if present and add +234 prefix
+    // e.g., 07043742886 -> +2347043742886
+    const cleaned = formData.phone.replace(/\D/g, "");
+    const phoneWithoutLeadingZero = cleaned.startsWith("0") && cleaned.length === 11
+      ? cleaned.slice(1)
+      : cleaned;
+    const phoneForPayment = `+234${phoneWithoutLeadingZero}`;
+    
     PayForData({
-      phone: formData.phone,
+      phone: phoneForPayment,
       currency: "NGN",
       walletPin: walletPin,
       operatorId: operatorId,
@@ -234,7 +257,13 @@ const MobileDataModal: React.FC<MobileDataModalProps> = ({ isOpen, onClose }) =>
                 placeholder="Enter mobile number"
                 type="text"
                 maxLength={11}
-                {...register("phone")}
+                {...register("phone", {
+                  onChange: (e) => {
+                    // Clean input to only allow digits
+                    const cleaned = e.target.value.replace(/\D/g, "").slice(0, 11);
+                    e.target.value = cleaned;
+                  }
+                })}
                 onKeyDown={handleNumericKeyDown}
                 onPaste={handleNumericPaste}
               />
@@ -293,6 +322,8 @@ const MobileDataModal: React.FC<MobileDataModalProps> = ({ isOpen, onClose }) =>
                           clearErrors("network");
                           // Use the operatorId from the network option
                           setSelectedNetworkPlan(network.operatorId);
+                          setSelectedPlan(""); // Reset plan when network changes
+                          setAmount(""); // Reset amount when network changes
                           setNetworkDropdownOpen(false);
                         }}
                         className="flex items-center gap-3 px-4 py-3 text-white text-sm hover:bg-white/5 cursor-pointer transition-colors"
@@ -363,11 +394,16 @@ const MobileDataModal: React.FC<MobileDataModalProps> = ({ isOpen, onClose }) =>
                 {/* Plan Dropdown Options */}
                 {planDropdownOpen && (
                   <div className="absolute top-full left-0 right-0 mt-1 bg-bg-600 dark:bg-bg-1100 border border-border-800 dark:border-border-700 rounded-lg shadow-lg z-50 overflow-hidden max-h-60 overflow-y-auto">
-                    {dataVariationsLoading ? (
+                    {!selectedNetworkPlan ? (
+                      <div className="px-4 py-3 text-white/50 text-sm">Select network first</div>
+                    ) : dataVariationsLoading ? (
                       <div className="flex items-center justify-center py-4">
                         <SpinnerLoader width={20} height={20} color="#D4B139" />
+                        <span className="text-white/70 text-sm ml-2">Loading plans...</span>
                       </div>
-                    ) : variations ? (
+                    ) : dataVariationsError ? (
+                      <div className="px-4 py-3 text-red-400 text-sm">Failed to load plans. Please try again.</div>
+                    ) : variations && Object.keys(variations).length > 0 ? (
                       Object.entries(variations).map(([amount, description], index) => (
                         <div
                           key={index}
@@ -379,9 +415,7 @@ const MobileDataModal: React.FC<MobileDataModalProps> = ({ isOpen, onClose }) =>
                         </div>
                       ))
                     ) : (
-                      <div className="px-4 py-3 text-white/50 text-sm">
-                        {selectedNetworkPlan ? "No plans available" : "Select network first"}
-                      </div>
+                      <div className="px-4 py-3 text-white/50 text-sm">No plans available for this network</div>
                     )}
                   </div>
                 )}
@@ -514,9 +548,58 @@ const MobileDataModal: React.FC<MobileDataModalProps> = ({ isOpen, onClose }) =>
               {/* Transaction Details */}
               {transactionResult.success && (
                 <div className="w-full space-y-3 mt-4">
+                  <div className="bg-white/5 border border-white/10 rounded-lg p-4 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-white/70 text-sm">Transaction Reference</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-white text-sm font-mono">
+                          {transactionResult?.data?.data?.transactionRef || transactionResult?.data?.data?.transaction?.transactionRef || transactionResult?.data?.data?.transactionId || "N/A"}
+                        </span>
+                        {(transactionResult?.data?.data?.transactionRef || transactionResult?.data?.data?.transaction?.transactionRef || transactionResult?.data?.data?.transactionId) && (
+                          <button
+                            onClick={() => {
+                              const ref = transactionResult?.data?.data?.transactionRef || transactionResult?.data?.data?.transaction?.transactionRef || transactionResult?.data?.data?.transactionId;
+                              if (ref) navigator.clipboard.writeText(String(ref));
+                            }}
+                            className="p-1 rounded hover:bg-white/10"
+                            title="Copy"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-4 h-4 text-white/70">
+                              <path fill="currentColor" d="M7 21q-.825 0-1.412-.587T5 19V7q0-.825.588-1.412T7 5h8q.825 0 1.413.588T17 7v12q0 .825-.587 1.413T15 21zm0-2h8V7H7zm10-2V5H9V3h8q.825 0 1.413.588T19 5v12z"/>
+                            </svg>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    {transactionResult?.data?.data?.pin && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-white/70 text-sm">PIN</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-white text-sm font-mono">{transactionResult.data.data.pin}</span>
+                          <button
+                            onClick={() => navigator.clipboard.writeText(transactionResult.data.data.pin)}
+                            className="p-1 rounded hover:bg-white/10"
+                            title="Copy"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-4 h-4 text-white/70">
+                              <path fill="currentColor" d="M7 21q-.825 0-1.412-.587T5 19V7q0-.825.588-1.412T7 5h8q.825 0 1.413.588T17 7v12q0 .825-.587 1.413T15 21zm0-2h8V7H7zm10-2V5H9V3h8q.825 0 1.413.588T19 5v12z"/>
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                    {transactionResult?.data?.data?.transactionId && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-white/70 text-sm">Transaction ID</span>
+                        <span className="text-white text-sm font-mono">{transactionResult.data.data.transactionId}</span>
+                      </div>
+                    )}
+                  </div>
                   <div className="flex justify-between items-center py-2">
                     <span className="text-white/70 text-sm">Transaction ID</span>
-                    <span className="text-white text-sm font-medium">odjdkgjh783676</span>
+                    <span className="text-white text-sm font-medium">
+                      {transactionResult?.data?.data?.transactionRef || transactionResult?.data?.data?.transaction?.transactionRef || transactionResult?.data?.data?.transactionId || "N/A"}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center py-2">
                     <span className="text-white/70 text-sm">Date & Time</span>

@@ -113,7 +113,7 @@ const TransactionPinContent = () => {
       {/* Left Panel - Yellow/Gold Background */}
       <div className="hidden lg:flex lg:w-[40%] bg-[#D4B139] relative items-center justify-center">
         <div className="w-full h-full flex flex-col items-center justify-center px-8 py-12">
-          {/* Illustration placeholder */}
+          {/* PIN/Security Icon */}
           <div className="w-full max-w-md mb-8 flex items-center justify-center">
             <div className="w-64 h-64 bg-white/20 rounded-full flex items-center justify-center">
               <svg
@@ -126,14 +126,14 @@ const TransactionPinContent = () => {
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
-                  d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
                 />
               </svg>
             </div>
           </div>
-          <h1 className="text-4xl font-bold text-white mb-4">Choose Your Currency</h1>
+          <h1 className="text-4xl font-bold text-white mb-4">Transaction PIN</h1>
           <p className="text-lg text-white/90 text-center max-w-md">
-            Secure your future with simple, flexible investment plans and opportunities
+            Create a secure 4-digit PIN to authorize transactions and protect your account. Keep it confidential and never share it with anyone.
           </p>
         </div>
       </div>

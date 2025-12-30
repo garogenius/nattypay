@@ -190,12 +190,6 @@ export const SidebarData = [
         icon: IoWalletOutline,
       },
       {
-        id: 260,
-        title: "Bills Payment",
-        path: "/user/bills",
-        icon: LiaMoneyBillWaveSolid,
-      },
-      {
         id: 101,
         title: "Savings",
         path: "/user/savings",
@@ -288,7 +282,7 @@ export const SidebarData = [
       {
         id: 1,
         title: "Settings",
-        path: "/user/settings",
+        path: "/user/settings/profile",
         icon: IoSettingsOutline,
       },
       {

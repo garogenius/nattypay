@@ -1,16 +1,39 @@
 "use client";
 import { FiEye, FiEyeOff } from "react-icons/fi";
-import { useRef, useState } from "react";
+import { useRef, useState, useMemo } from "react";
 import { MdClose, MdKeyboardArrowDown } from "react-icons/md";
 import { LiaPiggyBankSolid } from "react-icons/lia";
 import useOnClickOutside from "@/hooks/useOnClickOutside";
+import { useGetSavingsPlans } from "@/api/savings/savings.queries";
 
-const FixedSavingsCard = ({ amount = 0 }: { amount?: number }) => {
+const FixedSavingsCard = () => {
   const [visible, setVisible] = useState(true);
   const [open, setOpen] = useState(false);
   const [savingType, setSavingType] = useState<string>("Fixed Savings");
   const menuRef = useRef<HTMLDivElement>(null);
   useOnClickOutside(menuRef, () => setOpen(false));
+  
+  // Fetch savings plans
+  const { plans: savingsPlans } = useGetSavingsPlans();
+  
+  // Calculate amount based on selected saving type
+  const amount = useMemo(() => {
+    let filteredPlans = [];
+    switch (savingType) {
+      case "Fixed Savings":
+        filteredPlans = savingsPlans.filter((plan) => (plan.planType || plan.type) === "FLEX_SAVE");
+        break;
+      case "Target Savings":
+        filteredPlans = savingsPlans.filter((plan) => (plan.planType || plan.type) === "FLEX_SAVE");
+        break;
+      case "Easylife Savings":
+        filteredPlans = savingsPlans.filter((plan) => (plan.planType || plan.type) === "NATTY_AUTO_SAVE");
+        break;
+      default:
+        filteredPlans = savingsPlans.filter((plan) => (plan.planType || plan.type) === "FLEX_SAVE");
+    }
+    return filteredPlans.reduce((total, plan) => total + (plan.interestEarned || plan.totalInterestAccrued || 0), 0);
+  }, [savingsPlans, savingType]);
   return (
     <div className="bg-bg-600 dark:bg-bg-1100 rounded-xl px-4 py-5 2xs:py-6 flex flex-col gap-3 sm:gap-4">
       <div className="relative flex items-center gap-2 text-text-200 dark:text-text-800">

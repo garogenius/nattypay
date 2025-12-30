@@ -10,34 +10,27 @@ import CustomButton from "@/components/shared/Button";
 import ErrorToast from "@/components/toast/ErrorToast";
 import SuccessToast from "@/components/toast/SuccessToast";
 import useNavigate from "@/hooks/useNavigate";
-import useAuthEmailStore from "@/store/authEmail.store";
-import { useValidatePhoneNumber } from "@/api/user/user.queries";
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useUpdateUser } from "@/api/user/user.queries";
 import images from "../../../../../public/images";
 import AuthInput from "@/components/auth/AuthInput";
 import useUserStore from "@/store/user.store";
 
 const schema = yup.object().shape({
-  email: yup.string().email("Invalid email").required("Email is required"),
   phoneNumber: yup
     .string()
     .required("Phone number is required")
-    .matches(/^\d{11}$/, "Phone number must be 11 digits"),
+    .matches(/^\+?\d{7,15}$/, "Phone number must be between 7 and 15 digits"),
 });
 
-type ValidatePhoneNumberFormData = yup.InferType<typeof schema>;
+type UpdatePhoneNumberFormData = yup.InferType<typeof schema>;
 
 const ValidatePhoneNumberContent = () => {
   const { user } = useUserStore();
   const navigate = useNavigate();
-  const { setAuthPhoneNumber } = useAuthEmailStore();
-  const router = useRouter();
 
-  const form = useForm<ValidatePhoneNumberFormData>({
+  const form = useForm<UpdatePhoneNumberFormData>({
     defaultValues: {
-      email: user?.email,
-      phoneNumber: "",
+      phoneNumber: user?.phoneNumber || "",
     },
     resolver: yupResolver(schema),
     mode: "onChange",
@@ -50,46 +43,47 @@ const ValidatePhoneNumberContent = () => {
     const errorMessage = error?.response?.data?.message;
     const descriptions = Array.isArray(errorMessage)
       ? errorMessage
-      : [errorMessage];
+      : [errorMessage || "Failed to update phone number"];
 
     ErrorToast({
-      title: "Error during validating phone number",
+      title: "Update Failed",
       descriptions,
     });
   };
 
   const onSuccess = () => {
-    setAuthPhoneNumber(form.getValues("phoneNumber"));
     SuccessToast({
-      title: "Phone number validated!",
-      description:
-        "Check your phone number for verification code to verify your phone number",
+      title: "Phone Number Updated!",
+      description: "Your phone number has been updated successfully",
     });
 
-    navigate("/user/settings/changePhoneNumber/verify");
+    // Navigate back to settings
+    navigate("/user/settings");
   };
 
-  useEffect(() => {
-    if (!user?.email) {
+  const {
+    mutate: updateUser,
+    isPending: updatePending,
+  } = useUpdateUser(onError, onSuccess);
+
+  const onSubmit = async (data: UpdatePhoneNumberFormData) => {
+    if (!user) {
       ErrorToast({
         title: "Error",
-        descriptions: ["No email found. Please try again."],
+        descriptions: ["User not found"],
       });
-      router.back();
+      return;
     }
-  }, [user?.email, router, navigate]);
 
-  const {
-    mutate: validatePhoneNumber,
-    isPending: validatePhoneNumberPending,
-    isError: validatePhoneNumberError,
-  } = useValidatePhoneNumber(onError, onSuccess);
+    // Create FormData for updateUser API - only send what backend needs
+    const formData = new FormData();
+    formData.append("phoneNumber", data.phoneNumber);
+    // Backend requires fullName (camelCase) - not fullname or dateOfBirth
+    if (user.fullname) {
+      formData.append("fullName", user.fullname);
+    }
 
-  const validatePhoneNumberLoading =
-    validatePhoneNumberPending && !validatePhoneNumberError;
-
-  const onSubmit = async (data: ValidatePhoneNumberFormData) => {
-    validatePhoneNumber(data);
+    updateUser(formData);
   };
 
   return (
@@ -110,7 +104,7 @@ const ValidatePhoneNumberContent = () => {
               }}
             />{" "}
             <h2 className="text-xl xs:text-2xl lg:text-3xl text-text-200 dark:text-white font-semibold">
-              Validate Phone Number{" "}
+              Update Phone Number{" "}
             </h2>
           </div>
           <form
@@ -121,21 +115,20 @@ const ValidatePhoneNumberContent = () => {
             <AuthInput
               id="phoneNumber"
               label="Phone Number"
-              type="text"
-              maxLength={11}
+              type="tel"
               htmlFor="phoneNumber"
-              placeholder="Phone Number"
+              placeholder="Enter your phone number (e.g., +2348012345678)"
               error={errors.phoneNumber?.message}
               {...register("phoneNumber")}
             />
 
             <CustomButton
               type="submit"
-              disabled={!isValid || validatePhoneNumberLoading}
-              isLoading={validatePhoneNumberLoading}
+              disabled={!isValid || updatePending}
+              isLoading={updatePending}
               className="mb-4  w-full  border-2 border-primary text-black text-base 2xs:text-lg max-2xs:px-6 py-3.5 xs:py-4"
             >
-              Validate Phone Number{" "}
+              Save Phone Number{" "}
             </CustomButton>
           </form>
         </motion.div>

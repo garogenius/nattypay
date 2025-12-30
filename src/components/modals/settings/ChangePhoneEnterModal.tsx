@@ -2,7 +2,7 @@
 
 import React, { useEffect } from "react";
 import { CgClose } from "react-icons/cg";
-import { useValidatePhoneNumber } from "@/api/user/user.queries";
+import { useUpdateUser } from "@/api/user/user.queries";
 import useUserStore from "@/store/user.store";
 import ErrorToast from "@/components/toast/ErrorToast";
 import SuccessToast from "@/components/toast/SuccessToast";
@@ -18,7 +18,7 @@ interface ChangePhoneEnterModalProps {
 const ChangePhoneEnterModal: React.FC<ChangePhoneEnterModalProps> = ({ isOpen, onClose, currentPhone, onValidateSuccess }) => {
   const { user } = useUserStore();
   const [phone, setPhone] = React.useState("");
-  const [validating, setValidating] = React.useState(false);
+  const [updating, setUpdating] = React.useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -30,19 +30,19 @@ const ChangePhoneEnterModal: React.FC<ChangePhoneEnterModalProps> = ({ isOpen, o
     const errorMessage = error?.response?.data?.message;
     const descriptions = Array.isArray(errorMessage)
       ? errorMessage
-      : [errorMessage || "Failed to validate phone number"];
+      : [errorMessage || "Failed to update phone number"];
 
     ErrorToast({
-      title: "Validation Failed",
+      title: "Update Failed",
       descriptions,
     });
-    setValidating(false);
+    setUpdating(false);
   };
 
   const onSuccess = () => {
     SuccessToast({
-      title: "OTP Sent",
-      description: "Please check your phone for the verification code",
+      title: "Phone Number Updated",
+      description: "Your phone number has been updated successfully",
     });
     if (onValidateSuccess) {
       onValidateSuccess(phone.trim());
@@ -50,28 +50,35 @@ const ChangePhoneEnterModal: React.FC<ChangePhoneEnterModalProps> = ({ isOpen, o
     onClose();
   };
 
-  const { mutate: validatePhone } = useValidatePhoneNumber(onError, onSuccess);
+  const { mutate: updateUser, isPending: isUpdating } = useUpdateUser(onError, onSuccess);
 
   if (!isOpen) return null;
 
   const valid = /^\+?\d{7,15}$/.test(phone.trim());
 
-  const handleNext = () => {
-    if (!valid || validating) return;
+  const handleSave = () => {
+    if (!valid || isUpdating || updating) return;
 
-    if (!user?.email) {
+    if (!user) {
       ErrorToast({
         title: "Error",
-        descriptions: ["User email not found"],
+        descriptions: ["User not found"],
       });
       return;
     }
 
-    setValidating(true);
-    validatePhone({
-      email: user.email,
-      phoneNumber: phone.trim(),
-    });
+    setUpdating(true);
+    
+    // Update phone number directly via PUT /user/edit-profile
+    // Backend requires: fullName (camelCase) and phoneNumber only
+    const formData = new FormData();
+    formData.append("phoneNumber", phone.trim());
+    // Backend requires fullName (camelCase) - not fullname or dateOfBirth
+    if (user.fullname) {
+      formData.append("fullName", user.fullname);
+    }
+
+    updateUser(formData);
   };
 
   return (
@@ -111,12 +118,12 @@ const ChangePhoneEnterModal: React.FC<ChangePhoneEnterModalProps> = ({ isOpen, o
             Cancel
           </CustomButton>
           <CustomButton
-            onClick={handleNext}
-            disabled={!valid || validating}
-            isLoading={validating}
+            onClick={handleSave}
+            disabled={!valid || isUpdating || updating}
+            isLoading={isUpdating || updating}
             className="flex-1 rounded-xl py-3 font-semibold bg-[#D4B139] hover:bg-[#c7a42f] text-black"
           >
-            Next
+            Save
           </CustomButton>
         </div>
       </div>

@@ -64,8 +64,8 @@ export const useBiometricRegistration = () => {
       // Send credential to backend
       registerBiometricAPI({
         userId,
-        credentialId: credential.id,
-        publicKey: arrayBufferToBase64(credential.response.authenticatorData),
+        credentialId: credential.credentialId,
+        publicKey: credential.publicKey,
         counter: 0,
       });
     } catch (error: any) {
@@ -75,15 +75,6 @@ export const useBiometricRegistration = () => {
         descriptions: [error.message || "Failed to register biometric"],
       });
     }
-  };
-
-  const arrayBufferToBase64 = (buffer: ArrayBuffer): string => {
-    const bytes = new Uint8Array(buffer);
-    let binary = "";
-    for (let i = 0; i < bytes.byteLength; i++) {
-      binary += String.fromCharCode(bytes[i]);
-    }
-    return btoa(binary);
   };
 
   return {

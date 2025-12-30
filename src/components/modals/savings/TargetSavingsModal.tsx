@@ -110,25 +110,22 @@ const TargetSavingsModal: React.FC<TargetSavingsModalProps> = ({ isOpen, onClose
       return;
     }
 
-    // Calculate duration in days
-    let duration: number | undefined;
+    // Calculate duration in months
+    let durationMonths: number = 12; // Default to 12 months
     if (startDate && endDate) {
       const start = new Date(startDate);
       const end = new Date(endDate);
-      duration = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+      const years = (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
+      durationMonths = Math.max(1, Math.min(60, Math.round(years * 12)));
     }
 
     const payload = {
+      type: "FLEX_SAVE" as const,
       name: name.trim(),
-      planType: "FLEX_SAVE" as const,
-      targetAmount: Number(amount),
-      duration,
-      startDate: startDate || undefined,
-      endDate: endDate || undefined,
-      frequency: mode === "auto" ? frequency : undefined,
-      topUpAmount: Number(topUpAmount),
-      walletId: selectedWallet.id,
-      isAutoSave: mode === "auto",
+      description: `Target savings plan for ${name.trim()}`,
+      goalAmount: Number(amount),
+      currency: selectedWallet.currency || "NGN",
+      durationMonths,
     };
 
     createPlan(payload);

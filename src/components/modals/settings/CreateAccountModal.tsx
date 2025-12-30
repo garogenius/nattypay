@@ -6,6 +6,8 @@ import { useCreateAccount, useCreateBusinessAccount, useCreateForeignAccount } f
 import ErrorToast from "@/components/toast/ErrorToast";
 import SuccessToast from "@/components/toast/SuccessToast";
 import CustomButton from "@/components/shared/Button";
+import ProfileInfoRequiredModal from "@/components/modals/ProfileInfoRequiredModal";
+import useUserStore from "@/store/user.store";
 
 interface CreateAccountModalProps {
   isOpen: boolean;
@@ -14,11 +16,14 @@ interface CreateAccountModalProps {
 }
 
 const CreateAccountModal: React.FC<CreateAccountModalProps> = ({ isOpen, onClose, accountType }) => {
+  const { user } = useUserStore();
   const [businessName, setBusinessName] = useState("");
   const [businessType, setBusinessType] = useState("");
   const [registrationNumber, setRegistrationNumber] = useState("");
   const [currency, setCurrency] = useState<"USD" | "EUR" | "GBP">("USD");
   const [label, setLabel] = useState("");
+  const [showProfileInfoModal, setShowProfileInfoModal] = useState(false);
+  const [missingInfo, setMissingInfo] = useState<"phone" | "email" | "both">("both");
 
   useEffect(() => {
     if (isOpen) {
@@ -32,13 +37,48 @@ const CreateAccountModal: React.FC<CreateAccountModalProps> = ({ isOpen, onClose
 
   const onError = (error: any) => {
     const errorMessage = error?.response?.data?.message;
-    const descriptions = Array.isArray(errorMessage)
+    const errorMessages = Array.isArray(errorMessage)
       ? errorMessage
       : [errorMessage || "Failed to create account"];
 
+    // Check if the error is about missing phone number or email (only for foreign accounts)
+    if (accountType === "foreign") {
+      const hasPhoneError = errorMessages.some((msg: string) =>
+        msg.toLowerCase().includes("phone number") && msg.toLowerCase().includes("required")
+      );
+      const hasEmailError = errorMessages.some((msg: string) =>
+        msg.toLowerCase().includes("email") && msg.toLowerCase().includes("required")
+      );
+
+      if (hasPhoneError || hasEmailError) {
+        // Determine what's missing based on user data and error message
+        const hasPhone = !!user?.phoneNumber;
+        const hasEmail = !!user?.email;
+
+        if (hasPhoneError && !hasEmailError) {
+          setMissingInfo("phone");
+        } else if (hasEmailError && !hasPhoneError) {
+          setMissingInfo("email");
+        } else {
+          // Both are missing or error is ambiguous
+          if (!hasPhone && !hasEmail) {
+            setMissingInfo("both");
+          } else if (!hasPhone) {
+            setMissingInfo("phone");
+          } else if (!hasEmail) {
+            setMissingInfo("email");
+          } else {
+            setMissingInfo("both");
+          }
+        }
+        setShowProfileInfoModal(true);
+        return;
+      }
+    }
+
     ErrorToast({
       title: "Creation Failed",
-      descriptions,
+      descriptions: errorMessages,
     });
   };
 
@@ -208,6 +248,12 @@ const CreateAccountModal: React.FC<CreateAccountModalProps> = ({ isOpen, onClose
           </CustomButton>
         </div>
       </div>
+
+      <ProfileInfoRequiredModal
+        isOpen={showProfileInfoModal}
+        onClose={() => setShowProfileInfoModal(false)}
+        missingInfo={missingInfo}
+      />
     </div>
   );
 };
