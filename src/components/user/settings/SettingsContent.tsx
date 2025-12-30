@@ -8,6 +8,9 @@ import { MdSystemSecurityUpdateWarning } from "react-icons/md";
 import { TbLockPassword } from "react-icons/tb";
 import { BiSupport } from "react-icons/bi";
 import { HiMiniPhone } from "react-icons/hi2";
+import { useState } from "react";
+import Tier2UpgradeModal from "@/components/modals/tiers/Tier2UpgradeModal";
+import Tier3UpgradeModal from "@/components/modals/tiers/Tier3UpgradeModal";
 
 export const SettingsPages = [
   {
@@ -56,7 +59,8 @@ export const SettingsPages = [
 const SettingsContent = () => {
   const navigate = useNavigate();
   const user = useUserStore((state) => state.user);
-  //   const [isAccountLimitModalOpen, setIsAccountLimitModalOpen] = useState(false);
+  const [openTier2Modal, setOpenTier2Modal] = useState(false);
+  const [openTier3Modal, setOpenTier3Modal] = useState(false);
 
   return (
     <>
@@ -106,9 +110,9 @@ const SettingsContent = () => {
                 <button
                   onClick={() => {
                     if (user?.tierLevel === "one") {
-                      navigate("/user/settings/tiers/two", "push");
+                      setOpenTier2Modal(true);
                     } else if (user?.tierLevel === "two") {
-                      navigate("/user/settings/tiers/three", "push");
+                      setOpenTier3Modal(true);
                     }
                   }}
                   className="w-full 2xs:w-fit py-3 xl:py-3.5 px-4 2xs:px-6 2xl:px-8 border-2 border-secondary bg-secondary rounded-2xl 2xs:rounded-full text-white font-medium text-sm"
@@ -128,6 +132,10 @@ const SettingsContent = () => {
           ))}
         </div>
       </div>
+
+      {/* Tier Upgrade Modals */}
+      <Tier2UpgradeModal isOpen={openTier2Modal} onClose={() => setOpenTier2Modal(false)} />
+      <Tier3UpgradeModal isOpen={openTier3Modal} onClose={() => setOpenTier3Modal(false)} />
     </>
   );
 };

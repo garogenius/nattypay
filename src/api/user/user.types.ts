@@ -48,3 +48,64 @@ export interface IValidatePhoneNumber {
   email: string;
   phoneNumber: string;
 }
+
+export interface IVerifyNin {
+  nin: string;
+}
+
+// Password Change with OTP
+export interface IRequestChangePassword {
+  email: string;
+}
+
+export interface IChangePasswordWithOtp {
+  email: string;
+  otp: string;
+  newPassword: string;
+}
+
+// Login Passcode (6-digit)
+export interface IChangePasscode {
+  currentPasscode: string;
+  newPasscode: string;
+}
+
+// Wallet PIN
+export interface IVerifyWalletPin {
+  pin: string;
+}
+
+export interface IChangePin {
+  currentPin: string;
+  newPin: string;
+}
+
+// Account Creation
+export interface ICreateAccount {
+  accountType?: "PERSONAL" | "BUSINESS";
+  currency?: string;
+}
+
+export interface ICreateBusinessAccount {
+  businessName: string;
+  businessType: string;
+  registrationNumber?: string;
+}
+
+export interface ICreateForeignAccount {
+  currency: "USD" | "EUR" | "GBP";
+  label: string;
+}
+
+// User Statistics
+export interface IUserStatisticsLineChart {
+  labels: string[];
+  values: number[];
+  period?: string;
+}
+
+export interface IUserStatisticsPieChart {
+  categories: string[];
+  amounts: number[];
+  period?: string;
+}

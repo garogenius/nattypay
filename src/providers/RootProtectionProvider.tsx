@@ -15,15 +15,24 @@ const RootProtectionProvider = ({ children }: RootProtectionProviderProps) => {
   const { isLoggedIn, isInitialized, user } = useUserStore();
 
   useEffect(() => {
+    // Prevent redirect loop by checking if we're already redirecting
+    const isRedirecting = sessionStorage.getItem("isRedirecting");
+    
     if (
       isLoggedIn &&
       isInitialized &&
-      (pathname === "/" || pathname.startsWith("/login"))
+      (pathname === "/" || pathname.startsWith("/login")) &&
+      !isRedirecting
     ) {
       const redirectPath =
         sessionStorage.getItem("returnTo") || "/user/dashboard";
       sessionStorage.removeItem("returnTo");
+      sessionStorage.setItem("isRedirecting", "true");
       navigate(redirectPath, "replace");
+      // Clear redirect flag after navigation
+      setTimeout(() => {
+        sessionStorage.removeItem("isRedirecting");
+      }, 500);
     }
   }, [isLoggedIn, isInitialized, pathname, navigate, user]);
 

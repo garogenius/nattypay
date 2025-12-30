@@ -1,5 +1,6 @@
 "use client";
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import React from "react";
 
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
@@ -17,10 +18,31 @@ import { useState } from "react";
 import Image from "next/image";
 import toast from "react-hot-toast";
 import { BsCamera } from "react-icons/bs";
+import { FiUpload, FiTrash2, FiEdit2, FiChevronRight, FiKey, FiLock, FiShield, FiCreditCard } from "react-icons/fi";
 import ErrorToast from "@/components/toast/ErrorToast";
 import SuccessToast from "@/components/toast/SuccessToast";
+import ChangeEmailModal from "@/components/modals/settings/ChangeEmailModal";
+import VerifyEmailModal from "@/components/modals/settings/VerifyEmailModal";
+import ChangePhoneInfoModal from "@/components/modals/settings/ChangePhoneInfoModal";
+import ChangePhoneEnterModal from "@/components/modals/settings/ChangePhoneEnterModal";
+import VerifyPhoneModal from "@/components/modals/settings/VerifyPhoneModal";
+import UpdateUsernameModal from "@/components/modals/settings/UpdateUsernameModal";
+import UpdateAddressModal from "@/components/modals/settings/UpdateAddressModal";
+import ChangeTransactionPinModal from "@/components/modals/settings/ChangeTransactionPinModal";
+import ChangePasswordModal from "@/components/modals/settings/ChangePasswordModal";
+import ChangePasscodeModal from "@/components/modals/settings/ChangePasscodeModal";
+import SetSecurityQuestionsModal from "@/components/modals/settings/SetSecurityQuestionsModal";
+import LinkedAccountsModal from "@/components/modals/settings/LinkedAccountsModal";
+import DeleteAccountModal from "@/components/modals/settings/DeleteAccountModal";
+import PersonalTab from "@/components/user/settings/tabs/PersonalTab";
+import SecurityPrivacyTab from "@/components/user/settings/tabs/SecurityPrivacyTab";
+import PreferencesTab from "@/components/user/settings/tabs/PreferencesTab";
+import useNavigate from "@/hooks/useNavigate";
 import { useUpdateUser } from "@/api/user/user.queries";
 import { CURRENCY } from "@/constants/types";
+import usePaymentSettingsStore from "@/store/paymentSettings.store";
+import VerifyWalletPinModal from "@/components/modals/settings/VerifyWalletPinModal";
+import { isFingerprintPaymentAvailable } from "@/services/fingerprintPayment.service";
 
 const schema = yup.object().shape({
   email: yup
@@ -46,6 +68,35 @@ const ProfileContent = () => {
   const [imgUrl, setImgUrl] = useState(user?.profileImageUrl || "");
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [tab, setTab] = useState<"personal" | "security" | "preferences">("personal");
+  const [openChangeEmail, setOpenChangeEmail] = useState(false);
+  const [openVerifyEmail, setOpenVerifyEmail] = useState(false);
+  const [pendingEmail, setPendingEmail] = useState<string>("");
+  const [openChangePhone, setOpenChangePhone] = useState(false);
+  const [openEnterPhone, setOpenEnterPhone] = useState(false);
+  const [openVerifyPhone, setOpenVerifyPhone] = useState(false);
+  const [pendingPhone, setPendingPhone] = useState<string>("");
+  const [openUpdateUsername, setOpenUpdateUsername] = useState(false);
+  const [openUpdateAddress, setOpenUpdateAddress] = useState(false);
+  const [addressDisplay, setAddressDisplay] = useState<string>((user as any)?.address || "");
+  const [openChangePin, setOpenChangePin] = useState(false);
+  const [openChangePassword, setOpenChangePassword] = useState(false);
+  const [openChangePasscode, setOpenChangePasscode] = useState(false);
+  const [openSetSecurity, setOpenSetSecurity] = useState(false);
+  const [openLinked, setOpenLinked] = useState(false);
+  const [openDelete, setOpenDelete] = useState(false);
+  const [openVerifyPinForFingerprint, setOpenVerifyPinForFingerprint] = useState(false);
+  const [pendingFingerprintEnable, setPendingFingerprintEnable] = useState(false);
+  const navigate = useNavigate();
+  const currentPhone = user?.phoneNumber || "";
+  
+  const { fingerprintPaymentEnabled, setFingerprintPaymentEnabled } = usePaymentSettingsStore();
+  const [isFingerprintAvailable, setIsFingerprintAvailable] = useState(false);
+
+  useEffect(() => {
+    // Check if fingerprint payment is available
+    isFingerprintPaymentAvailable().then(setIsFingerprintAvailable);
+  }, []);
 
   useOnClickOutside(datePickerRef as React.RefObject<HTMLElement>, () =>
     setShowDatePicker(false)
@@ -183,43 +234,81 @@ const ProfileContent = () => {
   };
 
   return (
-    <div className="w-full h-full 2xs:bg-bg-600 2xs:dark:bg-bg-1100 py-4 md:py-8 px-1 2xs:px-5 lg:px-8 flex justify-center  rounded-xl sm:rounded-2xl">
-      <div className="flex flex-col gap-6 xs:gap-10  w-full xl:w-[80%] 2xl:w-[70%] bg-transparent lg:bg-bg-400 dark:bg-transparent lg:dark:bg-black rounded-lg sm:rounded-xl p-0 2xs:p-4 md:p-8">
-        <div className="flex self-center relative w-24 xs:w-28 xl:w-32 h-24 xs:h-28 xl:h-32 rounded-full bg-bg-600 2xs:bg-bg-400 lg:bg-bg-600 dark:bg-bg-1100 2xs:dark:bg-black lg:dark:bg-bg-1100">
-          {imgUrl ? (
-            <Image
-              src={imgUrl}
-              alt="profile"
-              fill
-              objectFit="cover"
-              className="w-full h-full rounded-full"
-            />
-          ) : (
-            <div className="uppercase w-full flex justify-center items-center text-text-200 dark:text-text-400 text-4xl sm:text-5xl">
-              {" "}
-              {user?.fullname.slice(0, 2)}
-            </div>
-          )}
-
-          <div
-            onClick={handleFileUpload}
-            className="cursor-pointer absolute bottom-0 right-0 p-2 xs:p-2.5 rounded-full bg-secondary text-white text-lg xs:text-xl"
-          >
-            <BsCamera />
-          </div>
-
-          <input
-            type="file"
-            style={{ display: "none" }}
-            ref={fileInputRef}
-            onChange={handleFileSelected}
-          />
+    <>
+    <div className="flex flex-col gap-6 pb-10 px-3 sm:px-0">
+      <div className="flex flex-col gap-5">
+        {/* Page Header */}
+        <div className="w-full">
+          <h1 className="text-white text-xl sm:text-2xl font-semibold">Profile & Settings</h1>
+          <p className="text-white/60 text-sm mt-1">Manage your personal information and preferences</p>
         </div>
-        <form
-          onSubmit={handleSubmit(onSubmit)}
-          className="w-full flex flex-col gap-10 md:gap-12"
-        >
-          <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
+
+        {/* Segmented Tabs (responsive) */}
+        <div className="w-full bg-white/10 rounded-full p-1.5 sm:p-2 overflow-x-auto sm:overflow-visible">
+          <div className="flex sm:grid sm:grid-cols-3 gap-1.5 sm:gap-2 min-w-max sm:min-w-0 max-w-xl">
+            {[{key:"personal",label:"Personal"},{key:"security",label:"Security & Privacy"},{key:"preferences",label:"Preferences"}].map((t:any)=> (
+              <button
+                key={t.key}
+                onClick={()=> setTab(t.key)}
+                type="button"
+                className={`rounded-full px-3 py-1.5 sm:py-2 text-[11px] xs:text-xs sm:text-sm font-medium transition-colors whitespace-nowrap flex items-center justify-center ${tab===t.key?"bg-white/15 text-white":"text-white/70 hover:text-white"}`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {tab === "personal" ? (
+        <>
+        <div className="w-full bg-bg-600 dark:bg-bg-1100 border border-white/10 rounded-2xl p-4 sm:p-5">
+          <div className="flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-6">
+            <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden bg-white/5">
+              {imgUrl ? (
+                <Image src={imgUrl} alt="profile" fill className="object-cover" />
+              ) : (
+                <div className="uppercase w-full h-full flex justify-center items-center text-text-200 dark:text-text-400 text-2xl sm:text-3xl">
+                  {user?.fullname.slice(0, 2)}
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={handleFileUpload}
+                className="absolute bottom-0 right-0 p-2 rounded-full bg-secondary text-white text-base shadow"
+                title="Upload photo"
+              >
+                <BsCamera />
+              </button>
+              <input type="file" style={{ display: "none" }} ref={fileInputRef} onChange={handleFileSelected} />
+            </div>
+            <div className="flex-1 w-full">
+              <p className="text-white font-semibold text-base sm:text-lg">{user?.fullname}</p>
+              <p className="text-white/70 text-sm">{user?.email}</p>
+              <div className="mt-3 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleFileUpload}
+                  className="px-3 py-2 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-white text-sm inline-flex items-center gap-2"
+                >
+                  <FiUpload className="text-base" />
+                  <span>Upload Photo</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setImgUrl(""); setSelectedFile(null); }}
+                  className="px-3 py-2 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-white/80 text-sm inline-flex items-center gap-2"
+                >
+                  <FiTrash2 className="text-base" />
+                  <span>Remove Photo</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <form onSubmit={handleSubmit(onSubmit)} className="w-full flex flex-col gap-8">
+          <div className="w-full bg-bg-600 dark:bg-bg-1100 border border-white/10 rounded-2xl p-4 sm:p-5">
+            <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
             <div className="flex flex-col justify-center items-center gap-1 w-full text-black dark:text-white">
               <label
                 className="w-full text-sm font-medium  text-text-200 dark:text-text-800 mb-0 flex items-start "
@@ -227,13 +316,16 @@ const ProfileContent = () => {
               >
                 Full Name{" "}
               </label>
-              <div className="w-full flex gap-2 justify-center items-center bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-4 px-3">
+              <div className="relative w-full flex gap-2 justify-center items-center bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-4 px-3">
                 <input
                   className="disabled:opacity-60 w-full bg-transparent p-0 border-none outline-none text-base text-text-200 dark:text-white placeholder:text-text-200 dark:placeholder:text-text-1000 placeholder:text-sm"
                   placeholder="Full name"
                   type="text"
                   {...register("fullname")}
                 />
+                <button type="button" className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 grid place-items-center rounded-md bg-[#D4B139]/15 text-[#D4B139] border border-[#D4B139]/30">
+                  <FiEdit2 className="text-xs" />
+                </button>
               </div>
 
               {errors?.fullname?.message ? (
@@ -248,9 +340,9 @@ const ProfileContent = () => {
                 className="w-full text-sm font-medium  text-text-200 dark:text-text-800 mb-0 flex items-start "
                 htmlFor={"username"}
               >
-                Username{" "}
+                Nickname{" "}
               </label>
-              <div className="w-full flex gap-2 justify-center items-center bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-4 px-3">
+              <div className="relative w-full flex gap-2 justify-center items-center bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-4 px-3">
                 <input
                   className="disabled:opacity-60 w-full bg-transparent p-0 border-none outline-none text-base text-text-200 dark:text-white placeholder:text-text-200 dark:placeholder:text-text-1000 placeholder:text-sm"
                   placeholder="Username"
@@ -258,6 +350,9 @@ const ProfileContent = () => {
                   type="text"
                   {...register("username")}
                 />
+                <button type="button" onClick={()=> setOpenUpdateUsername(true)} className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 grid place-items-center rounded-md bg-[#D4B139]/15 text-[#D4B139] border border-[#D4B139]/30">
+                  <FiEdit2 className="text-xs" />
+                </button>
               </div>
 
               {errors?.username?.message ? (
@@ -272,9 +367,9 @@ const ProfileContent = () => {
                 className="w-full text-sm font-medium  text-text-200 dark:text-text-800 mb-0 flex items-start "
                 htmlFor={"email"}
               >
-                Email{" "}
+                Email address{" "}
               </label>
-              <div className="w-full flex gap-2 justify-center items-center bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-4 px-3">
+              <div className="relative w-full flex gap-2 justify-center items-center bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-4 px-3">
                 <input
                   className="disabled:opacity-60 w-full bg-transparent p-0 border-none outline-none text-base text-text-200 dark:text-white placeholder:text-text-200 dark:placeholder:text-text-1000 placeholder:text-sm"
                   placeholder="Email"
@@ -282,6 +377,9 @@ const ProfileContent = () => {
                   type="email"
                   {...register("email")}
                 />
+                <button type="button" onClick={()=> setOpenChangeEmail(true)} className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 grid place-items-center rounded-md bg-[#D4B139]/15 text-[#D4B139] border border-[#D4B139]/30">
+                  <FiEdit2 className="text-xs" />
+                </button>
               </div>
 
               {errors?.email?.message ? (
@@ -296,9 +394,9 @@ const ProfileContent = () => {
                 className="w-full text-sm font-medium  text-text-200 dark:text-text-800 mb-0 flex items-start "
                 htmlFor={"phoneNumber"}
               >
-                Phone Number{" "}
+                Mobile Number{" "}
               </label>
-              <div className="w-full flex gap-2 justify-center items-center bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-4 px-3">
+              <div className="relative w-full flex gap-2 justify-center items-center bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-4 px-3">
                 <input
                   className="disabled:opacity-60 w-full bg-transparent p-0 border-none outline-none text-base text-text-200 dark:text-white placeholder:text-text-200 dark:placeholder:text-text-1000 placeholder:text-sm"
                   placeholder="Phone Number"
@@ -307,6 +405,9 @@ const ProfileContent = () => {
                   onKeyDown={handleNumericKeyDown}
                   onPaste={handleNumericPaste}
                 />
+                <button type="button" onClick={()=> setOpenChangePhone(true)} className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 grid place-items-center rounded-md bg-[#D4B139]/15 text-[#D4B139] border border-[#D4B139]/30">
+                  <FiEdit2 className="text-xs" />
+                </button>
               </div>
 
               {errors?.phoneNumber?.message ? (
@@ -322,10 +423,10 @@ const ProfileContent = () => {
                   className="w-full text-sm font-medium  text-text-200 dark:text-text-800 mb-0 flex items-start "
                   htmlFor={"dateOfBirth"}
                 >
-                  Date of Birth
+                  Date Of Birth
                 </label>
                 <div
-                  onClick={() => {}}
+                  onClick={() => setShowDatePicker((v) => !v)}
                   className="cursor-pointer w-full flex gap-2 justify-center items-center bg-bg-2000 dark:bg-bg-2100 border border-border-600 rounded-lg py-4 px-3"
                 >
                   {watchedDateOfBirth ? (
@@ -355,6 +456,11 @@ const ProfileContent = () => {
                     onChange={handleDateChange}
                     inline
                     calendarClassName="custom-calendar"
+                    showYearDropdown
+                    scrollableYearDropdown
+                    yearDropdownItemNumber={100}
+                    dropdownMode="select"
+                    maxDate={new Date()}
                   />
                 </div>
               )}
@@ -431,21 +537,218 @@ const ProfileContent = () => {
                 </p>
               ) : null}
             </div>
+            </div>
           </div>
-          <div className="w-full flex">
-            {" "}
+          <div className="w-full">
             <CustomButton
               type="submit"
               disabled={!isValid || updateLoading}
               isLoading={updateLoading}
-              className="w-full  border-2 dark:text-black dark:font-bold border-primary text-white text-base 2xs:text-lg max-2xs:px-6 py-3"
+              className="w-full bg-[#D4B139] hover:bg-[#c7a42f] text-black font-semibold text-base sm:text-lg py-3 rounded-xl"
             >
-              Save{" "}
+              Save
             </CustomButton>
           </div>
         </form>
+        </>
+        ) : null}
+
+        {tab === "security" ? (
+          <div className="flex flex-col gap-4">
+            {/* Security */}
+            <div className="w-full bg-bg-600 dark:bg-bg-1100 border border-white/10 rounded-2xl p-4 sm:p-5">
+              <p className="text-white font-semibold mb-3">Security</p>
+              <div className="divide-y divide-white/10">
+                {[{
+                  icon: <FiKey className="text-[#D4B139]" />, title: "Change Transaction PIN", desc: "Secure your payments by updating your transaction PIN", onClick: () => setOpenChangePin(true)
+                },{
+                  icon: <FiLock className="text-[#D4B139]" />, title: "Change Password", desc: "Protect your account by setting a new, stronger password", onClick: () => setOpenChangePassword(true)
+                },{
+                  icon: <FiLock className="text-[#D4B139]" />, title: "Change Login Passcode", desc: "Update your 6-digit login passcode", onClick: () => setOpenChangePasscode(true)
+                },{
+                  icon: <FiShield className="text-[#D4B139]" />, title: "Set Security Question", desc: "Add an extra layer of protection with a security question", onClick: () => setOpenSetSecurity(true)
+                }].map((it, i)=> (
+                  <button key={i} onClick={it.onClick} className="w-full flex items-center justify-between gap-3 py-3 text-left">
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-md bg-white/5 grid place-items-center text-white">{it.icon}</div>
+                      <div>
+                        <p className="text-white text-sm sm:text-base font-medium">{it.title}</p>
+                        <p className="text-white/60 text-xs sm:text-sm">{it.desc}</p>
+                      </div>
+                    </div>
+                    <FiChevronRight className="text-white/60" />
+                  </button>
+                ))}
+
+                {/* Fingerprint toggle */}
+                <div className="w-full flex items-center justify-between gap-3 py-3">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-md bg-white/5 grid place-items-center text-white"><FiShield className="text-[#D4B139]" /></div>
+                    <div>
+                      <p className="text-white text-sm sm:text-base font-medium">Use Fingerprint for Payment</p>
+                      <p className="text-white/60 text-xs sm:text-sm">
+                        {!isFingerprintAvailable
+                          ? "Biometric authentication is not available on this device"
+                          : "Enable quick and secure payments with your fingerprint."}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      if (!isFingerprintAvailable) {
+                        ErrorToast({
+                          title: "Not Available",
+                          descriptions: ["Biometric authentication is not available on this device"],
+                        });
+                        return;
+                      }
+                      if (!fingerprintPaymentEnabled) {
+                        // Require PIN verification before enabling
+                        setPendingFingerprintEnable(true);
+                        setOpenVerifyPinForFingerprint(true);
+                      } else {
+                        // Disable directly
+                        setFingerprintPaymentEnabled(false);
+                        SuccessToast({
+                          title: "Fingerprint Payment Disabled",
+                          description: "You can still use your PIN for payments",
+                        });
+                      }
+                    }}
+                    disabled={!isFingerprintAvailable}
+                    className={`relative w-12 h-6 rounded-full transition-colors ${
+                      !isFingerprintAvailable
+                        ? "bg-white/10 cursor-not-allowed"
+                        : fingerprintPaymentEnabled
+                        ? "bg-[#D4B139]"
+                        : "bg-white/20"
+                    }`}
+                  >
+                    <span className={`absolute top-0.5 ${fingerprintPaymentEnabled ? "right-0.5" : "left-0.5"} w-5 h-5 rounded-full bg-white transition-all`} />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Privacy */}
+            <div className="w-full bg-bg-600 dark:bg-bg-1100 border border-white/10 rounded-2xl p-4 sm:p-5">
+              <p className="text-white font-semibold mb-3">Privacy</p>
+              <div className="divide-y divide-white/10">
+                <button onClick={()=> setOpenLinked(true)} className="w-full flex items-center justify-between gap-3 py-3 text-left">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-md bg-white/5 grid place-items-center text-white"><FiCreditCard className="text-[#D4B139]" /></div>
+                    <div>
+                      <p className="text-white text-sm sm:text-base font-medium">Linked Cards/ Account</p>
+                      <p className="text-white/60 text-xs sm:text-sm">View, add, or remove your linked accounts and cards</p>
+                    </div>
+                  </div>
+                  <FiChevronRight className="text-white/60" />
+                </button>
+
+                <div className="w-full flex items-center justify-between gap-3 py-3">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-md bg-white/5 grid place-items-center text-white"><FiTrash2 className="text-red-400" /></div>
+                    <div>
+                      <p className="text-white text-sm sm:text-base font-medium">Delete Account</p>
+                      <p className="text-white/60 text-xs sm:text-sm">Permanently delete your NattyPay account</p>
+                    </div>
+                  </div>
+                  <button onClick={()=> setOpenDelete(true)} className="px-3 py-2 rounded-lg bg-red-500/15 hover:bg-red-500/20 text-red-300 text-sm font-medium">Delete Account</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {tab === "preferences" ? (
+          <PreferencesTab />
+        ) : null}
+
+        {/* Change Email Modal */}
+        <ChangeEmailModal
+          isOpen={openChangeEmail}
+          onClose={() => setOpenChangeEmail(false)}
+          onSubmit={(newEmail: string) => {
+            setPendingEmail(newEmail);
+            setOpenChangeEmail(false);
+            setOpenVerifyEmail(true);
+          }}
+        />
+        <VerifyEmailModal
+          isOpen={openVerifyEmail}
+          onClose={() => setOpenVerifyEmail(false)}
+          email={pendingEmail || user?.email || "your email"}
+          onSubmit={(code: string) => {
+            // TODO: call verify API with code + pendingEmail if available
+            setValue("email", pendingEmail || user?.email || "");
+            setOpenVerifyEmail(false);
+            SuccessToast({ title: "Email verified", description: "Your email has been updated successfully." });
+          }}
+        />
+        <ChangePhoneInfoModal
+          isOpen={openChangePhone}
+          onClose={() => setOpenChangePhone(false)}
+          onNext={() => { setOpenChangePhone(false); setOpenEnterPhone(true); }}
+        />
+        <ChangePhoneEnterModal
+          isOpen={openEnterPhone}
+          onClose={() => setOpenEnterPhone(false)}
+          currentPhone={currentPhone}
+          onValidateSuccess={(newPhone: string) => {
+            setPendingPhone(newPhone);
+            setOpenEnterPhone(false);
+            setOpenVerifyPhone(true);
+          }}
+        />
+        <VerifyPhoneModal
+          isOpen={openVerifyPhone}
+          onClose={() => {
+            setOpenVerifyPhone(false);
+            setPendingPhone("");
+          }}
+          phone={pendingPhone || currentPhone}
+        />
+
+        {/* Username & Address Modals */}
+        <UpdateUsernameModal
+          isOpen={openUpdateUsername}
+          onClose={()=> setOpenUpdateUsername(false)}
+          onSubmit={(username: string)=> { setValue("username", username); setOpenUpdateUsername(false); SuccessToast({ title: "Username updated" }); }}
+        />
+        <UpdateAddressModal
+          isOpen={openUpdateAddress}
+          onClose={()=> setOpenUpdateAddress(false)}
+          onSubmit={(addr: string)=> { setAddressDisplay(addr); setOpenUpdateAddress(false); SuccessToast({ title: "Address updated" }); }}
+        />
+
+        {/* Security & Privacy Modals */}
+        <ChangeTransactionPinModal isOpen={openChangePin} onClose={()=> setOpenChangePin(false)} />
+        <ChangePasswordModal isOpen={openChangePassword} onClose={()=> setOpenChangePassword(false)} />
+        <ChangePasscodeModal isOpen={openChangePasscode} onClose={()=> setOpenChangePasscode(false)} />
+        <SetSecurityQuestionsModal isOpen={openSetSecurity} onClose={()=> setOpenSetSecurity(false)} onSubmit={()=> { setOpenSetSecurity(false); SuccessToast({ title: "Security questions saved" }); }} />
+        <LinkedAccountsModal isOpen={openLinked} onClose={()=> setOpenLinked(false)} />
+        <DeleteAccountModal isOpen={openDelete} onClose={()=> setOpenDelete(false)} />
+        <VerifyWalletPinModal
+          isOpen={openVerifyPinForFingerprint}
+          onClose={() => {
+            setOpenVerifyPinForFingerprint(false);
+            setPendingFingerprintEnable(false);
+          }}
+          onSuccess={() => {
+            if (pendingFingerprintEnable) {
+              setFingerprintPaymentEnabled(true);
+              SuccessToast({
+                title: "Fingerprint Payment Enabled",
+                description: "You can now use fingerprint or Face ID for payments",
+              });
+              setPendingFingerprintEnable(false);
+            }
+            setOpenVerifyPinForFingerprint(false);
+          }}
+        />
       </div>
     </div>
+    </>
   );
 };
 

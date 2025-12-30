@@ -24,3 +24,12 @@ export type IAirtimePayPayload = {
   addBeneficiary?: boolean;
   walletPin: string;
 };
+
+export type IInternationalAirtimePayPayload = {
+  phone: string;
+  currency: string;
+  operatorId: number;
+  amount: number;
+  addBeneficiary?: boolean;
+  walletPin: string;
+};

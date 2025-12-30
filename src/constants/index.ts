@@ -2,13 +2,13 @@ import images from "../../public/images";
 import { IoSettingsOutline, IoWalletOutline } from "react-icons/io5";
 import { RxDashboard } from "react-icons/rx";
 import { PiCellSignalFullBold, PiHandWithdraw } from "react-icons/pi";
-import { FaWifi } from "react-icons/fa6";
+import { FaWifi, FaChartLine } from "react-icons/fa6";
 import { LiaMoneyBillWaveSolid, LiaPiggyBankSolid } from "react-icons/lia";
 import { LuTicket } from "react-icons/lu";
 import { TfiList } from "react-icons/tfi";
 import { CiCreditCard1 } from "react-icons/ci";
 import { GiSettingsKnobs } from "react-icons/gi";
-import { FiLogOut } from "react-icons/fi";
+import { FiLogOut, FiHelpCircle } from "react-icons/fi";
 import { BENEFICIARY_TYPE, BeneficiaryProps, NETWORK } from "./types";
 
 export const statusStyles = {
@@ -184,6 +184,54 @@ export const SidebarData = [
         icon: RxDashboard,
       },
       {
+        id: 100,
+        title: "Payment",
+        path: "/user/payments",
+        icon: IoWalletOutline,
+      },
+      {
+        id: 260,
+        title: "Bills Payment",
+        path: "/user/bills",
+        icon: LiaMoneyBillWaveSolid,
+      },
+      {
+        id: 101,
+        title: "Savings",
+        path: "/user/savings",
+        icon: LiaPiggyBankSolid,
+      },
+      {
+        id: 102,
+        title: "Finance",
+        path: "/user/finance",
+        icon: FaChartLine,
+      },
+      {
+        id: 103,
+        title: "Cards",
+        path: "/user/cards",
+        icon: CiCreditCard1,
+      },
+      {
+        id: 104,
+        title: "Accounts",
+        path: "/user/account",
+        icon: IoWalletOutline,
+      },
+      {
+        id: 105,
+        title: "Transactions",
+        path: "/user/transactions",
+        icon: TfiList,
+      },
+      {
+        id: 106,
+        title: "Support",
+        path: "/user/support",
+        icon: FiHelpCircle,
+      },
+      {
         id: 2,
         title: "Send Money",
         path: "/user/send-money",
@@ -214,42 +262,18 @@ export const SidebarData = [
     id: 2,
     data: [
       {
-        id: 1,
-        title: "Bills Payment",
-        path: "/user/bills",
-        icon: LiaMoneyBillWaveSolid,
-      },
-
-      {
         id: 2,
         title: "Wallet",
         path: "/user/wallet",
         icon: LuTicket,
       },
-      {
-        id: 3,
-        title: "Transactions",
-        path: "/user/transactions",
-        icon: TfiList,
-      },
+      
 
-      {
-        id: 4,
-        title: "Cards",
-        path: "/user/cards",
-        icon: CiCreditCard1,
-      },
     ],
   },
   {
     id: 3,
     data: [
-      {
-        id: 1,
-        title: "Savings",
-        path: "/user/savings",
-        icon: LiaPiggyBankSolid,
-      },
       {
         id: 2,
         title: "Invest",

@@ -140,8 +140,10 @@ const SignupBusinessContent = () => {
 
   const onSubmit = async (data: RegisterFormData) => {
     setAuthEmail(data?.email);
+    // Exclude confirmPassword from API request
+    const { confirmPassword, ...restData } = data;
     const registerData = {
-      ...data,
+      ...restData,
       countryCode: data.currency,
     };
     signup(registerData);

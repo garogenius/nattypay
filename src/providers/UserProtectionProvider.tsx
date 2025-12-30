@@ -33,21 +33,53 @@ const UserProtectionProvider = ({ children }: UserProtectionProviderProps) => {
 
   useEffect(() => {
     const isLoggingOut = sessionStorage.getItem("isLoggingOut");
+    const isOnAuthPage = pathname.startsWith("/login") || 
+                         pathname.startsWith("/add-phone-number") ||
+                         pathname.startsWith("/validate-phoneNumber") ||
+                         pathname.startsWith("/two-factor-auth") ||
+                         pathname.startsWith("/verify-email") ||
+                         pathname.startsWith("/currency-selection") ||
+                         pathname.startsWith("/open-account") ||
+                         pathname.startsWith("/face-setup") ||
+                         pathname.startsWith("/transaction-pin") ||
+                         pathname.startsWith("/onboarding-success");
 
-    if (
-      (tokenExpired || !user) &&
-      !isLoggingOut &&
-      !isLoading &&
-      isInitialized
-    ) {
-      if (!pathname.startsWith("/login")) {
-        sessionStorage.setItem("returnTo", pathname);
-        navigate("/login", "replace");
+    // Skip protection checks for auth pages
+    if (isOnAuthPage || isLoggingOut || isLoading || !isInitialized) {
+      if (isLoggingOut) {
+        sessionStorage.removeItem("isLoggingOut");
       }
+      return;
     }
 
-    if (isLoggingOut) {
-      sessionStorage.removeItem("isLoggingOut");
+    // Check if token exists and is valid
+    const hasValidToken = token && !tokenExpired;
+    
+    // If token is missing or expired, clear user state and redirect to login
+    if (!hasValidToken) {
+      // Clear user state if token is missing
+      if (user || isLoggedIn) {
+        const { setUser, setIsLoggedIn } = useUserStore.getState();
+        setUser(null);
+        setIsLoggedIn(false);
+      }
+    }
+    
+    // Only redirect to login if:
+    // 1. No valid token AND (no user OR not logged in)
+    // 2. OR token expired AND (no user OR not logged in)
+    if ((!hasValidToken || !user) && !isLoggedIn) {
+      // Prevent redirect loop by checking if we're already redirecting
+      const isRedirecting = sessionStorage.getItem("isRedirecting");
+      if (!isRedirecting && !pathname.startsWith("/login")) {
+        sessionStorage.setItem("isRedirecting", "true");
+        sessionStorage.setItem("returnTo", pathname);
+        navigate("/login", "replace");
+        // Clear redirect flag after a short delay
+        setTimeout(() => {
+          sessionStorage.removeItem("isRedirecting");
+        }, 1000);
+      }
     }
   }, [
     isLoggedIn,
@@ -57,6 +89,7 @@ const UserProtectionProvider = ({ children }: UserProtectionProviderProps) => {
     isLoading,
     tokenExpired,
     user,
+    token,
   ]);
 
   useEffect(() => {

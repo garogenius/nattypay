@@ -58,6 +58,7 @@ const VerifyResetEmailContent = () => {
     mutate: verifyEmail,
     isPending: verificationPending,
     isError: verificationError,
+    reset: resetVerification,
   } = useVerifyResetEmail(onVerificationError, onVerificationSuccess);
 
   const onResendVerificationCodeSuccess = (data: any) => {
@@ -91,6 +92,8 @@ const VerifyResetEmailContent = () => {
 
   const handleVerify = async () => {
     if (authEmail) {
+      // Reset any previous error state
+      resetVerification();
       verifyEmail({
         email: authEmail,
         otpCode: token,
@@ -223,7 +226,7 @@ const VerifyResetEmailContent = () => {
                     onClick={handleResendClick}
                   >
                     {resendLoadingStatus ? (
-                      <SpinnerLoader width={20} height={20} color="#D4B139" />
+                      "Resending..."
                     ) : (
                       "Resend"
                     )}

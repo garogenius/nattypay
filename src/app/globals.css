@@ -76,3 +76,22 @@ input[type="number"] {
 .swiper-button-disabled {
   opacity: 0.35;
 }
+
+/* Professional scrollbar for in-app scroll areas */
+.scroll-area {
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: #2C3947 transparent;
+}
+.scroll-area::-webkit-scrollbar {
+  width: 8px;
+}
+.scroll-area::-webkit-scrollbar-thumb {
+  background-color: #2C3947;
+  border-radius: 8px;
+}
+.scroll-area:hover::-webkit-scrollbar-thumb {
+  background-color: #3A4A5C;
+}
+.scroll-area::-webkit-scrollbar-track {
+  background: transparent;
+}

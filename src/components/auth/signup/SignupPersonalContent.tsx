@@ -164,7 +164,9 @@ const SignupPersonalContent = () => {
   const registerLoading = registerPending && !registerError;
 
   const onSubmit = async (data: RegisterFormData) => {
-    signup(data);
+    // Exclude confirmPassword from API request
+    const { confirmPassword, ...registerData } = data;
+    signup(registerData);
   };
 
   const dropdownRef = useRef<HTMLDivElement>(null);

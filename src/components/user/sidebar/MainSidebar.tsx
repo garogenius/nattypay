@@ -25,24 +25,38 @@ const MainSidebar = () => {
 
   return (
     <div className={`w-full h-full overflow-auto relative no-scrollbar`}>
-      <div className="w-full flex justify-center items-center py-2">
+      <div className="w-full flex items-center gap-3 px-4 py-4 border-b border-[#253041]">
         <Image
           alt="logo"
           src={images.singleLogo}
-          className="cursor-pointer w-24"
+          className="cursor-pointer w-12 h-12"
           onClick={() => {
             navigate("/", "push");
           }}
         />
+        <span className="text-[#E7EAEE] text-xl font-semibold">NattyPay</span>
       </div>
 
-      <div className="flex flex-col w-full divide-y divide-border-600 pb-40 xs:pb-20">
+      <div className="flex flex-col w-full pb-40 xs:pb-20">
         {SidebarData.map((section, index) => (
           <div
             key={`section-${index}`}
-            className="flex flex-col py-3 pl-3 gap-1.5"
+            className="flex flex-col px-3 gap-1"
           >
-            {section.data.map((item) => {
+            {section.data
+              .filter((item) => {
+                const hidePrefixes = [
+                  "/user/withdraw",
+                  "/user/send-money",
+                  "/user/airtime",
+                  "/user/internet",
+                  "/user/wallet",
+                  "/user/invest",
+                ];
+                const shouldHide = hidePrefixes.some((p) => item.path.startsWith(p));
+                return !shouldHide;
+              })
+              .map((item) => {
               const isActive =
                 item.path === "/"
                   ? pathname === item.path
@@ -55,10 +69,8 @@ const MainSidebar = () => {
                     toggleMenu();
                     if (
                       [
-                        "/user/savings",
                         "/user/invest",
                         "/user/withdraw",
-                        "/user/cards",
                       ].includes(item.path)
                     ) {
                       ErrorToast({
@@ -66,6 +78,9 @@ const MainSidebar = () => {
                         descriptions: ["Coming Soon"],
                       });
                     } else if (item.id === 1) {
+                      navigate(item.path);
+                    } else if (item.path === "/user/cards") {
+                      // Always allow Cards navigation (no verification gating)
                       navigate(item.path);
                     } else if (isVerified) {
                       navigate(item.path);
@@ -78,19 +93,14 @@ const MainSidebar = () => {
                       });
                     }
                   }}
-                  style={{
-                    background: isActive
-                      ? "linear-gradient(90deg, rgba(212, 177, 57, 0) 0%, rgba(212, 177, 57, 0.4) 100%)"
-                      : "transparent",
-                  }}
-                  className={`${
+                  className={`cursor-pointer flex items-center gap-3 py-3 pl-4 pr-3 rounded-lg transition-colors ${
                     isActive
-                      ? "text-text-1100 dark:text-secondary border-r-[5.5px] border-secondary dark:border-primary font-semibold"
-                      : "text-text-1000 font-medium"
-                  } rounded-r-md cursor-pointer flex items-center gap-2.5 py-3.5 pl-4`}
+                      ? "bg-secondary text-black"
+                      : "text-[#9AA3B2] hover:bg-[#121E2F] hover:text-[#E7EAEE]"
+                  }`}
                 >
-                  <item.icon className="text-2xl" />
-                  <p className="text-lg">{item.title}</p>
+                  <item.icon className={`text-xl ${isActive ? "text-black" : "text-[#9AA3B2]"}`} />
+                  <p className={`text-[15px] ${isActive ? "text-black font-semibold" : ""}`}>{item.title}</p>
                 </div>
               );
             })}

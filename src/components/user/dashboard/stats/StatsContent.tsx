@@ -2,29 +2,43 @@
 import React, { useState } from "react";
 import StatsFilter from "./StatsFilter";
 import LineChart from "./LineChart";
-import { statsLineOption, statsPieOption } from "./data";
-import PieChart from "./PieChart";
-import { useGetLineStats, useGetPieStats } from "@/api/website/website.queries";
+import { statsLineOption } from "./data";
+import BarChart from "./BarChart";
+import { useGetUserStatisticsLineChart } from "@/api/user/user.queries";
 import { useTheme } from "@/store/theme.store";
 import Skeleton from "react-loading-skeleton";
 
 const StatsContent = () => {
-  const [sort, setSort] = useState("all");
+  const [sort, setSort] = useState<"all" | "today" | "week" | "month" | "year">("all");
   const theme = useTheme();
 
+  const periodMap: Record<string, string | undefined> = {
+    all: undefined,
+    today: "day",
+    week: "week",
+    month: "month",
+    year: "year",
+  };
+
   const {
-    lineStats,
+    data: statsData,
     isPending: linePending,
     isError: lineError,
-  } = useGetLineStats();
+  } = useGetUserStatisticsLineChart({ period: periodMap[sort] });
 
-  const {
-    pieStats,
-    isPending: piePending,
-    isError: pieError,
-  } = useGetPieStats({ sort });
-
-  const isLoading = (linePending && !lineError) || (piePending && !pieError);
+  const isLoading = linePending && !lineError;
+  
+  // Transform API response to chart format
+  // Handle different possible API response structures
+  const labels = statsData?.labels || statsData?.data?.labels || [];
+  const values = statsData?.values || statsData?.data?.values || [];
+  const debits = statsData?.debits || statsData?.data?.debits || [];
+  
+  const lineStats = labels?.map((label: string, index: number) => ({
+    date: label,
+    credits: values[index] || 0,
+    debits: debits[index] || 0,
+  })) || [];
 
   // Only create chart data if the stats are available and there's no error
   const statsLineData =
@@ -54,21 +68,32 @@ const StatsContent = () => {
         }
       : null;
 
-  const statsPieData =
-    pieStats && !pieError
+  // Use the filtered data from API (period is handled server-side)
+  const filtered = !lineError ? lineStats : null;
+
+  // Build bar chart data from filtered line stats (incoming/outgoing)
+  const statsBarData =
+    filtered && filtered.length
       ? {
-          labels: pieStats.map(
-            (data) => `${data.title} - ₦${data.value.toLocaleString()}`
-          ),
+          labels: filtered.map((d) => d.date),
           datasets: [
             {
-              data: pieStats.map((item) => item.value),
-              backgroundColor: pieStats.map((item) => item.color),
-              borderColor: pieStats.map((item) => item.color),
+              label: "Incoming",
+              data: filtered.map((d) => d.credits),
+              backgroundColor: "#2F80ED",
+              borderRadius: 6,
+              maxBarThickness: 18,
+            },
+            {
+              label: "Outgoing",
+              data: filtered.map((d) => d.debits),
+              backgroundColor: "#27AE60",
+              borderRadius: 6,
+              maxBarThickness: 18,
             },
           ],
         }
-      : null;
+      : { labels: [], datasets: [] };
 
   const renderChartSkeleton = () => (
     <div className="w-full h-fit flex flex-col gap-4">
@@ -84,41 +109,29 @@ const StatsContent = () => {
   );
 
   return (
-    <div className="w-full flex flex-col gap-2 mt-2 overflow-x-hidden">
-      <div className="w-full flex max-lg:flex-col gap-4">
-        <div className="max-sm:hidden  w-full lg:w-[50%] flex flex-col bg-bg-600 dark:bg-bg-1100 px-4 xs:px-6 py-4 xs:py-6 2xl:py-8 rounded-lg sm:rounded-xl">
-          <h2 className="text-text-200 dark:text-text-400 text-lg md:text-xl font-semibold mb-4">
-            My Portfolio
-          </h2>
-          <div className="w-full h-full flex justify-center items-center">
+    <div className="w-full flex flex-col gap-2 mt-2 overflow-x-hidden h-full">
+      <div className="w-full h-full">
+        <div className="w-full h-full flex flex-col bg-bg-600 dark:bg-bg-1100 border border-border-800 dark:border-border-700 px-4 xs:px-6 py-4 xs:py-6 2xl:py-8 rounded-lg sm:rounded-xl min-h-[400px]">
+          <div className="w-full flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-text-200 dark:text-text-800 text-lg sm:text-xl font-semibold mb-1">Analytics</h2>
+              <p className="text-text-200 dark:text-text-400 text-sm">See how your money moved and how you spent it</p>
+            </div>
+            <StatsFilter sort={sort} setSort={setSort} />
+          </div>
+          <div className="flex-1 flex items-center justify-center">
             {isLoading
               ? renderChartSkeleton()
-              : statsLineData && (
-                  <div className="w-full  h-full flex justify-center items-center">
-                    <LineChart
-                      chartData={statsLineData ?? []}
-                      chartOption={{
-                        ...statsLineOption,
-                        // maintainAspectRatio: false,
-                        // responsive: true,
-                      }}
-                    />
+              : statsBarData && (
+                  <div className="w-full flex justify-center items-center">
+                    <BarChart chartData={statsBarData} chartOption={{
+                      responsive: true,
+                      plugins: { legend: { display: true, position: "bottom" } },
+                      scales: { x: { grid: { color: "rgba(255,255,255,0.08)" } }, y: { grid: { color: "rgba(255,255,255,0.08)" } } }
+                    }} />
                   </div>
                 )}
           </div>
-        </div>
-        <div className="w-full lg:w-[50%] flex flex-col items-center bg-bg-600 dark:bg-bg-1100 px-4 xs:px-6 py-4 xs:py-6 2xl:py-8 rounded-lg sm:rounded-xl">
-          <StatsFilter sort={sort} setSort={setSort} />
-          {isLoading
-            ? renderChartSkeleton()
-            : statsPieData && (
-                <div className="w-full  xs:w-[90%] sm:w-[80%] md:w-[70%] lg:w-full xl:w-full flex justify-center items-center">
-                  <PieChart
-                    chartData={statsPieData ?? []}
-                    chartOption={statsPieOption}
-                  />
-                </div>
-              )}
         </div>
       </div>
     </div>

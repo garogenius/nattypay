@@ -1,7 +1,7 @@
-import SignupBusinessContent from "@/components/auth/signup/SignupBusinessContent";
+import CreateAccountBusinessContent from "@/components/auth/signup/CreateAccountBusinessContent";
 
 const SignupBusinessPage = () => {
-  return <SignupBusinessContent />;
+  return <CreateAccountBusinessContent />;
 };
 
 export default SignupBusinessPage;

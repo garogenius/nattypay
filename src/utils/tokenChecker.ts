@@ -21,7 +21,8 @@ export function isTokenExpired(token: string): boolean {
     }
     return true;
   } catch (error) {
-    console.log("Error decoding token:", error);
+    // SECURITY: Don't log token decoding errors to prevent information disclosure
+    // Silently return true (expired) on any error
     return true;
   }
 }

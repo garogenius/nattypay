@@ -23,8 +23,12 @@ const SearchableDropdown = <T extends object>({
   showSearch = true,
   placeholder = "Search...",
   isLoading,
+  isOpen,
+  onClose,
 }: SearchableDropdownProps<T>) => {
   const [searchTerm, setSearchTerm] = useState("");
+
+  if (!isOpen) return null;
 
   const filteredItems = items?.filter((item) =>
     String(item[searchKey]).toLowerCase().includes(searchTerm.toLowerCase())
@@ -39,7 +43,7 @@ const SearchableDropdown = <T extends object>({
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder={placeholder}
-            className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="w-full pl-10 pr-3 py-2 rounded-md bg-bg-2400 dark:bg-bg-2100 border border-border-600 text-white placeholder:text-white/40 focus:outline-none focus:ring-1 focus:ring-[#D4B139]"
           />
           <IoSearchOutline className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
         </div>
@@ -58,7 +62,7 @@ const SearchableDropdown = <T extends object>({
               filteredItems.map((item, index) => (
                 <div
                   key={index}
-                  onClick={() => onSelect(item)}
+                  onClick={() => { onSelect(item); onClose(); }}
                   className="hover:opacity-80 w-full flex items-center justify-between px-4 py-2 gap-2 cursor-pointer"
                 >
                   <span className="w-full text-sm">{displayFormat(item)}</span>

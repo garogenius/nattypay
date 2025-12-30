@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  bvnFaceVerificationRequest,
   getAllBanks,
   getQrCode,
   getTransactions,
@@ -163,4 +164,20 @@ export const useGetQrCode = ({ amount }: { amount: number }) => {
   const qrCode: string = data?.data?.data;
 
   return { qrCode, isPending, isError };
+};
+
+export const useBvnFaceVerification = (
+  onError: (error: any) => void,
+  onSuccess: (data: any) => void
+) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: bvnFaceVerificationRequest,
+    onError,
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["user"] });
+      onSuccess(data);
+    },
+  });
 };

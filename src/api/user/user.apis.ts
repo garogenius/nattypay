@@ -1,12 +1,21 @@
 import { request } from "@/utils/axios-utils";
 import {
   IChangePassword,
+  IChangePasswordWithOtp,
+  IChangePasscode,
+  IChangePin,
+  ICreateAccount,
+  ICreateBusinessAccount,
+  ICreateForeignAccount,
   ICreatePin,
+  IRequestChangePassword,
   IResetPin,
   ITier2Verification,
   ITier3Verification,
   IValidatePhoneNumber,
+  IVerifyNin,
   IVerifyPhoneNumber,
+  IVerifyWalletPin,
 } from "./user.types";
 import { BENEFICIARY_TYPE, BILL_TYPE, TRANSFER_TYPE } from "@/constants/types";
 
@@ -117,5 +126,111 @@ export const verifyPhoneNumberRequest = async (
     url: "/user/verify-phoneNumber",
     method: "post",
     data: formdata,
+  });
+};
+
+export const verifyNinRequest = async (formdata: IVerifyNin) => {
+  return request({
+    url: "/user/verify-nin",
+    method: "post",
+    data: formdata,
+  });
+};
+
+// Password Change with OTP
+export const requestChangePasswordRequest = async (formdata: IRequestChangePassword) => {
+  const queryParams = new URLSearchParams();
+  queryParams.set("email", formdata.email);
+  return request({
+    url: `/user/request-change-password?${queryParams.toString()}`,
+    method: "get",
+  });
+};
+
+export const changePasswordWithOtpRequest = async (formdata: IChangePasswordWithOtp) => {
+  return request({
+    url: "/user/change-password",
+    method: "put",
+    data: formdata,
+  });
+};
+
+// Login Passcode (6-digit)
+export const changePasscodeRequest = async (formdata: IChangePasscode) => {
+  return request({
+    url: "/user/change-passcode",
+    method: "put",
+    data: formdata,
+  });
+};
+
+// Wallet PIN
+export const verifyWalletPinRequest = async (formdata: IVerifyWalletPin) => {
+  return request({
+    url: "/user/verify-wallet-pin",
+    method: "post",
+    data: formdata,
+  });
+};
+
+export const changePinRequest = async (formdata: IChangePin) => {
+  return request({
+    url: "/user/change-pin",
+    method: "put",
+    data: formdata,
+  });
+};
+
+// Account Creation
+export const createAccountRequest = async (formdata: ICreateAccount) => {
+  return request({
+    url: "/user/create-account",
+    method: "post",
+    data: formdata,
+  });
+};
+
+export const createBusinessAccountRequest = async (formdata: ICreateBusinessAccount) => {
+  return request({
+    url: "/user/create-business-account",
+    method: "post",
+    data: formdata,
+  });
+};
+
+export const createForeignAccountRequest = async (formdata: ICreateForeignAccount) => {
+  return request({
+    url: "/user/create-foreign-account",
+    method: "post",
+    data: formdata,
+  });
+};
+
+// Delete Account
+export const deleteAccountRequest = async (userId: string) => {
+  return request({
+    url: `/user/${userId}`,
+    method: "delete",
+  });
+};
+
+// User Statistics
+export const getUserStatisticsLineChartRequest = async (params?: { period?: string }) => {
+  const queryParams = new URLSearchParams();
+  if (params?.period) queryParams.set("period", params.period);
+  const queryString = queryParams.toString();
+  return request({
+    url: `/user/statistics-line-chart${queryString ? `?${queryString}` : ""}`,
+    method: "get",
+  });
+};
+
+export const getUserStatisticsPieChartRequest = async (params?: { period?: string }) => {
+  const queryParams = new URLSearchParams();
+  if (params?.period) queryParams.set("period", params.period);
+  const queryString = queryParams.toString();
+  return request({
+    url: `/user/statistics-pie-chart${queryString ? `?${queryString}` : ""}`,
+    method: "get",
   });
 };

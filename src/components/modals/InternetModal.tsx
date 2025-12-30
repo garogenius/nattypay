@@ -1,0 +1,172 @@
+"use client";
+
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { CgClose } from "react-icons/cg";
+import { IoChevronDown } from "react-icons/io5";
+import CustomButton from "@/components/shared/Button";
+import useOnClickOutside from "@/hooks/useOnClickOutside";
+import SpinnerLoader from "@/components/Loader/SpinnerLoader";
+import { useGetInternetPlans, useGetInternetVariations, usePayForInternet } from "@/api/internet/internet.queries";
+
+interface Props { isOpen: boolean; onClose: () => void; }
+
+const InternetModal: React.FC<Props> = ({ isOpen, onClose }) => {
+  const [step, setStep] = useState<"form" | "confirm" | "result">("form");
+  const [providerOpen, setProviderOpen] = useState(false);
+  const [planOpen, setPlanOpen] = useState(false);
+  const [selectedProvider, setSelectedProvider] = useState<{name:string; billerCode:string} | null>(null);
+  const [selectedPlan, setSelectedPlan] = useState<{name:string; amount:number; itemCode:string} | null>(null);
+  const [billerNumber, setBillerNumber] = useState("");
+  const [walletPin, setWalletPin] = useState("");
+  const [resultSuccess, setResultSuccess] = useState<boolean | null>(null);
+
+  const providerRef = useRef<HTMLDivElement>(null);
+  const planRef = useRef<HTMLDivElement>(null);
+  useOnClickOutside(providerRef, () => setProviderOpen(false));
+  useOnClickOutside(planRef, () => setPlanOpen(false));
+
+  // Fetch immediately when modal opens so providers are available
+  const { internetPlans, isPending: plansLoading } = useGetInternetPlans({ currency: "NGN", isEnabled: true });
+
+  // Fetch variations when a provider is selected
+  const { variations, isLoading: variationsLoading } = useGetInternetVariations({ billerCode: selectedProvider?.billerCode || "" });
+
+  // Normalize plan items to expected shape
+  const plans = (variations || []).map((v:any)=> ({
+    name: v.short_name || v.name,
+    amount: typeof v.payAmount === 'number' ? v.payAmount : Number(v.amount) || 0,
+    itemCode: v.item_code || v.itemCode,
+  }));
+
+  const canProceed = !!selectedProvider && !!selectedPlan && billerNumber.length > 0;
+
+  const handleClose = () => {
+    setStep("form");
+    setProviderOpen(false); setPlanOpen(false);
+    setSelectedProvider(null); setSelectedPlan(null);
+    setBillerNumber(""); setWalletPin(""); setResultSuccess(null);
+    onClose();
+  };
+
+  const onSuccess = () => { setResultSuccess(true); setStep("result"); };
+  const onError = () => { setResultSuccess(false); setStep("result"); };
+  const { mutate: PayForInternet, isPending: paying, isError } = usePayForInternet(onError, onSuccess);
+  const isPaying = paying && !isError;
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="z-[999999] overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 flex justify-center items-center w-full md:inset-0 h-[100dvh]">
+      <div className="fixed inset-0 transition-opacity" aria-hidden="true">
+        <div className="absolute inset-0 bg-black/80 dark:bg-black/60" onClick={handleClose} />
+      </div>
+      <div className="relative mx-4 bg-bg-600 dark:bg-bg-1100 border border-border-800 dark:border-border-700 w-full max-w-md rounded-2xl overflow-visible">
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 pb-2">
+          <div>
+            <h2 className="text-white text-lg font-semibold">{step === "form" ? "Internet" : step === "confirm" ? "Internet" : "Transaction History"}</h2>
+            <p className="text-white/60 text-sm">{step === "form" ? "Enter payment details to continue" : step === "confirm" ? "Confirm Transactions" : "View complete information about this transaction"}</p>
+          </div>
+          <button onClick={handleClose} className="p-1 hover:bg-white/10 rounded transition-colors"><CgClose className="text-xl text-white/70" /></button>
+        </div>
+
+        <div className="px-4 pb-4">
+          {step === "form" && (
+            <div className="flex flex-col gap-4">
+              {/* Provider */}
+              <div className="flex flex-col gap-2" ref={providerRef}>
+                <label className="text-white/70 text-sm">Provider</label>
+                <div onClick={() => setProviderOpen(!providerOpen)} className="w-full bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-3 px-4 text-white text-sm outline-none cursor-pointer flex items-center justify-between">
+                  <span className={selectedProvider ? "text-white" : "text-white/50"}>{selectedProvider?.name || "Select provider"}</span>
+                  <IoChevronDown className={`w-4 h-4 text-white/70 transition-transform ${providerOpen ? 'rotate-180' : ''}`} />
+                </div>
+                {providerOpen && (
+                  <div className="relative">
+                    <div className="absolute top-1 left-0 right-0 bg-bg-600 dark:bg-bg-1100 border border-border-800 dark:border-border-700 rounded-lg shadow-lg z-50 overflow-hidden max-h-60 overflow-y-auto">
+                      {plansLoading ? (
+                        <div className="flex items-center justify-center py-4"><SpinnerLoader width={20} height={20} color="#D4B139" /></div>
+                      ) : (internetPlans || []).map((p:any)=> (
+                        <button key={p.billerCode} onClick={()=> { setSelectedProvider({ name: p.shortName || p.name, billerCode: p.billerCode }); setSelectedPlan(null); setProviderOpen(false); }} className="w-full text-left px-4 py-3 text-white hover:bg-white/5 text-sm">{p.shortName || p.name}</button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Biller Number */}
+              <div className="flex flex-col gap-2">
+                <label className="text-white/70 text-sm">Account/Phone/Customer Number</label>
+                <input className="w-full bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-3 px-4 text-white placeholder:text-white/60 text-sm outline-none" placeholder="Enter number" value={billerNumber} onChange={(e)=> setBillerNumber(e.target.value)} />
+              </div>
+
+              {/* Plan */}
+              <div className="flex flex-col gap-2" ref={planRef}>
+                <label className="text-white/70 text-sm">Plan</label>
+                <div onClick={() => selectedProvider && setPlanOpen(!planOpen)} className={`w-full bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-3 px-4 text-white text-sm outline-none cursor-pointer flex items-center justify-between ${!selectedProvider ? 'opacity-60 pointer-events-none' : ''}`}>
+                  <span className={selectedPlan ? "text-white" : "text-white/50"}>{selectedPlan?.name || (selectedProvider ? 'Select plan' : 'Select provider first')}</span>
+                  <IoChevronDown className={`w-4 h-4 text-white/70 transition-transform ${planOpen ? 'rotate-180' : ''}`} />
+                </div>
+                {planOpen && (
+                  <div className="relative">
+                    <div className="absolute top-1 left-0 right-0 bg-bg-600 dark:bg-bg-1100 border border-border-800 dark:border-border-700 rounded-lg shadow-lg z-50 overflow-hidden max-h-60 overflow-y-auto">
+                      {variationsLoading ? (
+                        <div className="flex items-center justify-center py-4"><SpinnerLoader width={20} height={20} color="#D4B139" /></div>
+                      ) : plans.length ? plans.map(pl => (
+                        <button key={pl.itemCode} onClick={()=> { setSelectedPlan(pl); setPlanOpen(false); }} className="w-full text-left px-4 py-3 text-white hover:bg-white/5 text-sm flex items-center justify-between">
+                          <span>{pl.name}</span>
+                          <span className="text-[#D4B139] font-medium">₦{pl.amount.toLocaleString()}</span>
+                        </button>
+                      )) : (
+                        <div className="px-4 py-3 text-white/50 text-sm">No plans available</div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <CustomButton type="button" disabled={!canProceed} className="w-full bg-[#D4B139] hover:bg-[#D4B139]/90 text-black font-medium py-3 rounded-lg mt-2" onClick={()=> setStep("confirm")}>Next</CustomButton>
+            </div>
+          )}
+
+          {step === "confirm" && (
+            <div className="flex flex-col gap-6">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between"><span className="text-white/60 text-sm">Provider</span><span className="text-white text-sm font-medium">{selectedProvider?.name}</span></div>
+                <div className="flex items-center justify-between"><span className="text-white/60 text-sm">Number</span><span className="text-white text-sm font-medium">{billerNumber}</span></div>
+                <div className="flex items-center justify-between"><span className="text-white/60 text-sm">Plan</span><span className="text-white text-sm font-medium">{selectedPlan?.name}</span></div>
+                <div className="flex items-center justify-between"><span className="text-white/60 text-sm">Amount</span><span className="text-white text-sm font-medium">₦{(selectedPlan?.amount||0).toLocaleString()}</span></div>
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="text-white/60 text-sm">Enter Transaction PIN</label>
+                <input type="password" maxLength={4} value={walletPin} onChange={(e)=> setWalletPin(e.target.value.replace(/\D/g, ""))} className="w-full bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-3 px-4 text-white text-sm outline-none" />
+              </div>
+              <div className="flex gap-4 mt-2">
+                <CustomButton onClick={()=> setStep("form")} className="flex-1 bg-transparent border border-border-600 text-white hover:bg-white/5 py-3 rounded-lg">Back</CustomButton>
+                <CustomButton onClick={()=> {
+                  if (!selectedPlan || !selectedProvider) return;
+                  PayForInternet({ amount: selectedPlan.amount, itemCode: selectedPlan.itemCode, billerCode: selectedProvider.billerCode, billerNumber, currency: "NGN", walletPin, addBeneficiary: false });
+                }} disabled={walletPin.length!==4 || isPaying} isLoading={isPaying} className="flex-1 bg-[#D4B139] hover:bg-[#D4B139]/90 text-black py-3 rounded-lg">Pay</CustomButton>
+              </div>
+            </div>
+          )}
+
+          {step === "result" && (
+            <div className="flex flex-col items-center gap-4">
+              <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: resultSuccess ? '#22c55e' : '#ef4444' }}>
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">{resultSuccess ? (<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />) : (<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />)}</svg>
+              </div>
+              <span className={`${resultSuccess ? 'text-emerald-400' : 'text-red-400'} text-sm font-medium`}>{resultSuccess ? 'Successful' : 'Failed'}</span>
+              <span className="text-white text-2xl font-bold">₦{(selectedPlan?.amount||0).toLocaleString()}.00</span>
+              <div className="flex gap-3 mt-4 w-full">
+                <CustomButton onClick={handleClose} className="flex-1 bg-transparent border border-border-600 text-white hover:bg-white/5 py-3 rounded-lg">Contact Support</CustomButton>
+                <CustomButton onClick={handleClose} className="flex-1 bg-[#D4B139] hover:bg-[#D4B139]/90 text-black py-3 rounded-lg">Download Receipt</CustomButton>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default InternetModal;

@@ -1,7 +1,7 @@
-import LoginContent from "@/components/auth/LoginContent";
+import LoginWithBiometricContent from "@/components/auth/LoginWithBiometricContent";
 
 const LoginPage = () => {
-  return <LoginContent />;
+  return <LoginWithBiometricContent />;
 };
 
 export default LoginPage;

@@ -2,11 +2,15 @@
 import Image from "next/image";
 import cn from "classnames";
 import useUserStore from "@/store/user.store";
-import Link from "next/link";
+import { useState } from "react";
 import images from "../../../../../public/images";
+import Tier2UpgradeModal from "@/components/modals/tiers/Tier2UpgradeModal";
+import Tier3UpgradeModal from "@/components/modals/tiers/Tier3UpgradeModal";
 
 const TierContent = () => {
   const user = useUserStore((state) => state.user);
+  const [openTier2Modal, setOpenTier2Modal] = useState(false);
+  const [openTier3Modal, setOpenTier3Modal] = useState(false);
 
   const isStatusUpgradable = (tier: string) => {
     const tiers = ["one", "two", "three"];
@@ -70,11 +74,22 @@ const TierContent = () => {
                   user?.tierLevel?.toLowerCase() === plan.planType.toLowerCase()
                 }
                 isUpgradable={isStatusUpgradable(plan.planType)}
+                onUpgrade={() => {
+                  if (plan.planType === "two") {
+                    setOpenTier2Modal(true);
+                  } else if (plan.planType === "three") {
+                    setOpenTier3Modal(true);
+                  }
+                }}
               />
             ))}
           </div>
         </div>
       </div>
+
+      {/* Tier Upgrade Modals */}
+      <Tier2UpgradeModal isOpen={openTier2Modal} onClose={() => setOpenTier2Modal(false)} />
+      <Tier3UpgradeModal isOpen={openTier3Modal} onClose={() => setOpenTier3Modal(false)} />
     </div>
   );
 };
@@ -89,6 +104,7 @@ const TierCard = ({
   title,
   image,
   isUpgradable,
+  onUpgrade,
 }: {
   planType: string;
   maxBal: number;
@@ -97,6 +113,7 @@ const TierCard = ({
   title: string;
   image: string;
   isUpgradable: boolean;
+  onUpgrade?: () => void;
 }) => {
   return (
     <div
@@ -153,12 +170,12 @@ const TierCard = ({
             </p>
           </div>
           {isUpgradable ? (
-            <Link
-              href={`/user/settings/tiers/${planType}`}
-              className="text-sm font-bold text-primary"
+            <button
+              onClick={onUpgrade}
+              className="text-sm font-bold text-primary text-left"
             >
               Upgrade
-            </Link>
+            </button>
           ) : null}
         </div>
       )}

@@ -18,7 +18,16 @@ const useNavigate = () => {
   }, [pathname]);
 
   const navigate = useCallback(
-    (url: string, type: NavigationType = "push") => {
+    (url: string | number, type: NavigationType = "push") => {
+      // Handle browser back navigation
+      if (typeof url === "number") {
+        if (url === -1) {
+          router.back();
+        }
+        return;
+      }
+
+      // Handle string URLs
       if (!isNavigatingRef.current) {
         isNavigatingRef.current = true;
         NProgress.start();

@@ -3,17 +3,29 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   changePasswordRequest,
+  changePasswordWithOtpRequest,
+  changePasscodeRequest,
+  changePinRequest,
+  createAccountRequest,
+  createBusinessAccountRequest,
+  createForeignAccountRequest,
   createPinRequest,
+  deleteAccountRequest,
   getBeneficiariesRequest,
   getUser,
+  getUserStatisticsLineChartRequest,
+  getUserStatisticsPieChartRequest,
   reportScamRequest,
+  requestChangePasswordRequest,
   resetOtpRequest,
   resetPinRequest,
   tier2VerificationRequest,
   tier3VerificationRequest,
   updateUserRequest,
   validatePhoneNumberRequest,
+  verifyNinRequest,
   verifyPhoneNumberRequest,
+  verifyWalletPinRequest,
 } from "./user.apis";
 import {
   BENEFICIARY_TYPE,
@@ -22,11 +34,16 @@ import {
   TRANSFER_TYPE,
   User,
 } from "@/constants/types";
+import Cookies from "js-cookie";
 
 export const useGetUser = () => {
+  const token = Cookies.get("accessToken");
+  
   const { data, isError, isSuccess, error } = useQuery({
     queryKey: ["user"],
     queryFn: getUser,
+    // Only run when token exists
+    enabled: !!token,
     // Run in the background
     refetchOnWindowFocus: true,
     // Refetch every 5 minutes
@@ -192,4 +209,187 @@ export const useVerifyPhoneNumber = (
     onError,
     onSuccess,
   });
+};
+
+export const useVerifyNin = (
+  onError: (error: any) => void,
+  onSuccess: (data: any) => void
+) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: verifyNinRequest,
+    onError,
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["user"] });
+      onSuccess(data);
+    },
+  });
+};
+
+// Password Change with OTP
+export const useRequestChangePassword = (
+  onError: (error: any) => void,
+  onSuccess: (data: any) => void
+) => {
+  return useMutation({
+    mutationFn: requestChangePasswordRequest,
+    onError,
+    onSuccess,
+  });
+};
+
+export const useChangePasswordWithOtp = (
+  onError: (error: any) => void,
+  onSuccess: (data: any) => void
+) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: changePasswordWithOtpRequest,
+    onError,
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["user"] });
+      onSuccess(data);
+    },
+  });
+};
+
+// Login Passcode
+export const useChangePasscode = (
+  onError: (error: any) => void,
+  onSuccess: (data: any) => void
+) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: changePasscodeRequest,
+    onError,
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["user"] });
+      onSuccess(data);
+    },
+  });
+};
+
+// Wallet PIN
+export const useVerifyWalletPin = (
+  onError: (error: any) => void,
+  onSuccess: (data: any) => void
+) => {
+  return useMutation({
+    mutationFn: verifyWalletPinRequest,
+    onError,
+    onSuccess,
+  });
+};
+
+export const useChangePin = (
+  onError: (error: any) => void,
+  onSuccess: (data: any) => void
+) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: changePinRequest,
+    onError,
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["user"] });
+      onSuccess(data);
+    },
+  });
+};
+
+// Account Creation
+export const useCreateAccount = (
+  onError: (error: any) => void,
+  onSuccess: (data: any) => void
+) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: createAccountRequest,
+    onError,
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["user"] });
+      onSuccess(data);
+    },
+  });
+};
+
+export const useCreateBusinessAccount = (
+  onError: (error: any) => void,
+  onSuccess: (data: any) => void
+) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: createBusinessAccountRequest,
+    onError,
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["user"] });
+      onSuccess(data);
+    },
+  });
+};
+
+export const useCreateForeignAccount = (
+  onError: (error: any) => void,
+  onSuccess: (data: any) => void
+) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: createForeignAccountRequest,
+    onError,
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["user"] });
+      onSuccess(data);
+    },
+  });
+};
+
+// Delete Account
+export const useDeleteAccount = (
+  onError: (error: any) => void,
+  onSuccess: (data: any) => void
+) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: deleteAccountRequest,
+    onError,
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["user"] });
+      queryClient.clear(); // Clear all queries on account deletion
+      onSuccess(data);
+    },
+  });
+};
+
+// User Statistics
+export const useGetUserStatisticsLineChart = (params?: { period?: string }) => {
+  const { data, isPending, isError } = useQuery({
+    queryKey: ["user-statistics-line-chart", params],
+    queryFn: () => getUserStatisticsLineChartRequest(params),
+  });
+
+  return {
+    data: data?.data?.data,
+    isPending,
+    isError,
+  };
+};
+
+export const useGetUserStatisticsPieChart = (params?: { period?: string }) => {
+  const { data, isPending, isError } = useQuery({
+    queryKey: ["user-statistics-pie-chart", params],
+    queryFn: () => getUserStatisticsPieChartRequest(params),
+  });
+
+  return {
+    data: data?.data?.data,
+    isPending,
+    isError,
+  };
 };

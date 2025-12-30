@@ -1,7 +1,7 @@
-import SignupPersonalContent from "@/components/auth/signup/SignupPersonalContent";
+import CreateAccountPersonalContent from "@/components/auth/signup/CreateAccountPersonalContent";
 
 const SignupPersonalPage = () => {
-  return <SignupPersonalContent />;
+  return <CreateAccountPersonalContent />;
 };
 
 export default SignupPersonalPage;

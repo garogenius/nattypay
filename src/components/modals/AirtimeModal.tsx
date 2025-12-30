@@ -1,0 +1,451 @@
+"use client";
+
+import React, { useEffect, useMemo, useState, useRef } from "react";
+import { CgClose } from "react-icons/cg";
+import { IoChevronDown } from "react-icons/io5";
+import { useForm } from "react-hook-form";
+import * as yup from "yup";
+import { yupResolver } from "@hookform/resolvers/yup";
+import Image from "next/image";
+import CustomButton from "@/components/shared/Button";
+import { useGetAirtimePlan, usePayForAirtime } from "@/api/airtime/airtime.queries";
+import { NetworkProvider } from "@/components/user/bill/bill.data";
+import { handleNumericKeyDown, handleNumericPaste } from "@/utils/utilityFunctions";
+import ErrorToast from "@/components/toast/ErrorToast";
+import useOnClickOutside from "@/hooks/useOnClickOutside";
+import SpinnerLoader from "@/components/Loader/SpinnerLoader";
+
+interface AirtimeModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+const AirtimeModal: React.FC<AirtimeModalProps> = ({ isOpen, onClose }) => {
+  const [step, setStep] = useState<"form" | "confirm" | "result">("form");
+  const [selectedProvider, setSelectedProvider] = useState<any>(null);
+  const [minimumAmount, setMinimumAmount] = useState<number>(0);
+  const [maxAmount, setMaximumAmount] = useState<number>(0);
+  const [operatorId, setOperatorId] = useState<number | undefined>();
+  const [networkDropdownOpen, setNetworkDropdownOpen] = useState(false);
+  const [formData, setFormData] = useState<any>(null);
+  const [walletPin, setWalletPin] = useState("");
+  const [transactionResult, setTransactionResult] = useState<any>(null);
+  const [isBeneficiaryChecked, setIsBeneficiaryChecked] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useOnClickOutside(dropdownRef, () => {
+    setNetworkDropdownOpen(false);
+  });
+
+  // Network options for manual selection - use existing NetworkProvider data
+  const networkOptions = NetworkProvider.map(provider => ({
+    name: provider.name,
+    logo: provider.logo,
+  }));
+
+  const schema = useMemo(
+    () =>
+      yup.object().shape({
+        phone: yup
+          .string()
+          .required("Phone Number is required")
+          .min(11, "Phone Number must be at least 11 digits")
+          .max(11, "Phone Number must be exactly 11 digits"),
+        amount: yup
+          .number()
+          .required("Amount is required")
+          .typeError("Amount is required")
+          .min(
+            minimumAmount || 50,
+            `Minimum amount is ₦${(minimumAmount || 50).toLocaleString()}`
+          )
+          .max(
+            maxAmount || 50000, 
+            `Maximum amount is ₦${(maxAmount || 50000).toLocaleString()}`
+          ),
+      }),
+    [minimumAmount, maxAmount]
+  );
+
+  const form = useForm({
+    defaultValues: { phone: "", amount: undefined },
+    resolver: yupResolver(schema),
+    mode: "onChange",
+  });
+
+  const { register, handleSubmit, formState, watch } = form;
+  const { errors, isValid } = formState;
+  const watchedPhone = watch("phone");
+
+  // Re-enable auto-detection for proper airtime plan fetching
+  const { data: airtimePlan, isPending: isAirtimePlanLoading } = useGetAirtimePlan({
+    phone: watchedPhone,
+    currency: "NGN",
+  });
+
+  const onPayAirtimeSuccess = (data: any) => {
+    setTransactionResult({ success: true, data });
+    setStep("result");
+  };
+
+  const onPayAirtimeError = (error: any) => {
+    const errorMessage = error?.response?.data?.message;
+    const descriptions = Array.isArray(errorMessage) ? errorMessage : [errorMessage];
+    setTransactionResult({ success: false, error: errorMessage });
+    setStep("result");
+  };
+
+  const {
+    mutate: PayForAirtime,
+    isPending: airtimePending,
+    isError: airtimeError,
+  } = usePayForAirtime(onPayAirtimeError, onPayAirtimeSuccess);
+
+  const airtimeLoading = airtimePending && !airtimeError;
+
+  // Re-enable auto-detection useEffect for proper airtime plan handling
+  useEffect(() => {
+    const planData = airtimePlan?.data?.data;
+    if (planData) {
+      const { plan, network } = planData;
+      setMinimumAmount(plan.minAmount);
+      setMaximumAmount(plan.maxAmount);
+
+      const provider = NetworkProvider.find(
+        (item) => item.name === network.toLocaleUpperCase()
+      );
+
+      setSelectedProvider({
+        value: plan.operatorId,
+        label: plan.name,
+        name: network.toLocaleUpperCase(),
+        logo: provider?.logo,
+      });
+      setOperatorId(plan.operatorId);
+    } else {
+      setSelectedProvider(null);
+    }
+  }, [airtimePlan?.data?.data]);
+
+  const handleClose = () => {
+    setStep("form");
+    setSelectedProvider(null);
+    setMinimumAmount(0);
+    setMaximumAmount(0);
+    setOperatorId(undefined);
+    setNetworkDropdownOpen(false);
+    setFormData(null);
+    setWalletPin("");
+    setTransactionResult(null);
+    form.reset();
+    onClose();
+  };
+
+  const onSubmit = (data: any) => {
+    if (!operatorId) return;
+    setFormData(data);
+    setStep("confirm");
+  };
+
+  const handleConfirmPayment = () => {
+    if (!formData || !operatorId || walletPin.length !== 4) return;
+    
+    PayForAirtime({
+      phone: formData.phone,
+      currency: "NGN",
+      walletPin: walletPin,
+      operatorId: operatorId,
+      amount: Number(formData.amount),
+      addBeneficiary: isBeneficiaryChecked,
+    });
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div
+      aria-hidden="true"
+      className="z-[999999] overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 flex justify-center items-center w-full md:inset-0 h-[100dvh]"
+    >
+      <div className="fixed inset-0 transition-opacity" aria-hidden="true">
+        <div className="absolute inset-0 bg-black/80 dark:bg-black/60" onClick={handleClose}></div>
+      </div>
+      <div className="relative mx-4 bg-bg-600 dark:bg-bg-1100 border border-border-800 dark:border-border-700 w-full max-w-md rounded-2xl overflow-visible">
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 pb-2">
+          <div>
+            <h2 className="text-white text-lg font-semibold">
+              {step === "form" ? "Airtime" : step === "confirm" ? "Airtime" : "Transaction History"}
+            </h2>
+            <p className="text-white/60 text-sm">
+              {step === "form" ? "Enter payment details to continue" : 
+               step === "confirm" ? "Confirm Transactions" : 
+               "View complete information about this transaction"}
+            </p>
+          </div>
+          <button
+            onClick={handleClose}
+            className="p-1 hover:bg-white/10 rounded transition-colors"
+          >
+            <CgClose className="text-xl text-white/70" />
+          </button>
+        </div>
+
+        {/* Content based on step */}
+        <div className="px-4 pb-4">
+          {step === "form" && (
+            <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
+            {/* Mobile Number */}
+            <div className="flex flex-col gap-2">
+              <label className="text-white/70 text-sm">Mobile Number</label>
+              <input
+                className="w-full bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-3 px-4 text-white placeholder:text-white/60 text-sm outline-none focus:ring-1 focus:ring-[#D4B139] focus:border-[#D4B139]"
+                placeholder="Enter mobile number"
+                type="text"
+                maxLength={11}
+                {...register("phone")}
+                onKeyDown={handleNumericKeyDown}
+                onPaste={handleNumericPaste}
+              />
+              {errors?.phone?.message && (
+                <p className="text-red-400 text-xs">{errors.phone.message}</p>
+              )}
+            </div>
+
+            {/* Amount */}
+            <div className="flex flex-col gap-2">
+              <label className="text-white/70 text-sm">Amount</label>
+              <input
+                className="w-full bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-3 px-4 text-white placeholder:text-white/60 text-sm outline-none focus:ring-1 focus:ring-[#D4B139] focus:border-[#D4B139]"
+                placeholder="Enter amount"
+                type="number"
+                min={minimumAmount || 50}
+                max={maxAmount || 50000}
+                {...register("amount")}
+              />
+              {errors?.amount?.message && (
+                <p className="text-red-400 text-xs">{errors.amount.message}</p>
+              )}
+            </div>
+
+            {/* Select Network */}
+            <div className="flex flex-col gap-2">
+              <label className="text-white/70 text-sm">Select Network</label>
+              <div className="relative" ref={dropdownRef}>
+                <div 
+                  onClick={() => setNetworkDropdownOpen(!networkDropdownOpen)}
+                  className="w-full bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-3 px-4 text-white text-sm outline-none cursor-pointer flex items-center justify-between"
+                >
+                  <div className="flex items-center gap-3">
+                    {isAirtimePlanLoading && watchedPhone && !errors.phone ? (
+                      <div className="flex items-center gap-2 text-white/70">
+                        <SpinnerLoader width={16} height={16} color="#D4B139" />
+                        <span className="text-sm">Detecting network...</span>
+                      </div>
+                    ) : selectedProvider ? (
+                      <>
+                        <Image
+                          src={selectedProvider.logo}
+                          alt={selectedProvider.name}
+                          width={20}
+                          height={20}
+                          className="w-5 h-5 rounded-full"
+                        />
+                        <span>{selectedProvider.name}</span>
+                      </>
+                    ) : (
+                      <span className="text-white/50">Enter phone number</span>
+                    )}
+                  </div>
+                  <IoChevronDown className={`w-4 h-4 text-white/70 transition-transform ${networkDropdownOpen ? 'rotate-180' : ''}`} />
+                </div>
+                
+                {/* Dropdown Options */}
+                {networkDropdownOpen && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-bg-600 dark:bg-bg-1100 border border-border-800 dark:border-border-700 rounded-lg shadow-lg z-50 overflow-hidden">
+                    {networkOptions.map((network) => (
+                      <div
+                        key={network.name}
+                        onClick={() => {
+                          setSelectedProvider({
+                            name: network.name,
+                            logo: network.logo,
+                          });
+                          setNetworkDropdownOpen(false);
+                        }}
+                        className="flex items-center gap-3 px-4 py-3 text-white text-sm hover:bg-white/5 cursor-pointer transition-colors"
+                      >
+                        <Image
+                          src={network.logo}
+                          alt={network.name}
+                          width={20}
+                          height={20}
+                          className="w-5 h-5 rounded-full"
+                        />
+                        <span>{network.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Next Button */}
+            <CustomButton
+              type="submit"
+              disabled={!isValid || !selectedProvider || airtimeLoading}
+              isLoading={airtimeLoading}
+              className="w-full bg-[#D4B139] hover:bg-[#D4B139]/90 text-black font-medium py-3 rounded-lg transition-colors mt-2"
+            >
+              Next
+            </CustomButton>
+            </form>
+          )}
+
+          {step === "confirm" && formData && (
+            <div className="flex flex-col gap-6">
+              {/* Transaction Details */}
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-white/60 text-sm">Network</span>
+                  <span className="text-white text-sm font-medium">{selectedProvider?.name}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-white/60 text-sm">Phone Number</span>
+                  <span className="text-white text-sm font-medium">+{formData.phone}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-white/60 text-sm">Amount</span>
+                  <span className="text-white text-sm font-medium">₦{Number(formData.amount).toLocaleString()}.00</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-white/60 text-sm">Amount Debited</span>
+                  <span className="text-white text-sm font-medium">₦{Number(formData.amount).toLocaleString()}.00</span>
+                </div>
+              </div>
+
+              {/* PIN Input */}
+              <div className="flex flex-col gap-3">
+                <label className="text-white/60 text-sm">Enter Transaction PIN</label>
+                <div className="relative">
+                  <input
+                    type="password"
+                    maxLength={4}
+                    value={walletPin}
+                    onChange={(e) => setWalletPin(e.target.value)}
+                    onInput={(e) => {
+                      const input = e.target as HTMLInputElement;
+                      input.value = input.value.replace(/\D/g, ""); // Remove non-digit characters
+                    }}
+                    className="w-full bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-4 px-4 text-white placeholder:text-white/40 text-sm outline-none focus:ring-1 focus:ring-[#D4B139] focus:border-[#D4B139] pr-14"
+                    placeholder=""
+                  />
+                  <div className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white/20 rounded-full p-2.5">
+                    <svg className="w-5 h-5 text-white/80" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M17.81 4.47c-.08 0-.16-.02-.23-.06C15.66 3.42 14 3 12.01 3c-1.98 0-3.86.47-5.57 1.41-.24.13-.54.04-.68-.2-.13-.24-.04-.55.2-.68C7.82 2.52 9.86 2 12.01 2c2.13 0 3.99.47 6.03 1.52.25.13.34.43.21.67-.09.18-.26.28-.44.28zM3.5 9.72c-.1 0-.2-.03-.29-.09-.23-.16-.28-.47-.12-.7.99-1.4 2.25-2.5 3.75-3.27C9.98 4.04 14 4.03 17.15 5.65c1.5.77 2.76 1.86 3.75 3.27.16.22.11.54-.12.7-.23.16-.54.11-.7-.12-.9-1.29-2.04-2.25-3.39-2.94-2.87-1.47-6.54-1.47-9.4.01-1.36.69-2.5 1.65-3.4 2.94-.08.14-.23.21-.39.21zm6.25 12.07c-.13 0-.26-.05-.35-.15-.87-.87-1.34-2.04-1.34-3.30 0-1.28.47-2.44 1.34-3.30.19-.19.50-.19.69 0 .19.19.19.50 0 .69-.68.68-1.04 1.57-1.04 2.61 0 1.04.36 1.93 1.04 2.61.19.19.19.50 0 .69-.09.1-.22.15-.34.15zm7.5 0c-.13 0-.26-.05-.35-.15-.19-.19-.19-.50 0-.69.68-.68 1.04-1.57 1.04-2.61 0-1.04-.36-1.93-1.04-2.61-.19-.19-.19-.50 0-.69.19-.19.50-.19.69 0 .87.86 1.34 2.02 1.34 3.30 0 1.26-.47 2.43-1.34 3.30-.09.1-.22.15-.34.15zM12 13.44c-.78 0-1.42-.64-1.42-1.42s.64-1.42 1.42-1.42 1.42.64 1.42 1.42-.64 1.42-1.42 1.42zm0-1.84c-.23 0-.42.19-.42.42s.19.42.42.42.42-.19.42-.42-.19-.42-.42-.42z"/>
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-4 mt-2">
+                <CustomButton
+                  onClick={() => setStep("form")}
+                  className="flex-1 bg-transparent border border-border-600 text-white hover:bg-white/5 py-4 rounded-lg transition-colors font-medium"
+                >
+                  Back
+                </CustomButton>
+                <CustomButton
+                  onClick={handleConfirmPayment}
+                  disabled={walletPin.length !== 4 || airtimeLoading}
+                  isLoading={airtimeLoading}
+                  className="flex-1 bg-[#D4B139] hover:bg-[#D4B139]/90 text-black font-medium py-4 rounded-lg transition-colors"
+                >
+                  Pay
+                </CustomButton>
+              </div>
+            </div>
+          )}
+
+          {step === "result" && transactionResult && (
+            <div className="flex flex-col items-center gap-4">
+              {/* Success/Error Icon and Amount */}
+              <div className="flex flex-col items-center gap-2">
+                {transactionResult.success ? (
+                  <>
+                    <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center">
+                      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <span className="text-green-500 text-sm font-medium">Successful</span>
+                    <span className="text-white text-2xl font-bold">₦{Number(formData?.amount || 0).toLocaleString()}.00</span>
+                  </>
+                ) : (
+                  <>
+                    <div className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center">
+                      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </div>
+                    <span className="text-red-500 text-sm font-medium">Failed</span>
+                    <span className="text-white text-2xl font-bold">₦{Number(formData?.amount || 0).toLocaleString()}.00</span>
+                  </>
+                )}
+              </div>
+
+              {/* Transaction Details */}
+              {transactionResult.success && (
+                <div className="w-full space-y-3 mt-4">
+                  <div className="flex justify-between items-center py-2">
+                    <span className="text-white/70 text-sm">Transaction ID</span>
+                    <span className="text-white text-sm font-medium">odjdkgjh783676</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2">
+                    <span className="text-white/70 text-sm">Date & Time</span>
+                    <span className="text-white text-sm font-medium">{new Date().toLocaleDateString()} {new Date().toLocaleTimeString()}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2">
+                    <span className="text-white/70 text-sm">Payment Method</span>
+                    <span className="text-white text-sm font-medium">Available Balance</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2">
+                    <span className="text-white/70 text-sm">Transaction Type</span>
+                    <span className="text-white text-sm font-medium">Airtime</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2">
+                    <span className="text-white/70 text-sm">To</span>
+                    <span className="text-white text-sm font-medium">{selectedProvider?.name} Nigeria</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2">
+                    <span className="text-white/70 text-sm">Number</span>
+                    <span className="text-white text-sm font-medium">+{formData?.phone}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 mt-6 w-full">
+                <CustomButton
+                  onClick={handleClose}
+                  className="flex-1 bg-transparent border border-border-600 text-white hover:bg-white/5 py-3 rounded-lg transition-colors"
+                >
+                  Contact Support
+                </CustomButton>
+                <CustomButton
+                  onClick={handleClose}
+                  className="flex-1 bg-[#D4B139] hover:bg-[#D4B139]/90 text-black font-medium py-3 rounded-lg transition-colors"
+                >
+                  Download Receipt
+                </CustomButton>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default AirtimeModal;

@@ -6,14 +6,11 @@ const Content = ({ children }: { children: React.ReactNode }) => {
   return (
     <div
       className={cn(
-        "flex flex-col overflow-y-auto transition-all duration-300",
-        {
-          "w-full lg:w-[75%] xl:w-[77.5%] 2xl:w-[80%]": true,
-        }
+        "flex flex-col overflow-y-auto transition-all duration-300 flex-1"
       )}
     >
       <Navbar />
-      <main className="w-full px-4 2xs:px-6 lg:pl-0  gap-4 xl:pr-6 py-4">
+      <main className="w-full px-4 md:px-6 py-4">
         {children}
       </main>
     </div>

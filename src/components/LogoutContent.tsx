@@ -8,9 +8,12 @@ import Cookies from "js-cookie";
 import { useState } from "react";
 import SpinnerLoader from "@/components/Loader/SpinnerLoader";
 import { useRouter } from "next/navigation";
+import { clearFCMToken } from "@/services/fcm.service";
+import usePaymentSettingsStore from "@/store/paymentSettings.store";
 
 const LogoutContent = () => {
   const { setIsLoggedIn, setUser } = useUserStore();
+  const { setFingerprintPaymentEnabled } = usePaymentSettingsStore();
   const navigate = useNavigate();
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -24,6 +27,10 @@ const LogoutContent = () => {
       queryKey: ["get-user"],
     });
     sessionStorage.removeItem("returnTo");
+    // Clear FCM token on logout
+    clearFCMToken();
+    // Disable fingerprint payment on logout (security measure)
+    setFingerprintPaymentEnabled(false);
     setLoading(true);
     setUser(null);
     setIsLoggedIn(false);

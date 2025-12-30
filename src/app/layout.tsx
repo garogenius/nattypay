@@ -9,6 +9,7 @@ import ReactQueryProvider from "@/providers/ReactQueryProvider";
 import UserProvider from "@/providers/UserProvider";
 import "react-datepicker/dist/react-datepicker.css";
 import ClientOnlyWelcome from "@/components/ClientOnlyWelcome";
+import TransactionViewModal from "@/components/modals/transactions/TransactionViewModal";
 
 // Initialize Inter font
 const inter = Inter({
@@ -16,7 +17,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Nattypay",
+  title: "Nattypay – Beyond Banking for a Smarter Financial Future",
   description:
     "Experience seamless financial transactions with Nattypay, a local and global leading financial service provider, We make the best and easiest banking for you",
 };
@@ -50,6 +51,7 @@ export default function RootLayout({
               <NextTopLoader color="#D4B139" showSpinner={false} />
               <ClientOnlyWelcome />
               <main className="w-full overflow-hidden">{children}</main>
+              <TransactionViewModal />
             </UserProvider>
           </ReactQueryProvider>
         </ThemeProvider>

@@ -1,9 +1,7 @@
 "use client";
 import { useGetTransactions } from "@/api/wallet/wallet.queries";
-
 import { useTheme } from "@/store/theme.store";
-import { FiSearch } from "react-icons/fi";
-
+import { FiSearch, FiDownload } from "react-icons/fi";
 import EmptyState from "../table/EmptyState";
 import Table from "../table/Table";
 import MobileTable from "../table/MobileTable";
@@ -14,6 +12,7 @@ import { useState } from "react";
 import { GenerateColumns } from "../table/columns";
 import TransactionsFilter from "../table/TransactionsFilter";
 import { TRANSACTION_CATEGORY, TRANSACTION_STATUS } from "@/constants/types";
+import DownloadStatementModal from "@/components/modals/transactions/DownloadStatementModal";
 
 type FilterChangeEvent = {
   category?: TRANSACTION_CATEGORY;
@@ -22,10 +21,11 @@ type FilterChangeEvent = {
 
 const TransactionsContent = () => {
   const theme = useTheme();
-  const [pageSize, setPageSize] = useState(5);
+  const [pageSize, setPageSize] = useState(10);
   const [pageNumber, setPageNumber] = useState(1);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterChangeEvent>({});
+  const [openDownload, setOpenDownload] = useState(false);
 
   const { transactionsData, isPending, isError } = useGetTransactions({
     page: pageNumber,
@@ -49,25 +49,42 @@ const TransactionsContent = () => {
   const tableLoading = isPending && !isError;
 
   return (
-    <div className="flex flex-col gap-4 mt-4">
-      <h2 className="text-text-200 dark:text-text-400 text-lg sm:text-xl font-semibold">
-        All Transactions{" "}
-      </h2>
-      <div className="w-full flex items-center justify-between gap-3">
-        <div className="w-[80%] xs:w-[60%] sm:w-[50%] md:w-[40%] 2xl:w-[30%] flex items-center gap-1.5 sm:gap-2 py-2 sm:py-2.5 px-3 sm:px-4 border border-transparent rounded-lg bg-bg-600 dark:bg-bg-1100">
-          <FiSearch className="text-text-700 text-base sm:text-lg" />
-          <input
-            type="text"
-            placeholder="Search by transaction reference"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full text-base outline-none bg-transparent placeholder:text-text-700 text-text-200 dark:text-text-400"
-          />
+    <div className="flex flex-col gap-5 md:gap-6 mt-2 md:mt-4">
+
+      {/* Section header + controls */}
+      <div className="flex flex-col gap-3">
+        <div className="w-full flex items-start sm:items-center justify-between gap-3">
+          <div>
+            <h2 className="text-white text-base sm:text-lg font-semibold">Transaction History</h2>
+            <p className="text-white/60 text-xs sm:text-sm">View and manage all your transaction history</p>
+          </div>
+          <button
+            onClick={() => setOpenDownload(true)}
+            className="inline-flex items-center gap-2 bg-[#D4B139] hover:bg-[#c7a42f] text-black font-medium rounded-lg px-4 py-2.5 text-sm"
+          >
+            <FiDownload />
+            <span>Download Statement</span>
+          </button>
         </div>
-        <TransactionsFilter onFilterChange={handleFilterChange} />
+        <div className="w-full flex items-center justify-between gap-3">
+          <div className="w-[80%] xs:w-[60%] sm:w-[50%] md:w-[40%] 2xl:w-[30%] flex items-center gap-1.5 sm:gap-2 py-2.5 px-4 rounded-lg bg-white/5 border border-white/10">
+            <FiSearch className="text-text-700 text-base sm:text-lg" />
+            <input
+              type="text"
+              placeholder="Search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full text-sm sm:text-base outline-none bg-transparent placeholder:text-text-700 text-text-200 dark:text-text-400"
+            />
+          </div>
+          <TransactionsFilter onFilterChange={handleFilterChange} />
+        </div>
       </div>
-      <div className="pb-10  w-full flex flex-col justify-center items-center gap-8 xs:gap-10">
-        <div className="w-full bg-bg-600 dark:bg-bg-1100 rounded-xl p-4">
+
+      {/* Table panel */}
+      <div className="pb-10 w-full flex flex-col justify-center items-center gap-8 xs:gap-10">
+        <div className="w-full bg-bg-600 dark:bg-bg-1100 rounded-2xl border border-white/10 overflow-hidden">
+          <div className="px-3 sm:px-4 pt-3 sm:pt-4">
           {tableLoading ? (
             <div className="flex flex-col gap-3 py-4">
               {[...Array(4)].map((_, index) => (
@@ -104,6 +121,7 @@ const TransactionsContent = () => {
               showButton={false}
             />
           )}
+          </div>
         </div>
 
         {hasTransactions && (
@@ -115,6 +133,9 @@ const TransactionsContent = () => {
           />
         )}
       </div>
+
+      {/* Modals */}
+      <DownloadStatementModal isOpen={openDownload} onClose={() => setOpenDownload(false)} />
     </div>
   );
 };

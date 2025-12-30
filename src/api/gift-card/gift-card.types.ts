@@ -6,3 +6,8 @@ export type IGCPayload = {
   unitPrice: number;
   walletPin: string;
 };
+
+export type IGetGCFxRate = {
+  amount: number;
+  currency: string;
+};

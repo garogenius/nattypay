@@ -11,7 +11,7 @@ const Sidebar = () => {
         className={cn(
           "hidden lg:flex flex-col bg-bg-600 dark:bg-bg-1100 h-screen sticky z-50 transform transition-all duration-300 ease-in-out",
           {
-            "lg:w-[25%] xl:w-[22.5%] 2xl:w-[20%]": true,
+            "lg:w-[240px] xl:w-[250px] 2xl:w-[260px]": true,
           }
         )}
       >

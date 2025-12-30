@@ -67,7 +67,7 @@ const Table = ({
                             "rounded-l-lg": isFirstCell,
                             "rounded-r-lg": isLastCell,
                             "bg-bg-600 dark:bg-bg-1100": rowStyle === "primary",
-                            "bg-bg-400 dark:bg-black": rowStyle === "secondary",
+                            "bg-white/5": rowStyle === "secondary",
                           }
                         )}
                         {...cell.getCellProps()}

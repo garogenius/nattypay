@@ -1,5 +1,5 @@
 import { request } from "@/utils/axios-utils";
-import { IGCPayload } from "./gift-card.types";
+import { IGCPayload, IGetGCFxRate } from "./gift-card.types";
 
 export const getGCCategoriesRequest = async () => {
   return request({
@@ -35,5 +35,12 @@ export const gcPaymentRequest = async (formdata: IGCPayload) => {
     url: `/bill/giftcard/pay`,
     method: "post",
     data: formdata,
+  });
+};
+
+export const getGCFxRateRequest = async (formdata: IGetGCFxRate) => {
+  return request({
+    url: `/bill/giftcard/get-fx-rate?amount=${formdata.amount}&currency=${formdata.currency}`,
+    method: "get",
   });
 };

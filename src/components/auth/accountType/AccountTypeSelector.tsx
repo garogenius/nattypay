@@ -2,18 +2,34 @@
 import useNavigate from "@/hooks/useNavigate";
 import React, { useState } from "react";
 import CustomButton from "@/components/shared/Button";
+import useRegistrationStore from "@/store/registration.store";
 
 const AccountTypeSelector = () => {
   const navigate = useNavigate();
+  const { setSelectedAccountType } = useRegistrationStore();
   const [selectedType, setSelectedType] = useState<string>("");
 
   const handleTypeChange = (type: "personal" | "business") => {
     setSelectedType(type);
   };
 
+  const handleContinue = () => {
+    if (!selectedType) return;
+    
+    // Store account type
+    setSelectedAccountType(selectedType.toUpperCase() as "PERSONAL" | "BUSINESS");
+    
+    // Navigate to appropriate signup form
+    navigate(`/signup/${selectedType}`);
+  };
+
   return (
-    <div className="w-full h-full flex flex-col gap-4">
-      <label className="w-full relative flex items-center px-4 2xs:px-5 py-4 2xs:py-5 bg-bg-600 dark:bg-bg-1100 rounded-lg sm:rounded-xl cursor-pointer hover:opacity-80">
+    <div className="w-full flex flex-col gap-4">
+      <label className={`w-full relative flex items-center px-4 py-4 bg-white border-2 rounded-lg cursor-pointer transition-all hover:border-[#D4B139]/50 ${
+        selectedType === "personal"
+          ? "border-[#D4B139] bg-[#D4B139]/5"
+          : "border-gray-200"
+      }`}>
         <input
           type="radio"
           name="accountType"
@@ -25,27 +41,33 @@ const AccountTypeSelector = () => {
           }}
         />
         <div className="flex-1">
-          <h3 className="text-base 2xs:text-lg md:text-xl font-medium text-text-200 dark:text-text-1300">
+          <h3 className="text-lg font-medium text-gray-900">
             Personal Account
           </h3>
-          <p className="text-text-700 dark:text-text-800 text-xs 2xs:text-sm">
+          <p className="text-sm text-gray-600">
             for individuals
           </p>
         </div>
         <div
-          className={`w-5 h-5 sm:w-6 sm:h-6 border-2 ${selectedType === "personal"
-            ? "border-primary"
-            : "border-border-200 dark:border-border-100"
-            } rounded-full flex items-center justify-center`}
+          className={`w-5 h-5 border-2 ${
+            selectedType === "personal"
+              ? "border-[#D4B139]"
+              : "border-gray-300"
+          } rounded-full flex items-center justify-center`}
         >
           <div
-            className={`w-3 h-3 bg-primary rounded-full ${selectedType === "personal" ? "block" : "hidden"
-              }`}
+            className={`w-3 h-3 bg-[#D4B139] rounded-full ${
+              selectedType === "personal" ? "block" : "hidden"
+            }`}
           />
         </div>
       </label>
 
-      <label className="w-full relative flex items-center px-4 2xs:px-5 py-4 2xs:py-5  bg-bg-600 dark:bg-bg-1100 rounded-lg sm:rounded-xl cursor-pointer hover:opacity-80">
+      <label className={`w-full relative flex items-center px-4 py-4 bg-white border-2 rounded-lg cursor-pointer transition-all hover:border-[#D4B139]/50 ${
+        selectedType === "business"
+          ? "border-[#D4B139] bg-[#D4B139]/5"
+          : "border-gray-200"
+      }`}>
         <input
           type="radio"
           name="accountType"
@@ -57,22 +79,24 @@ const AccountTypeSelector = () => {
           }}
         />
         <div className="flex-1">
-          <h3 className="text-base 2xs:text-lg md:text-xl font-medium text-text-200 dark:text-text-1300">
+          <h3 className="text-lg font-medium text-gray-900">
             Business Account
           </h3>
-          <p className="text-text-700 dark:text-text-800 text-xs 2xs:text-sm">
+          <p className="text-sm text-gray-600">
             for corporate entities
           </p>
         </div>
         <div
-          className={`w-5 h-5 sm:w-6 sm:h-6 border-2 ${selectedType === "business"
-            ? "border-primary"
-            : "border-border-200 dark:border-border-100"
-            } rounded-full flex items-center justify-center`}
+          className={`w-5 h-5 border-2 ${
+            selectedType === "business"
+              ? "border-[#D4B139]"
+              : "border-gray-300"
+          } rounded-full flex items-center justify-center`}
         >
           <div
-            className={`w-3 h-3 bg-primary rounded-full ${selectedType === "business" ? "block" : "hidden"
-              }`}
+            className={`w-3 h-3 bg-[#D4B139] rounded-full ${
+              selectedType === "business" ? "block" : "hidden"
+            }`}
           />
         </div>
       </label>
@@ -81,11 +105,8 @@ const AccountTypeSelector = () => {
         <CustomButton
           type="button"
           disabled={!selectedType}
-          className="w-full"
-          onClick={() => {
-            if (!selectedType) return;
-            navigate(`/signup/${selectedType}`);
-          }}
+          onClick={handleContinue}
+          className="w-full bg-[#D4B139] hover:bg-[#c7a42f] text-black font-medium py-3.5 rounded-lg text-base disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Continue
         </CustomButton>

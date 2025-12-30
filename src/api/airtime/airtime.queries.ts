@@ -8,6 +8,7 @@ import {
   airtimeVariationRequest,
   internationalAirtimeFxRateRequest,
   internationalAirtimePlanRequest,
+  internationalAirtimePaymentRequest,
 } from "./airtime.apis";
 import {
   IAirtimePlan,
@@ -78,5 +79,21 @@ export const useGetAirtimeNetWorkProvider = () => {
   return useQuery({
     queryKey: ["airtime-network-provider"],
     queryFn: airtimeNetworkProviderRequest,
+  });
+};
+
+export const usePayForInternationalAirtime = (
+  onError: (error: any) => void,
+  onSuccess: (data: any) => void
+) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: internationalAirtimePaymentRequest,
+    onError,
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["get-beneficiaries"] });
+      queryClient.invalidateQueries({ queryKey: ["user"] });
+      onSuccess(data);
+    },
   });
 };

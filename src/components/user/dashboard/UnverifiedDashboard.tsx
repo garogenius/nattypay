@@ -9,12 +9,14 @@ import VerifyBvnForm from "./VerifyBvnForm";
 import CreatePinForm from "./CreatePinForm";
 import useUserStore from "@/store/user.store";
 import { TIER_LEVEL } from "@/constants/types";
+import useNavigate from "@/hooks/useNavigate";
 
 const UnverifiedDashboard = ({
   setVerified,
 }: {
   setVerified: (status: boolean) => void;
 }) => {
+  const navigate = useNavigate();
   const { user } = useUserStore();
   const isBvnVerified =
     user?.tierLevel !== TIER_LEVEL.notSet && user?.isBvnVerified;
@@ -92,7 +94,8 @@ const UnverifiedDashboard = ({
           <CustomButton
             type="button"
             onClick={() => {
-              setVerificationStatus(true);
+              // Navigate to open-account page to complete BVN/NIN verification
+              navigate("/open-account");
             }}
             className="w-fit border-2 border-primary text-black font-semibold text-base 2xs:text-lg px-8 sm:px-12 xl:px-20 py-3.5 xs:py-4"
           >

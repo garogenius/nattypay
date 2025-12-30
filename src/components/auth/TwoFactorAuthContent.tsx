@@ -2,28 +2,25 @@
 
 "use client";
 
-import { motion } from "framer-motion";
-import Image from "next/image";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
 import CustomButton from "@/components/shared/Button";
 import ErrorToast from "@/components/toast/ErrorToast";
 import SuccessToast from "@/components/toast/SuccessToast";
 import useNavigate from "@/hooks/useNavigate";
-import { useEffect, useState } from "react";
 import OtpInput from "react-otp-input";
-
 import useAuthEmailStore from "@/store/authEmail.store";
 import useTimerStore from "@/store/timer.store";
-import { useRouter } from "next/navigation";
-import SpinnerLoader from "../Loader/SpinnerLoader";
-import icons from "../../../public/icons";
 import { useResend2faCode, useVerify2faCode } from "@/api/auth/auth.queries";
 import useUserStore from "@/store/user.store";
 import Cookies from "js-cookie";
-import images from "../../../public/images";
+import { initializeFCM } from "@/services/fcm.service";
+import { User } from "@/constants/types";
+import { useQueryClient } from "@tanstack/react-query";
 
 const TwoFactorAuthContent = () => {
   const navigate = useNavigate();
-  const router = useRouter();
+  const queryClient = useQueryClient();
 
   const { authEmail } = useAuthEmailStore();
   const [token, setToken] = useState("");
@@ -31,22 +28,67 @@ const TwoFactorAuthContent = () => {
 
   const isValid = token.length === 6;
 
-  const onVerificationSuccess = (data: any) => {
-    Cookies.set("accessToken", data?.data?.accessToken);
-    setUser(data?.data?.user);
+  const onVerificationSuccess = async (data: any) => {
+    const user: User = data?.data?.user;
+    
+    // Set cookie with proper options to ensure it's accessible
+    const accessToken = data?.data?.accessToken;
+    if (accessToken) {
+      Cookies.set("accessToken", accessToken, {
+        expires: 7, // 7 days
+        path: "/",
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+      });
+    }
+    
+    setUser(user);
     setIsLoggedIn(true);
     SuccessToast({
-      title: "Email verified",
-      description: "Your email address verification successful",
+      title: "Two-Factor Authentication Verified",
+      description: "Your account has been successfully verified!",
     });
-    const redirectPath =
-      sessionStorage.getItem("returnTo") || "/user/dashboard";
-    navigate(redirectPath, "replace");
+    
+    // Initialize FCM token registration
+    initializeFCM().catch((err) => {
+      console.error("FCM initialization failed:", err);
+    });
+    
+    // Wait a bit to ensure cookie is set, then refetch user profile
+    setTimeout(async () => {
+      await queryClient.invalidateQueries({ queryKey: ["user"] });
+      await queryClient.refetchQueries({ queryKey: ["user"] });
+    }, 100);
+    
+    // After 2FA verification, check BVN/NIN verification status
+    setTimeout(() => {
+      // Step 1: Check if BVN or NIN is verified
+      // User cannot go to dashboard until BVN or NIN is verified
+      const isBvnOrNinVerified = user?.isBvnVerified || user?.isNinVerified;
+      if (!isBvnOrNinVerified) {
+        // Both BVN and NIN are false - navigate to open account page to verify
+        navigate("/open-account", "replace");
+        return;
+      }
+      
+      // Step 2: Check if wallet PIN is set
+      if (!user?.isWalletPinSet) {
+        // Wallet PIN is not set - navigate to transaction pin page
+        navigate("/transaction-pin", "replace");
+        return;
+      }
+      
+      // Step 3: All verifications complete - go to dashboard
+      const redirectPath =
+        sessionStorage.getItem("returnTo") || "/user/dashboard";
+      navigate(redirectPath, "replace");
+    }, 200);
+    
     setToken("");
   };
 
   const onVerificationError = (error: any) => {
-    const errorMessage = error.response.data.message;
+    const errorMessage = error.response?.data?.message;
 
     const descriptions = Array.isArray(errorMessage)
       ? errorMessage
@@ -62,18 +104,19 @@ const TwoFactorAuthContent = () => {
     mutate: verify2faCode,
     isPending: verificationPending,
     isError: verificationError,
+    reset: resetVerification,
   } = useVerify2faCode(onVerificationError, onVerificationSuccess);
 
   const onResendVerificationCodeSuccess = (data: any) => {
-    useTimerStore.getState().setTimer(120);
+    useTimerStore.getState().setTimer(50); // Set timer to 50 seconds as per screenshot
     SuccessToast({
       title: "Sent Successfully!",
-      description: data.data.message,
+      description: data.data?.message || "Verification code has been resent to your email.",
     });
   };
 
   const onResendVerificationCodeError = (error: any) => {
-    const errorMessage = error.response.data.message;
+    const errorMessage = error.response?.data?.message;
     const descriptions = Array.isArray(errorMessage)
       ? errorMessage
       : [errorMessage];
@@ -94,17 +137,54 @@ const TwoFactorAuthContent = () => {
   );
 
   const handleVerify = async () => {
-    if (authEmail) {
+    if (token.length === 6) {
+      // Reset any previous error state
+      resetVerification();
+      
+      // Get email from store - required for 2FA verification
+      // Fallback: try to get email from user store if authEmail is not set
+      let emailToUse = authEmail;
+      if (!emailToUse) {
+        const user = useUserStore.getState().user;
+        emailToUse = user?.email || "";
+      }
+      
+      if (!emailToUse) {
+        ErrorToast({
+          title: "Email Required",
+          descriptions: ["Email address is required for verification. Please try logging in again."],
+        });
+        return;
+      }
+      
+      // Verify 2FA code - requires both email and OTP code
       verify2faCode({
-        email: authEmail,
+        email: emailToUse,
         otpCode: token,
       });
     }
   };
 
   const handleResendClick = async () => {
-    if (resendTimer === 0) {
-      resend2faCode({ email: authEmail });
+    if (resendTimer === 0 && !resend2faCodePending) {
+      // Get email from store - required for resending 2FA code
+      // Fallback: try to get email from user store if authEmail is not set
+      let emailToUse = authEmail;
+      if (!emailToUse) {
+        const user = useUserStore.getState().user;
+        emailToUse = user?.email || "";
+      }
+      
+      if (!emailToUse) {
+        ErrorToast({
+          title: "Email Required",
+          descriptions: ["Email address is required to resend verification code. Please try logging in again."],
+        });
+        return;
+      }
+      
+      // Resend 2FA email - requires email parameter
+      resend2faCode({ email: emailToUse });
     }
   };
 
@@ -138,156 +218,142 @@ const TwoFactorAuthContent = () => {
   }, [expireAt, timerStore]);
 
   const formatTimer = (seconds: number) => {
-    const minutes = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${minutes}:${secs < 10 ? "0" : ""}${secs}`;
+    // Format as "50seconds" (no space, lowercase)
+    return `${seconds}seconds`;
   };
 
   const handlePaste: React.ClipboardEventHandler = (event) => {
-    const data = event.clipboardData.getData("text").slice(0, 6); // Get first 6 characters
+    const data = event.clipboardData.getData("text").slice(0, 6);
     setToken(data);
   };
 
-  useEffect(() => {
-    if (!authEmail) {
-      ErrorToast({
-        title: "Error",
-        descriptions: ["No email found. Please try again."],
-      });
-      router.back();
-    }
-  }, [authEmail, router, navigate]);
+  // REMOVED: Auto-send 2FA code on mount
+  // Code should only be sent when user clicks "Resend" button
+  // The login API should send the code automatically, not this component
 
   const loadingStatus = verificationPending && !verificationError;
   const resendLoadingStatus = resend2faCodePending && !resend2faCodeError;
 
   return (
-    <div className="relative flex h-full min-h-screen w-full overflow-hidden bg-black">
-      {/* Mobile Logo */}
-      <div className="absolute top-6 left-6 z-50 lg:hidden">
-        <Image
-          src={images.logo2}
-          alt="logo"
-          className="w-24 h-12 cursor-pointer"
-          onClick={() => navigate("/")}
-        />
-      </div>
-
-      {/* Left side - Image with overlay and content */}
-      <div className="hidden lg:block lg:w-7/12 relative">
-        {/* Desktop Logo at top-left */}
-        <div className="absolute top-6 left-6 z-50 hidden lg:block">
-          <Image
-            src={images.logo2}
-            alt="logo"
-            className="w-28 h-14 cursor-pointer"
-            onClick={() => navigate("/")}
-          />
-        </div>
-        {/* Background image */}
-        <div className="absolute inset-0">
-          <Image
-            src={images.auth.accountTypeDescription}
-            alt="auth background"
-            fill
-            priority
-            className="object-cover"
-          />
-          <div className="absolute inset-0 bg-black/80" />
-        </div>
-        {/* Overlay text */}
-        <div className="relative z-10 h-full w-full flex items-center">
-          <div className="px-6 2xs:px-8 sm:px-12 md:px-16 lg:px-20 py-20 max-w-2xl">
-            <h1 className="text-3xl 2xs:text-4xl xs:text-5xl md:text-6xl font-bold text-white mb-4">
-              Two-Factor Authentication
-            </h1>
-            <p className="text-base 2xs:text-lg xl:text-xl text-gray-200 leading-relaxed max-w-xl">
-              Check your email for a 6-digit code to continue.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Right side - Form */}
-      <div className="flex w-full flex-col items-center justify-center bg-black p-6 sm:p-8 lg:w-5/12 lg:overflow-y-auto">
-        <motion.div
-          whileInView={{ opacity: [0, 1] }}
-          transition={{ duration: 0.5, type: "tween" }}
-          className=" z-10 w-full max-w-md sm:max-w-lg flex flex-col justify-start items-start bg-bg-600 dark:bg-bg-1100 border border-border-600 rounded-2xl px-6 2xs:px-8 sm:px-8 py-8 2xs:py-10 gap-6 2xs:gap-8 "
-        >
-          <div className="text-white flex flex-col items-center justify-center w-full text-center gap-2 sm:gap-4">
-            <div className="flex justify-center items-center p-3 rounded-full bg-bg-1200">
-              <Image
-                className="w-8 2xs:w-10 xs:w-12 "
-                src={icons.authIcons.emailIcon}
-                alt="email"
-              />
+    <div className="relative flex h-full min-h-screen w-full overflow-hidden">
+      {/* Left Panel - Yellow/Gold Background */}
+      <div className="hidden lg:flex lg:w-[40%] bg-[#D4B139] relative items-center justify-center">
+        <div className="w-full h-full flex flex-col items-center justify-center px-8 py-12">
+          {/* Padlock Icon */}
+          <div className="w-full max-w-md mb-8 flex items-center justify-center">
+            <div className="w-64 h-64 bg-white/20 rounded-full flex items-center justify-center">
+              <svg
+                className="w-48 h-48 text-white"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                />
+              </svg>
             </div>
-            <div className="w-full 2xs:w-[90%] xs:w-[80%] sm:w-[70%]  flex flex-col justify-center items-center gap-0.5 sm:gap-2 text-text-700 dark:text-text-900">
-              <h2 className="text-xl xs:text-2xl xl:text-3xl font-semibold">
-                Two-Factor Authentication
-              </h2>
-              <p className="text-xs 2xs:text-sm xs:text-base dark:text-text-400">
-                Open your email address, we just sent a verification code to{" "}
-                {authEmail}
+          </div>
+          <h1 className="text-4xl font-bold text-white mb-4">
+            Ultimate Security
+          </h1>
+          <p className="text-lg text-white/90 text-center max-w-md">
+            Secure your future with simple, flexible investment plans and opportunities
+          </p>
+        </div>
+      </div>
+
+      {/* Right Panel - White Background with Form */}
+      <div className="w-full lg:w-[60%] bg-white flex flex-col items-center justify-center px-6 sm:px-8 py-12">
+        <div className="w-full max-w-md">
+          {/* Form Card */}
+          <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-lg">
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+              Verify Two Factor Authentication
+            </h2>
+            <p className="text-sm text-gray-600 mb-6">
+              Enter the code sent to {authEmail || "your email"}
+            </p>
+
+            <div className="space-y-6">
+              {/* OTP Input */}
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center justify-center w-full">
+                  <OtpInput
+                    value={token}
+                    onChange={setToken}
+                    onPaste={handlePaste}
+                    numInputs={6}
+                    renderSeparator={<span className="w-2"></span>}
+                    containerStyle={{}}
+                    skipDefaultStyles
+                    inputType="number"
+                    renderInput={(props) => (
+                      <input
+                        {...props}
+                        className="w-12 h-12 bg-transparent border-b-2 border-gray-300 text-center text-xl font-medium outline-none focus:border-[#D4B139]"
+                      />
+                    )}
+                  />
+                </div>
+
+                {/* Resend Text */}
+                <p className="text-center text-sm text-gray-600">
+                  {resendTimer && resendTimer > 0 ? (
+                    <>
+                      Didn't receive the code?{" "}
+                      <span className="text-[#D4B139]">Resend</span> in{" "}
+                      <span className="text-[#D4B139]">{formatTimer(resendTimer)}</span>
+                    </>
+                  ) : (
+                    <>
+                      Didn't receive the code?{" "}
+                      <span
+                        className="text-[#D4B139] cursor-pointer hover:underline"
+                        onClick={handleResendClick}
+                      >
+                        {resendLoadingStatus ? "Resending..." : "Resend"}
+                      </span>
+                    </>
+                  )}
+                </p>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-4">
+                <CustomButton
+                  type="button"
+                  onClick={() => navigate(-1)}
+                  className="flex-1 bg-[#D4B139]/20 hover:bg-[#D4B139]/30 text-gray-800 font-medium py-3 rounded-lg"
+                >
+                  Back
+                </CustomButton>
+                <CustomButton
+                  type="button"
+                  disabled={!isValid || loadingStatus}
+                  isLoading={loadingStatus}
+                  onClick={handleVerify}
+                  className="flex-1 bg-[#D4B139] hover:bg-[#c7a42f] text-black font-medium py-3 rounded-lg"
+                >
+                  Proceed
+                </CustomButton>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="text-center text-xs text-gray-500 mt-8">
+              <p>
+                Licenced by CBN a{" "}
+                <span className="inline-block w-3 h-3 bg-green-500 rounded-full"></span>{" "}
+                Deposits Insured by{" "}
+                <span className="text-blue-600 underline">NDIC</span>
               </p>
             </div>
           </div>
-          <div className="flex flex-col justify-center items-center w-full gap-4">
-            <div className="flex items-center justify-center  w-full ">
-              <OtpInput
-                value={token}
-                onChange={(props) => setToken(props)}
-                onPaste={handlePaste}
-                numInputs={6}
-                renderSeparator={<span className="w-2 2xs:w-3 xs:w-4"></span>}
-                containerStyle={{}}
-                skipDefaultStyles
-                inputType="number"
-                renderInput={(props) => (
-                  <input
-                    {...props}
-                    className="w-10 h-10 2xs:w-12 2xs:h-12 bg-transparent border-[1.03px] border-border-700  rounded-md text-base 2xs:text-lg text-text-700 dark:text-text-400 text-center font-medium outline-none"
-                  />
-                )}
-              />
-            </div>
-            <div className=" my-1 sm:my-2.5 text-center w-[90%] xs:w-[80%] text-sm 2xs:text-base text-text-1000  font-medium">
-              {resendTimer && resendTimer > 0 ? (
-                <>
-                  Didn’t get the code?{" "}
-                  <span className="text-secondary">Resend</span> in{" "}
-                  <span className="text-secondary">
-                    {formatTimer(resendTimer)}
-                  </span>
-                </>
-              ) : (
-                <div className="flex items-center justify-center ">
-                  Didn’t receive any code?
-                  <span
-                    className="cursor-pointer text-secondary ml-1"
-                    onClick={handleResendClick}
-                  >
-                    {resendLoadingStatus ? (
-                      <SpinnerLoader width={20} height={20} color="#D4B139" />
-                    ) : (
-                      "Resend"
-                    )}
-                  </span>
-                </div>
-              )}
-            </div>
-            <CustomButton
-              type="button"
-              disabled={loadingStatus || !isValid}
-              isLoading={loadingStatus}
-              onClick={handleVerify}
-              className="w-full 2xs:w-[90%] sm:w-[80%] border-2 border-primary text-black text-base 2xs:text-lg max-2xs:px-6 py-3.5 xs:py-4 mt-2 2xs:mt-4 xs:mt-6 sm:mt-8 mb-2"
-            >
-              Next{" "}
-            </CustomButton>
-          </div>
-        </motion.div>
+        </div>
       </div>
     </div>
   );

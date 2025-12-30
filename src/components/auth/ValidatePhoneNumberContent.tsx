@@ -1,182 +1,305 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 "use client";
-import { useForm } from "react-hook-form";
-import { yupResolver } from "@hookform/resolvers/yup";
-import * as yup from "yup";
-import { motion } from "framer-motion";
-import images from "../../../public/images";
-import Image from "next/image";
-import AuthInput from "./AuthInput";
+
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import OtpInput from "react-otp-input";
 import CustomButton from "@/components/shared/Button";
 import ErrorToast from "@/components/toast/ErrorToast";
 import SuccessToast from "@/components/toast/SuccessToast";
 import useNavigate from "@/hooks/useNavigate";
 import useAuthEmailStore from "@/store/authEmail.store";
-import { useValidatePhoneNumber } from "@/api/user/user.queries";
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-
-const schema = yup.object().shape({
-  email: yup.string().email("Invalid email").required("Email is required"),
-  phoneNumber: yup
-    .string()
-    .required("Phone number is required")
-    .matches(/^\d{11}$/, "Phone number must be 11 digits"),
-});
-
-type ValidatePhoneNumberFormData = yup.InferType<typeof schema>;
+import useTimerStore from "@/store/timer.store";
+import useUserStore from "@/store/user.store";
+import {
+  useValidatePhoneNumber,
+  useVerifyPhoneNumber,
+} from "@/api/user/user.queries";
 
 const ValidatePhoneNumberContent = () => {
   const navigate = useNavigate();
-  const { setAuthEmail, setAuthPhoneNumber } = useAuthEmailStore();
   const router = useRouter();
+  const { user } = useUserStore();
 
-  const { authEmail } = useAuthEmailStore();
-  const form = useForm<ValidatePhoneNumberFormData>({
-    defaultValues: {
-      email: authEmail,
-      phoneNumber: "",
-    },
-    resolver: yupResolver(schema),
-    mode: "onChange",
-  });
+  const { authEmail, authPhoneNumber, setAuthPhoneNumber } = useAuthEmailStore();
+  const [token, setToken] = useState("");
 
-  const { register, handleSubmit, formState } = form;
-  const { errors, isValid } = formState;
+  const isValid = token.length === 4;
+  
+  // Use phone number from user store if available, otherwise use authPhoneNumber from store
+  const phoneNumber = user?.phoneNumber || authPhoneNumber;
+  
+  useEffect(() => {
+    // If user has phone number but it's not in authPhoneNumber store, set it
+    if (user?.phoneNumber && !authPhoneNumber) {
+      setAuthPhoneNumber(user.phoneNumber);
+    }
+  }, [user?.phoneNumber, authPhoneNumber, setAuthPhoneNumber]);
 
-  const onError = async (error: any) => {
-    const errorMessage = error?.response?.data?.message;
+  useEffect(() => {
+    // Initialize timer when component mounts
+    useTimerStore.getState().setTimer(120);
+  }, []);
+
+  const onVerificationSuccess = () => {
+    SuccessToast({
+      title: "Phone verified",
+      description: "Your phone number verification successful",
+    });
+    // Navigate to two-factor-auth or dashboard after phone verification
+    navigate("/two-factor-auth", "replace");
+    setToken("");
+  };
+
+  const onVerificationError = (error: any) => {
+    const errorMessage = error.response?.data?.message;
     const descriptions = Array.isArray(errorMessage)
       ? errorMessage
       : [errorMessage];
 
     ErrorToast({
-      title: "Error during validating phone number",
+      title: "Verification Failed",
       descriptions,
     });
   };
 
-  const onSuccess = () => {
-    setAuthEmail(form.getValues("email"));
-    setAuthPhoneNumber(form.getValues("phoneNumber"));
-    SuccessToast({
-      title: "Phone number validated!",
-      description:
-        "Check your phone number for verification code to verify your phone number",
-    });
+  const {
+    mutate: verifyPhoneNumber,
+    isPending: verificationPending,
+    isError: verificationError,
+    reset: resetVerification,
+  } = useVerifyPhoneNumber(onVerificationError, onVerificationSuccess);
 
-    navigate("/verify-phoneNumber");
+  const onResendSuccess = (data: any) => {
+    useTimerStore.getState().setTimer(120);
+    SuccessToast({
+      title: "Sent Successfully!",
+      description: data?.data?.message || "Verification code resent",
+    });
+  };
+
+  const onResendError = (error: any) => {
+    const errorMessage = error.response?.data?.message;
+    const descriptions = Array.isArray(errorMessage)
+      ? errorMessage
+      : [errorMessage];
+
+    ErrorToast({
+      title: "Sending Failed",
+      descriptions,
+    });
+  };
+
+  const {
+    mutate: resendVerificationCode,
+    isPending: resendPending,
+  } = useValidatePhoneNumber(onResendError, onResendSuccess);
+
+  const handleVerify = async () => {
+    const email = authEmail || user?.email;
+    if (email && phoneNumber) {
+      // Reset any previous error state
+      resetVerification();
+      verifyPhoneNumber({
+        email,
+        otp: token,
+      });
+    }
+  };
+
+  const handleResendClick = async () => {
+    const timerStore = useTimerStore.getState();
+    const email = authEmail || user?.email;
+    if (timerStore.resendTimer === 0 && email && phoneNumber) {
+      resendVerificationCode({
+        email,
+        phoneNumber,
+      });
+    }
+  };
+
+  const timerStore = useTimerStore();
+  const resendTimer = timerStore.resendTimer;
+  const decrementTimer = timerStore.decrementTimer;
+  const expireAt = timerStore.expireAt;
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+
+    if (resendTimer > 0) {
+      interval = setInterval(() => {
+        if (decrementTimer) decrementTimer();
+      }, 1000);
+    } else {
+      if (interval) clearInterval(interval);
+      timerStore.clearTimer();
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [resendTimer, decrementTimer, timerStore]);
+
+  useEffect(() => {
+    if (expireAt && Date.now() >= expireAt) {
+      timerStore.clearTimer();
+    }
+  }, [expireAt, timerStore]);
+
+  const formatTimer = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${minutes}:${secs < 10 ? "0" : ""}${secs}`;
+  };
+
+  const handlePaste: React.ClipboardEventHandler = (event) => {
+    const data = event.clipboardData.getData("text").slice(0, 4);
+    setToken(data);
   };
 
   useEffect(() => {
-    if (!authEmail) {
+    const email = authEmail || user?.email;
+    if (!email) {
       ErrorToast({
         title: "Error",
         descriptions: ["No email found. Please try again."],
       });
       router.back();
     }
-  }, [authEmail, router, navigate]);
+    
+    // If user doesn't have phone number, redirect to add phone number page
+    if (!phoneNumber) {
+      navigate("/add-phone-number");
+    }
+  }, [authEmail, user?.email, phoneNumber, router, navigate]);
 
-  const {
-    mutate: validatePhoneNumber,
-    isPending: validatePhoneNumberPending,
-    isError: validatePhoneNumberError,
-  } = useValidatePhoneNumber(onError, onSuccess);
+  const loadingStatus = verificationPending && !verificationError;
+  const resendLoadingStatus = resendPending;
 
-  const validatePhoneNumberLoading =
-    validatePhoneNumberPending && !validatePhoneNumberError;
-
-  const onSubmit = async (data: ValidatePhoneNumberFormData) => {
-    validatePhoneNumber(data);
-  };
+  // Format phone number for display
+  const displayPhoneNumber = phoneNumber 
+    ? `+234${phoneNumber.slice(-10)}` 
+    : "+234000000000";
 
   return (
-    <div className="relative flex h-full min-h-screen w-full overflow-hidden bg-black">
-      {/* Mobile Logo */}
-      <div className="absolute top-6 left-6 z-50 lg:hidden">
-        <Image
-          src={images.logo2}
-          alt="logo"
-          className="w-24 h-12 cursor-pointer"
-          onClick={() => navigate("/")}
-        />
+    <div className="relative flex h-full min-h-screen w-full overflow-hidden">
+      {/* Left Panel - Yellow/Gold Background */}
+      <div className="hidden lg:flex lg:w-[40%] bg-[#D4B139] relative items-center justify-center">
+        <div className="w-full h-full flex flex-col items-center justify-center px-8 py-12">
+          {/* Padlock Icon */}
+          <div className="w-full max-w-md mb-8 flex items-center justify-center">
+            <div className="w-48 h-48 flex items-center justify-center">
+              <svg
+                className="w-full h-full text-white"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                />
+              </svg>
+            </div>
+          </div>
+          <h1 className="text-4xl font-bold text-white mb-4">Ultimate Security</h1>
+          <p className="text-lg text-white/90 text-center max-w-md">
+            Secure your future with simple, flexible investment plans and opportunities
+          </p>
+        </div>
       </div>
 
-      {/* Left side - Image with overlay and content */}
-      <div className="hidden lg:block lg:w-7/12 relative">
-        {/* Desktop Logo at top-left */}
-        <div className="absolute top-6 left-6 z-50 hidden lg:block">
-          <Image
-            src={images.logo2}
-            alt="logo"
-            className="w-28 h-14 cursor-pointer"
-            onClick={() => navigate("/")}
-          />
-        </div>
-        {/* Background image */}
-        <div className="absolute inset-0">
-          <Image
-            src={images.auth.accountTypeDescription}
-            alt="auth background"
-            fill
-            priority
-            className="object-cover"
-          />
-          <div className="absolute inset-0 bg-black/80" />
-        </div>
-        {/* Overlay text */}
-        <div className="relative z-10 h-full w-full flex items-center">
-          <div className="px-6 2xs:px-8 sm:px-12 md:px-16 lg:px-20 py-20 max-w-2xl">
-            <h1 className="text-3xl 2xs:text-4xl xs:text-5xl md:text-6xl font-bold text-white mb-4">
-              Validate Phone Number
-            </h1>
-            <p className="text-base 2xs:text-lg xl:text-xl text-gray-200 leading-relaxed max-w-xl">
-              Enter your phone number to receive a verification code.
+      {/* Right Panel - White Background with Form */}
+      <div className="w-full lg:w-[60%] bg-white flex flex-col items-center justify-center px-6 sm:px-8 py-12">
+        <div className="w-full max-w-md">
+          {/* Form Card */}
+          <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-lg">
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Verify Phone Number</h2>
+            <p className="text-sm text-gray-600 mb-6">
+              Enter the code sent to <span className="font-medium">{displayPhoneNumber}</span>
             </p>
+
+            {/* OTP Input */}
+            <div className="flex flex-col gap-6 mb-6">
+              <div className="flex items-center justify-center gap-2">
+                <OtpInput
+                  value={token}
+                  onChange={(props) => setToken(props)}
+                  onPaste={handlePaste}
+                  numInputs={4}
+                  renderSeparator={<span className="w-2"></span>}
+                  containerStyle={{}}
+                  skipDefaultStyles
+                  inputType="number"
+                  renderInput={(props) => (
+                    <input
+                      {...props}
+                      className="w-12 h-12 bg-transparent border-b-2 border-gray-300 text-center text-xl font-medium outline-none focus:border-[#D4B139]"
+                    />
+                  )}
+                />
+              </div>
+
+              {/* Resend Text */}
+              <p className="text-center text-sm text-gray-600">
+                {resendTimer && resendTimer > 0 ? (
+                  <>
+                    Didn't receive the code?{" "}
+                    <span className="text-[#D4B139]">Resend</span> in{" "}
+                    <span className="text-[#D4B139]">{formatTimer(resendTimer)}</span>
+                  </>
+                ) : (
+                  <>
+                    Didn't receive the code?{" "}
+                    <span
+                      className="text-[#D4B139] cursor-pointer"
+                      onClick={handleResendClick}
+                    >
+                      {resendLoadingStatus ? (
+                        "Resending..."
+                      ) : (
+                        "Resend"
+                      )}
+                    </span>
+                  </>
+                )}
+              </p>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-4">
+              <CustomButton
+                type="button"
+                onClick={() => navigate(-1)}
+                className="flex-1 bg-[#D4B139] hover:bg-[#c7a42f] text-black font-medium py-3 rounded-lg"
+              >
+                Back
+              </CustomButton>
+              <CustomButton
+                type="button"
+                disabled={loadingStatus || !isValid}
+                isLoading={loadingStatus}
+                onClick={handleVerify}
+                className="flex-1 bg-[#D4B139] hover:bg-[#c7a42f] text-black font-medium py-3 rounded-lg"
+              >
+                Proceed
+              </CustomButton>
+            </div>
+
+            {/* Footer */}
+            <div className="text-center text-xs text-gray-500 mt-8">
+              <p>
+                Licenced by CBN a{" "}
+                <span className="inline-block w-3 h-3 bg-green-500 rounded-full"></span>{" "}
+                Deposits Insured by{" "}
+                <span className="text-blue-600 underline">NDIC</span>
+              </p>
+            </div>
           </div>
         </div>
-      </div>
-
-      {/* Right side - Form */}
-      <div className="flex w-full flex-col items-center justify-center bg-black p-6 sm:p-8 lg:w-5/12 lg:overflow-y-auto">
-        <motion.div
-          whileInView={{ opacity: [0, 1] }}
-          transition={{ duration: 0.5, type: "tween" }}
-          className="z-10 w-full max-w-md sm:max-w-lg flex flex-col justify-start items-start bg-bg-600 dark:bg-bg-1100 border border-border-600 rounded-2xl px-6 2xs:px-8 sm:px-8 py-6 2xs:py-8 gap-6 2xs:gap-8"
-        >
-          <div className="text-white flex flex-col items-center justify-center w-full text-center">
-            <h2 className="text-xl xs:text-2xl lg:text-3xl text-text-200 dark:text-white font-semibold">
-              Validate Phone Number
-            </h2>
-          </div>
-          <form
-            className="flex flex-col justify-start items-start w-full gap-7"
-            onSubmit={handleSubmit(onSubmit)}
-            noValidate
-          >
-            <AuthInput
-              id="phoneNumber"
-              label="Phone Number"
-              type="text"
-              maxLength={11}
-              htmlFor="phoneNumber"
-              placeholder="Phone Number"
-              error={errors.phoneNumber?.message}
-              {...register("phoneNumber")}
-            />
-
-            <CustomButton
-              type="submit"
-              disabled={!isValid || validatePhoneNumberLoading}
-              isLoading={validatePhoneNumberLoading}
-              className="mb-4  w-full  border-2 border-primary text-black text-base 2xs:text-lg max-2xs:px-6 py-3.5 xs:py-4"
-            >
-              Validate Phone Number{" "}
-            </CustomButton>
-          </form>
-        </motion.div>
       </div>
     </div>
   );

@@ -25,3 +25,8 @@ export interface IInitiateTransfer {
   walletPin: string;
   addBeneficiary?: boolean;
 }
+
+export interface IBvnFaceVerification {
+  bvn: string;
+  selfieImage: string; // Base64 encoded image with data URI prefix (data:image/jpeg;base64,...)
+}

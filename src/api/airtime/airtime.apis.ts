@@ -5,6 +5,7 @@ import {
   IAirtimeVariation,
   IInternationalAirtimeFxRate,
   IInternationalAirtimePlan,
+  IInternationalAirtimePayPayload,
 } from "./airtime.types";
 
 export const airtimePlanRequest = async (formdata: IAirtimePlan) => {
@@ -51,5 +52,15 @@ export const internationalAirtimeFxRateRequest = async (
   return request({
     url: `/bill/airtime/international/get-fx-rate?amount=${formdata.amount}&operatorId=${formdata.operatorId}`,
     method: "get",
+  });
+};
+
+export const internationalAirtimePaymentRequest = async (
+  formdata: IInternationalAirtimePayPayload
+) => {
+  return request({
+    url: `/bill/airtime/international/pay`,
+    method: "post",
+    data: formdata,
   });
 };

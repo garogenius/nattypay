@@ -262,7 +262,6 @@ const Tier2Content = () => {
 
   const onSubmit = async (data: FormData) => {
     try {
-      // console.log(data);
       verify({
         nin: data.nin,
       });

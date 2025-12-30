@@ -7,8 +7,9 @@ export default function UserLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <UserProtectionProvider>
-      <div className="relative flex w-full h-screen overflow-hidden bg-bg-400 dark:bg-black gap-4 xl:gap-6">
+      <div className="relative flex w-full h-screen overflow-hidden bg-bg-400 dark:bg-black gap-0">
         <Sidebar />
+        <div className="hidden lg:block w-[10px] bg-black" />
         <Content>{children}</Content>
       </div>
     </UserProtectionProvider>

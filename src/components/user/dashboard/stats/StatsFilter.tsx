@@ -20,14 +20,14 @@ const StatsFilter = ({
   return (
     <div className="w-full flex items-center justify-between gap-2 mb-8">
       <p className="text-text-200 dark:text-text-400 font-semibold text-lg xs:text-xl">
-        Insight{" "}
+        Analytics{" "}
       </p>
       <div ref={sortModalStateRef} className="flex flex-col relative">
         <p
           onClick={() => {
             setSortModalState(!sortModalState);
           }}
-          className="cursor-pointer hidden xs:flex justify-center items-center gap-1 py-2 xl:py-2.5 px-3.5 rounded-lg text-white bg-bg-800 text-sm font-medium"
+          className="cursor-pointer hidden xs:flex justify-center items-center gap-1 py-2 xl:py-2.5 px-3.5 rounded-full bg-secondary text-black text-sm font-semibold"
         >
           {!sort
             ? "All Time"
@@ -35,7 +35,7 @@ const StatsFilter = ({
           <motion.span
             animate={{ rotate: sortModalState ? 180 : 0 }}
             transition={{ duration: 0.3 }}
-            className="text-base 2xs:text-lg text-white"
+            className="text-base 2xs:text-lg"
           >
             <MdKeyboardArrowDown />
           </motion.span>

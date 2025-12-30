@@ -6,6 +6,7 @@ import {
   getGCCategoriesRequest,
   getGCProductsByCurrencyRequest,
   getGCRedeemCodeRequest,
+  getGCFxRateRequest,
 } from "./gift-card.apis";
 import { GiftCardCategory, GiftCardProduct } from "@/constants/types";
 
@@ -60,4 +61,15 @@ export const usePayForGiftCard = (
       onSuccess(data);
     },
   });
+};
+
+export const useGetGCFxRate = (payload: { amount: number; currency: string }) => {
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["gc-fx-rate", payload],
+    queryFn: () => getGCFxRateRequest(payload),
+    enabled: !!payload.amount && !!payload.currency,
+  });
+
+  const fxRate: any = data?.data?.data;
+  return { fxRate, isLoading, isError };
 };

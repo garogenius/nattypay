@@ -1,0 +1,606 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import * as yup from "yup";
+import CustomButton from "@/components/shared/Button";
+import useNavigate from "@/hooks/useNavigate";
+import BvnInfoModal from "@/components/modals/BvnInfoModal";
+import BvnFaceCaptureModal from "@/components/modals/BvnFaceCaptureModal";
+import { FiInfo } from "react-icons/fi";
+import ErrorToast from "@/components/toast/ErrorToast";
+import SuccessToast from "@/components/toast/SuccessToast";
+import { useVerifyNin } from "@/api/user/user.queries";
+import {
+  useInitiateBvnVerification,
+  useValidateBvnVerification,
+  useBvnFaceVerification,
+} from "@/api/wallet/wallet.queries";
+import useUserStore from "@/store/user.store";
+import OtpInput from "react-otp-input";
+import useTimerStore from "@/store/timer.store";
+import Cookies from "js-cookie";
+
+const schema = yup.object().shape({
+  verificationType: yup.string().required("Please select BVN or NIN"),
+  bvn: yup.string().when("verificationType", {
+    is: "BVN",
+    then: (schema) => schema.required("BVN is required").length(11, "BVN must be 11 digits"),
+    otherwise: (schema) => schema.optional(),
+  }),
+  nin: yup.string().when("verificationType", {
+    is: "NIN",
+    then: (schema) => schema.required("NIN is required"),
+    otherwise: (schema) => schema.optional(),
+  }),
+});
+
+type OpenAccountFormData = yup.InferType<typeof schema>;
+
+type VerificationStep = "enter-details" | "verify-otp";
+type BvnVerificationMethod = "face" | "otp";
+
+const OpenAccountContent = () => {
+  const navigate = useNavigate();
+  const { user } = useUserStore();
+  const [showBvnInfo, setShowBvnInfo] = useState(false);
+  const [showFaceCaptureModal, setShowFaceCaptureModal] = useState(false);
+  const [verificationStep, setVerificationStep] = useState<VerificationStep>("enter-details");
+  const [bvnVerificationMethod, setBvnVerificationMethod] = useState<BvnVerificationMethod>("face"); // Default to face
+  const [bvnDetails, setBvnDetails] = useState<{ bvn: string; verificationId: string }>({
+    bvn: "",
+    verificationId: "",
+  });
+  const [otp, setOtp] = useState("");
+  const [selfieImage, setSelfieImage] = useState<string>("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const form = useForm<OpenAccountFormData>({
+    defaultValues: {
+      verificationType: "BVN",
+      bvn: "",
+      nin: "",
+    },
+    resolver: yupResolver(schema),
+    mode: "onChange",
+  });
+
+  const {
+    register,
+    handleSubmit,
+    watch,
+    formState: { errors },
+  } = form;
+
+  const verificationType = watch("verificationType");
+
+  // NIN Verification
+  const onNinError = (error: any) => {
+    setIsSubmitting(false);
+    const errorMessage = error?.response?.data?.message;
+    const descriptions = Array.isArray(errorMessage) ? errorMessage : [errorMessage || "Failed to verify NIN"];
+
+    ErrorToast({
+      title: "NIN Verification Failed",
+      descriptions,
+    });
+  };
+
+  const onNinSuccess = (data: any) => {
+    setIsSubmitting(false);
+    SuccessToast({
+      title: "NIN Verified Successfully!",
+      description: data?.data?.message || "Your NIN has been verified successfully.",
+    });
+    navigate("/transaction-pin");
+  };
+
+  const { mutate: verifyNin, isPending: ninPending } = useVerifyNin(onNinError, onNinSuccess);
+
+  // BVN Initiate
+  const onBvnInitiateError = (error: any) => {
+    setIsSubmitting(false);
+    const errorMessage = error?.response?.data?.message;
+    const descriptions = Array.isArray(errorMessage)
+      ? errorMessage
+      : [errorMessage || "Failed to initiate BVN verification"];
+
+    ErrorToast({
+      title: "BVN Verification Failed",
+      descriptions,
+    });
+  };
+
+  const onBvnInitiateSuccess = (data: any) => {
+    setIsSubmitting(false);
+    SuccessToast({
+      title: "Verification Code Sent",
+      description: data?.data?.message || "Please check your phone for the verification code.",
+    });
+    setBvnDetails({
+      bvn: data?.data?.data?.bvn || form.getValues("bvn"),
+      verificationId: data?.data?.data?.verificationId || "",
+    });
+    setVerificationStep("verify-otp");
+    useTimerStore.getState().setTimer(120);
+  };
+
+  const {
+    mutate: initiateBvn,
+    isPending: bvnInitiatePending,
+  } = useInitiateBvnVerification(onBvnInitiateError, onBvnInitiateSuccess);
+
+  // BVN Validate
+  const onBvnValidateError = (error: any) => {
+    setIsSubmitting(false);
+    const errorMessage = error?.response?.data?.message;
+    const descriptions = Array.isArray(errorMessage)
+      ? errorMessage
+      : [errorMessage || "Failed to validate BVN verification"];
+
+    ErrorToast({
+      title: "Verification Failed",
+      descriptions,
+    });
+  };
+
+  const onBvnValidateSuccess = (data: any) => {
+    setIsSubmitting(false);
+    SuccessToast({
+      title: "BVN Verified Successfully!",
+      description: "Your BVN has been verified successfully.",
+    });
+    navigate("/transaction-pin");
+  };
+
+  const {
+    mutate: validateBvn,
+    isPending: bvnValidatePending,
+  } = useValidateBvnVerification(onBvnValidateError, onBvnValidateSuccess);
+
+  // BVN Face Verification
+  const onBvnFaceError = (error: any) => {
+    setIsSubmitting(false);
+    const errorMessage = error?.response?.data?.message;
+    const descriptions = Array.isArray(errorMessage)
+      ? errorMessage
+      : [errorMessage || "Face verification failed"];
+
+    ErrorToast({
+      title: "Face Verification Failed",
+      descriptions,
+    });
+    
+    // Keep modal open so user can retry
+    // Don't close modal on error - let user try again
+  };
+
+  const onBvnFaceSuccess = (data: any) => {
+    setIsSubmitting(false);
+    // Close the face capture modal
+    setShowFaceCaptureModal(false);
+    setSelfieImage("");
+    
+    SuccessToast({
+      title: "BVN Verified Successfully!",
+      description: data?.data?.message || "Your BVN and face have been verified successfully.",
+    });
+    
+    // Navigate to transaction pin page after a short delay
+    setTimeout(() => {
+      navigate("/transaction-pin");
+    }, 1000);
+  };
+
+  const {
+    mutate: verifyBvnFace,
+    isPending: bvnFacePending,
+  } = useBvnFaceVerification(onBvnFaceError, onBvnFaceSuccess);
+
+  const handleBvnFaceVerification = () => {
+    if (!bvnDetails.bvn || !selfieImage) {
+      ErrorToast({
+        title: "Missing Information",
+        descriptions: ["Please capture your selfie image first"],
+      });
+      return;
+    }
+    verifyBvnFace({
+      bvn: bvnDetails.bvn,
+      selfieImage: selfieImage,
+    });
+  };
+
+  const handleFaceCapture = (image: string) => {
+    setSelfieImage(image);
+    // Verify BVN with captured image
+    handleBvnFaceVerification();
+  };
+
+  const handleInfoClick = () => {
+    setShowBvnInfo(true);
+  };
+
+  const onSubmit = async (data: OpenAccountFormData) => {
+    setIsSubmitting(true);
+    
+    // Check if user is authenticated
+    const token = Cookies.get("accessToken");
+    
+    if (!token) {
+      setIsSubmitting(false);
+      ErrorToast({
+        title: "Authentication Required",
+        descriptions: ["Please login first to verify your identity."],
+      });
+      navigate("/login");
+      return;
+    }
+
+    // Validate token format
+    const tokenParts = token.trim().split(".");
+    if (tokenParts.length !== 3) {
+      setIsSubmitting(false);
+      ErrorToast({
+        title: "Invalid Token",
+        descriptions: ["Your session token is invalid. Please login again."],
+      });
+      Cookies.remove("accessToken");
+      navigate("/login");
+      return;
+    }
+
+    if (data.verificationType === "NIN") {
+      // Direct NIN verification
+      if (!data.nin) {
+        setIsSubmitting(false);
+        ErrorToast({
+          title: "Validation Error",
+          descriptions: ["NIN is required"],
+        });
+        return;
+      }
+      verifyNin({ nin: data.nin });
+    } else {
+      // BVN: Check verification method
+      if (!data.bvn) {
+        setIsSubmitting(false);
+        ErrorToast({
+          title: "Validation Error",
+          descriptions: ["BVN is required"],
+        });
+        return;
+      }
+
+      setBvnDetails({ bvn: data.bvn, verificationId: "" });
+
+      if (bvnVerificationMethod === "face") {
+        // Face verification flow - open face capture modal
+        console.log("Opening face capture modal for BVN:", data.bvn);
+        setShowFaceCaptureModal(true);
+        setIsSubmitting(false);
+      } else {
+        // OTP verification flow - initiate OTP
+        initiateBvn({ bvn: data.bvn });
+      }
+    }
+  };
+
+  const handleOtpVerify = () => {
+    if (bvnDetails.bvn && bvnDetails.verificationId && otp.length === 6) {
+      validateBvn({
+        bvn: bvnDetails.bvn,
+        verificationId: bvnDetails.verificationId,
+        otpCode: otp,
+        isBusiness: user?.isBusiness || false,
+      });
+    }
+  };
+
+  const handleResendOtp = () => {
+    const timerStore = useTimerStore.getState();
+    if (timerStore.resendTimer === 0 && bvnDetails.bvn) {
+      initiateBvn({ bvn: bvnDetails.bvn });
+    }
+  };
+
+  const timerStore = useTimerStore();
+  const resendTimer = timerStore.resendTimer;
+  const decrementTimer = timerStore.decrementTimer;
+  const expireAt = timerStore.expireAt;
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+
+    if (resendTimer > 0) {
+      interval = setInterval(() => {
+        if (decrementTimer) decrementTimer();
+      }, 1000);
+    } else {
+      if (interval) clearInterval(interval);
+      timerStore.clearTimer();
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [resendTimer, decrementTimer, timerStore]);
+
+  useEffect(() => {
+    if (expireAt && Date.now() >= expireAt) {
+      timerStore.clearTimer();
+    }
+  }, [expireAt, timerStore]);
+
+  const formatTimer = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${minutes}:${secs < 10 ? "0" : ""}${secs}`;
+  };
+
+  const handlePaste: React.ClipboardEventHandler = (event) => {
+    const data = event.clipboardData.getData("text").slice(0, 6);
+    setOtp(data);
+  };
+
+  const isLoading = isSubmitting || ninPending || bvnInitiatePending || bvnValidatePending || bvnFacePending;
+
+  return (
+    <>
+      <div className="relative flex h-full min-h-screen w-full overflow-hidden">
+        {/* Left Panel - Yellow/Gold Background */}
+        <div className="hidden lg:flex lg:w-[40%] bg-[#D4B139] relative items-center justify-center">
+          <div className="w-full h-full flex flex-col items-center justify-center px-8 py-12">
+            <h1 className="text-4xl font-bold text-white mb-4">
+              {verificationStep === "enter-details" ? "Choose Your Currency" : "Verify BVN"}
+            </h1>
+            <p className="text-lg text-white/90 text-center max-w-md">
+              {verificationStep === "enter-details"
+                ? "Secure your future with simple, flexible investment plans and opportunities"
+                : "Enter the verification code sent to your phone number"}
+            </p>
+          </div>
+        </div>
+
+        {/* Right Panel - Light Gray Background with Form */}
+        <div className="w-full lg:w-[60%] bg-gray-100 flex flex-col items-center justify-center px-6 sm:px-8 py-12">
+          <div className="w-full max-w-md">
+            {/* Form Card */}
+            <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-lg">
+              {verificationStep === "enter-details" ? (
+                <>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-2 text-center">
+                    Open Account
+                  </h2>
+                  <p className="text-sm text-gray-600 mb-6 text-center">
+                    Verify your identity using BVN or NIN to open your account.
+                  </p>
+
+                  <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                    {/* Verification Type Selection */}
+                    <div>
+                      <p className="text-sm text-gray-700 mb-4">I want to open account with</p>
+                      <div className="flex gap-4">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="radio"
+                            value="BVN"
+                            {...register("verificationType")}
+                            className="w-5 h-5 text-[#D4B139] border-gray-300 focus:ring-[#D4B139]"
+                          />
+                          <span className="text-gray-900">BVN</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="radio"
+                            value="NIN"
+                            {...register("verificationType")}
+                            className="w-5 h-5 text-[#D4B139] border-gray-300 focus:ring-[#D4B139]"
+                          />
+                          <span className="text-gray-900">NIN</span>
+                        </label>
+                      </div>
+                    </div>
+
+                    {/* BVN or NIN Input */}
+                    {verificationType === "BVN" ? (
+                      <>
+                        <div className="flex flex-col gap-1">
+                          <label className="text-sm font-medium text-gray-700">Your BVN</label>
+                          <input
+                            type="text"
+                            placeholder="Enter your 11-digit BVN"
+                            maxLength={11}
+                            className="w-full border border-gray-300 rounded-lg py-3 px-4 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#D4B139] focus:border-transparent"
+                            {...register("bvn")}
+                          />
+                          {errors.bvn && (
+                            <p className="text-red-500 text-xs mt-1">{errors.bvn.message}</p>
+                          )}
+                          <button
+                            type="button"
+                            onClick={handleInfoClick}
+                            className="flex items-center gap-2 text-sm text-gray-600 mt-2"
+                          >
+                            Why we need your BVN
+                            <FiInfo className="w-4 h-4" />
+                          </button>
+                        </div>
+
+                        {/* BVN Verification Method - Face is default, OTP as alternative */}
+                        <div className="text-center">
+                          <p className="text-xs text-gray-600 mb-2">
+                            Using face verification for quick and secure verification
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => setBvnVerificationMethod("otp")}
+                            className="text-xs text-[#D4B139] hover:underline"
+                          >
+                            Prefer phone OTP instead?
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="flex flex-col gap-1">
+                        <label className="text-sm font-medium text-gray-700">Your NIN</label>
+                        <input
+                          type="text"
+                          placeholder="Enter your NIN"
+                          className="w-full border border-gray-300 rounded-lg py-3 px-4 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#D4B139] focus:border-transparent"
+                          {...register("nin")}
+                        />
+                        {errors.nin && (
+                          <p className="text-red-500 text-xs mt-1">{errors.nin.message}</p>
+                        )}
+                        <button
+                          type="button"
+                          onClick={handleInfoClick}
+                          className="flex items-center gap-2 text-sm text-gray-600 mt-2"
+                        >
+                          Why we need your NIN
+                          <FiInfo className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Action Buttons */}
+                    <div className="flex gap-4">
+                      <CustomButton
+                        type="button"
+                        onClick={() => navigate(-1)}
+                        className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-3 rounded-lg"
+                      >
+                        Back
+                      </CustomButton>
+                      <CustomButton
+                        type="submit"
+                        disabled={isLoading}
+                        isLoading={isLoading}
+                        className="flex-1 bg-[#D4B139] hover:bg-[#c7a42f] text-black font-medium py-3 rounded-lg"
+                      >
+                        {isLoading ? "Processing..." : "Proceed"}
+                      </CustomButton>
+                    </div>
+
+                    {/* Instruction Text */}
+                    <p className="text-xs text-gray-600 text-center">
+                      To check your {verificationType === "BVN" ? "BVN" : "NIN"}, dial 5650# using
+                      the phone number linked to your bank account.
+                    </p>
+                  </form>
+                </>
+              ) : verificationStep === "verify-otp" ? (
+                <>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-2">Verify BVN</h2>
+                  <p className="text-sm text-gray-600 mb-6">
+                    Enter the 6-digit verification code sent to the phone number linked to your BVN
+                  </p>
+
+                  <div className="space-y-6">
+                    {/* OTP Input */}
+                    <div className="flex flex-col gap-4">
+                      <div className="flex items-center justify-center">
+                        <OtpInput
+                          value={otp}
+                          onChange={setOtp}
+                          onPaste={handlePaste}
+                          numInputs={6}
+                          renderSeparator={<span className="w-2"></span>}
+                          containerStyle={{}}
+                          skipDefaultStyles
+                          inputType="number"
+                          renderInput={(props) => (
+                            <input
+                              {...props}
+                              className="w-12 h-12 bg-transparent border-b-2 border-gray-300 text-center text-xl font-medium outline-none focus:border-[#D4B139]"
+                            />
+                          )}
+                        />
+                      </div>
+
+                      {/* Resend Text */}
+                      <p className="text-center text-sm text-gray-600">
+                        {resendTimer && resendTimer > 0 ? (
+                          <>
+                            Didn't receive the code?{" "}
+                            <span className="text-[#D4B139]">Resend</span> in{" "}
+                            <span className="text-[#D4B139]">{formatTimer(resendTimer)}</span>
+                          </>
+                        ) : (
+                          <>
+                            Didn't receive the code?{" "}
+                            <span
+                              className="text-[#D4B139] cursor-pointer hover:underline"
+                              onClick={handleResendOtp}
+                            >
+                              Resend
+                            </span>
+                          </>
+                        )}
+                      </p>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex gap-4">
+                      <CustomButton
+                        type="button"
+                        onClick={() => {
+                          setVerificationStep("enter-details");
+                          setOtp("");
+                        }}
+                        className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-3 rounded-lg"
+                      >
+                        Back
+                      </CustomButton>
+                      <CustomButton
+                        type="button"
+                        disabled={otp.length !== 6 || bvnValidatePending}
+                        isLoading={bvnValidatePending}
+                        onClick={handleOtpVerify}
+                        className="flex-1 bg-[#D4B139] hover:bg-[#c7a42f] text-black font-medium py-3 rounded-lg"
+                      >
+                        Verify
+                      </CustomButton>
+                    </div>
+                  </div>
+                </>
+              ) : null}
+
+              {/* Footer */}
+              <div className="text-center text-xs text-gray-500 mt-8">
+                <p>
+                  Licenced by CBN a{" "}
+                  <span className="inline-block w-3 h-3 bg-green-500 rounded-full"></span>{" "}
+                  Deposits Insured by{" "}
+                  <span className="text-blue-600 underline">NDIC</span>
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <BvnInfoModal
+        isOpen={showBvnInfo}
+        onClose={() => setShowBvnInfo(false)}
+        onProceed={() => {
+          setShowBvnInfo(false);
+        }}
+      />
+      <BvnFaceCaptureModal
+        isOpen={showFaceCaptureModal}
+        onClose={() => {
+          setShowFaceCaptureModal(false);
+          setSelfieImage("");
+        }}
+        onCapture={handleFaceCapture}
+        bvn={bvnDetails.bvn}
+        isVerifying={bvnFacePending}
+      />
+    </>
+  );
+};
+
+export default OpenAccountContent;

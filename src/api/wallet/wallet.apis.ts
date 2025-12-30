@@ -1,5 +1,6 @@
 import { request } from "@/utils/axios-utils";
 import {
+  IBvnFaceVerification,
   IInitiateBvnVerification,
   IInitiateTransfer,
   IValidateBvnVerification,
@@ -93,5 +94,15 @@ export const getTransactions = ({
 export const getQrCode = ({ amount }: { amount: number }) => {
   return request({
     url: `/wallet/generate-qrcode?amount=${amount}`,
+  });
+};
+
+export const bvnFaceVerificationRequest = async (
+  formdata: IBvnFaceVerification
+) => {
+  return request({
+    url: "/wallet/bvn-verification",
+    method: "post",
+    data: formdata,
   });
 };

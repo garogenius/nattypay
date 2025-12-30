@@ -2,6 +2,7 @@
 import { useGetUser } from "@/api/user/user.queries";
 import useUserStore from "@/store/user.store";
 import { useEffect } from "react";
+import { initializeFCM, clearFCMToken } from "@/services/fcm.service";
 
 interface ApiError {
   response?: {
@@ -10,7 +11,7 @@ interface ApiError {
 }
 
 const UserProvider = ({ children }: { children: React.ReactNode }) => {
-  const { initializeAuth, isInitialized } = useUserStore();
+  const { initializeAuth, isInitialized, isLoggedIn } = useUserStore();
 
   // Initialize query in background without blocking
   const { user, isSuccess, error } = useGetUser();
@@ -26,6 +27,18 @@ const UserProvider = ({ children }: { children: React.ReactNode }) => {
       initializeAuth(null);
     }
   }, [initializeAuth, user, isSuccess, error, isInitialized]);
+
+  // Initialize FCM when user is logged in
+  useEffect(() => {
+    if (isLoggedIn && user) {
+      initializeFCM().catch((err) => {
+        console.error("FCM initialization failed:", err);
+      });
+    } else if (!isLoggedIn) {
+      // Clear FCM token on logout
+      clearFCMToken();
+    }
+  }, [isLoggedIn, user]);
 
   return <>{children}</>;
 };

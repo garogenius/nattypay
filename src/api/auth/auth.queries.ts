@@ -12,6 +12,14 @@ import {
   verifyResetEmailRequest,
   resetPasswordRequest,
   registerBusinessRequest,
+  biometricLoginRequest,
+  registerBiometricRequest,
+  createPasscodeRequest,
+  passcodeLoginRequest,
+  verifyEmailPreRegisterRequest,
+  resendVerifyEmailPreRegisterRequest,
+  verifyContactRequest,
+  resendVerifyContactRequest,
 } from "./auth.apis";
 
 export const useLogin = (
@@ -126,6 +134,94 @@ export const useResetPassword = (
 ) => {
   return useMutation({
     mutationFn: resetPasswordRequest,
+    onError,
+    onSuccess,
+  });
+};
+
+export const useBiometricLogin = (
+  onError: (error: any) => void,
+  onSuccess: (data: any) => void
+) => {
+  return useMutation({
+    mutationFn: biometricLoginRequest,
+    onError,
+    onSuccess,
+  });
+};
+
+export const useRegisterBiometric = (
+  onError: (error: any) => void,
+  onSuccess: (data: any) => void
+) => {
+  return useMutation({
+    mutationFn: registerBiometricRequest,
+    onError,
+    onSuccess,
+  });
+};
+
+export const useCreatePasscode = (
+  onError: (error: any) => void,
+  onSuccess: (data: any) => void
+) => {
+  return useMutation({
+    mutationFn: createPasscodeRequest,
+    onError,
+    onSuccess,
+  });
+};
+
+export const usePasscodeLogin = (
+  onError: (error: any) => void,
+  onSuccess: (data: any) => void
+) => {
+  return useMutation({
+    mutationFn: passcodeLoginRequest,
+    onError,
+    onSuccess,
+  });
+};
+
+export const useVerifyEmailPreRegister = (
+  onError: (error: any) => void,
+  onSuccess: (data: any) => void
+) => {
+  return useMutation({
+    mutationFn: verifyEmailPreRegisterRequest,
+    onError,
+    onSuccess,
+  });
+};
+
+export const useResendVerifyEmailPreRegister = (
+  onError: (error: any) => void,
+  onSuccess: (data: any) => void
+) => {
+  return useMutation({
+    mutationFn: resendVerifyEmailPreRegisterRequest,
+    onError,
+    onSuccess,
+  });
+};
+
+export const useVerifyContact = (
+  onError: (error: any) => void,
+  onSuccess: (data: any) => void
+) => {
+  return useMutation({
+    mutationFn: verifyContactRequest,
+    onError,
+    onSuccess,
+  });
+};
+
+export const useResendVerifyContact = (
+  onError: (error: any) => void,
+  onSuccess: (data: any) => void
+) => {
+  return useMutation({
+    mutationFn: resendVerifyContactRequest,
     onError,
     onSuccess,
   });

@@ -140,7 +140,7 @@ const CustomSelect: React.FC<CustomSelectProps> = ({
       </button>
 
       {isOpen && !disabled && (
-        <div className="absolute w-full mt-1 dark:bg-[#141414] dark:border-none bg-white border rounded-lg shadow-lg z-50">
+        <div className="absolute w-full mt-1 bg-bg-1100 border border-border-700 text-white rounded-lg shadow-lg z-[9999]">
           {isSearchable && (
             <div className="p-2 border-b">
               <input
@@ -148,19 +148,15 @@ const CustomSelect: React.FC<CustomSelectProps> = ({
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder={searchPlaceholder}
-                className="w-full px-3 py-1.5 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-1.5 text-sm border rounded-md focus:outline-none bg-bg-1000 border-border-700 text-white placeholder:text-white/50"
                 autoFocus
               />
             </div>
           )}
 
-          <div
-            className={`overflow-y-auto ${
-              maxHeight ? `max-h-${maxHeight}` : ""
-            }`}
-          >
+          <div className={`overflow-y-auto`} style={{ maxHeight: typeof maxHeight === 'string' ? `${maxHeight}px` : undefined }}>
             {filteredOptions.length === 0 ? (
-              <div className="px-4 py-2 text-sm text-gray-500 text-center">
+              <div className="px-4 py-2 text-sm text-white/60 text-center">
                 No options found
               </div>
             ) : (
@@ -168,7 +164,7 @@ const CustomSelect: React.FC<CustomSelectProps> = ({
                 <button
                   key={option.value}
                   onClick={() => handleSelect(option)}
-                  className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50  dark:hover:text-black flex items-center transition-colors"
+                  className="w-full px-4 py-2 text-left text-sm hover:bg-white/5 flex items-center transition-colors"
                 >
                   {renderOptionFn(option)}
                 </button>

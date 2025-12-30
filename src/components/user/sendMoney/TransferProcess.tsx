@@ -35,6 +35,7 @@ import {
 import { Switch } from "@mui/material";
 import { addBeneficiaryLabel } from "../bill/bill.data";
 import { useTheme } from "@/store/theme.store";
+import useUserStore from "@/store/user.store";
 import Beneficiaries from "./Beneficiaries";
 import { useGetBeneficiaries } from "@/api/user/user.queries";
 import Image from "next/image";
@@ -42,6 +43,9 @@ import images from "../../../../public/images";
 import { format } from "date-fns";
 import html2canvas from "html2canvas";
 import { createRoot } from "react-dom/client";
+import usePaymentSettingsStore from "@/store/paymentSettings.store";
+import { verifyPinWithBiometric, isFingerprintPaymentAvailable } from "@/services/fingerprintPayment.service";
+import { RiFingerprintLine } from "react-icons/ri";
 
 
 
@@ -136,20 +140,70 @@ interface BankResponseData {
   bvn: string;
 }
 
-const TransferProcess = () => {
+const TransferProcess = ({ onStepChange, compact = false, initialType, onBackFirstStep }: { onStepChange?: (step: number) => void; compact?: boolean; initialType?: "nattypay" | "bank"; onBackFirstStep?: () => void }) => {
   const theme = useTheme();
-  const [selectedType, setSelectedType] = useState<string>("nattypay");
+  const [selectedType, setSelectedType] = useState<string>(initialType || "nattypay");
   const [bankData, setBankData] = useState<BankResponseData | null>(null);
   const [bankState, setBankState] = useState(false);
   const [screen, setScreen] = useState<number>(0);
+  const goTo = (s: number) => {
+    setScreen(s);
+    onStepChange && onStepChange(s);
+  };
+
+  const buildTransactionFromState = (): TransactionResponse => {
+    const now = new Date().toISOString();
+    return {
+      id: watchedSessionId || String(Date.now()),
+      transactionRef: watchedSessionId || String(Date.now()),
+      type: "transfer",
+      status: "Success",
+      currency: "NGN",
+      description: watchedDescription || "",
+      previousBalance: 0,
+      currentBalance: 0,
+      category: selectedType === "bank" ? "Inter Bank Transfer" : "Intra Bank Transfer",
+      narration: watchedDescription || "",
+      createdAt: now,
+      updatedAt: now,
+      transferDetails: {
+        fee: Number(fee || 0),
+        amount: watchedAmount,
+        beneficiaryAccountNumber: bankData?.accountNumber || "",
+        beneficiaryBankName: bankName || (selectedType === "nattypay" ? "Nattypay" : ""),
+        beneficiaryName: bankData?.accountName || "",
+        sessionId: watchedSessionId || "",
+        amountPaid: watchedAmount,
+        senderName: "",
+      },
+    } as TransactionResponse;
+  };
+
+  useEffect(() => {
+    onStepChange && onStepChange(0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [selectedBank, setSelectedBank] = useState<BankProps>();
   const [pin, setPin] = useState<string>("");
   const [bankName, setBankName] = useState<string>("");
   const [isBeneficiaryChecked, setIsBeneficiaryChecked] = useState(false);
   const [selectedBeneficiary, setSelectedBeneficiary] = useState("");
   const [transaction, setTransaction] = useState<TransactionResponse | null>(null);
+  const [activeTab, setActiveTab] = useState<'recent' | 'saved'>( 'recent');
+  const [isVerifyingBiometric, setIsVerifyingBiometric] = useState(false);
+  const [isFingerprintAvailable, setIsFingerprintAvailable] = useState(false);
 
   const { banks } = useGetAllBanks();
+
+  const { user } = useUserStore();
+  const { fingerprintPaymentEnabled } = usePaymentSettingsStore();
+  const ngnWallet = user?.wallet?.find((w) => w.currency?.toLowerCase() === 'ngn');
+  const availableBalance = ngnWallet?.balance ?? 0;
+
+  useEffect(() => {
+    // Check if fingerprint payment is available
+    isFingerprintPaymentAvailable().then(setIsFingerprintAvailable);
+  }, []);
 
   const form = useForm<TransferFormData>({
     defaultValues: {
@@ -251,7 +305,7 @@ const TransferProcess = () => {
       title: "Transfer successful",
       description: "Your transfer was successful",
     });
-    setScreen(3);
+    goTo(4);
   };
 
   const ReceiptTemplate = ({ transaction }: { transaction: TransactionResponse }) => {
@@ -436,8 +490,73 @@ const handleShare = async (transaction: TransactionResponse) => {
 
   const transferLoading = transferPending && !transferError;
 
+  const handleFingerprintClick = async () => {
+    if (!fingerprintPaymentEnabled || !isFingerprintAvailable) {
+      ErrorToast({
+        title: "Fingerprint Payment Not Enabled",
+        descriptions: ["Please enable fingerprint payment in settings first"],
+      });
+      return;
+    }
+
+    if (!bankData) {
+      ErrorToast({
+        title: "Error",
+        descriptions: ["Please complete account verification first"],
+      });
+      return;
+    }
+
+    setIsVerifyingBiometric(true);
+    try {
+      // Verify PIN using biometric
+      const result = await verifyPinWithBiometric();
+      
+      // Use biometric verification result as PIN
+      // Backend should accept "BIOMETRIC_VERIFIED" as equivalent to PIN
+      initiateTransfer({
+        accountName: bankData?.accountName,
+        accountNumber: watchedAccountNumber,
+        amount: watchedAmount,
+        description: watchedDescription,
+        walletPin: result, // This will be "BIOMETRIC_VERIFIED" or actual PIN if backend supports it
+        sessionId: watchedSessionId,
+        bankCode: watchedBankCode,
+        currency: "NGN",
+        addBeneficiary: isBeneficiaryChecked,
+      });
+    } catch (error: any) {
+      setIsVerifyingBiometric(false);
+      ErrorToast({
+        title: "Biometric Authentication Failed",
+        descriptions: [error.message || "Please try again or use PIN"],
+      });
+    }
+  };
+
+  const handleTransfer = () => {
+    if (pin && pin.length === 4 && bankData) {
+      initiateTransfer({
+        accountName: bankData?.accountName,
+        accountNumber: watchedAccountNumber,
+        amount: watchedAmount,
+        description: watchedDescription,
+        walletPin: pin,
+        sessionId: watchedSessionId,
+        bankCode: watchedBankCode,
+        currency: "NGN",
+        addBeneficiary: isBeneficiaryChecked,
+      });
+    } else {
+      ErrorToast({
+        title: "Invalid PIN Entered",
+        descriptions: ["Please enter a valid PIN"],
+      });
+    }
+  };
+
   const onSubmit = async () => {
-    setScreen(1);
+    goTo(1);
   };
 
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -472,6 +591,7 @@ const handleShare = async (transaction: TransactionResponse) => {
 
   return (
     <div className="w-full flex max-xl:flex-col 2xs:px-2 xs:px-4 sm:px-6 md:px-8 py-4 2xs:py-6 sm:py-10 bg-transparent xs:bg-bg-600 dark:xs:bg-bg-1100 gap-6 xs:gap-10 lg:gap-12 2xl:gap-16 rounded-xl">
+      {!compact && (
       <div className="w-full xl:w-[40%] flex flex-col gap-4 md:gap-6 lg:gap-8 2xl:gap-10">
         <h2 className="text-xl sm:text-2xl font-medium text-text-200 dark:text-text-400">
           Select Transfer Method
@@ -530,36 +650,14 @@ const handleShare = async (transaction: TransactionResponse) => {
           ))}
         </div>
       </div>
-      <div className="w-full xl:w-[60%] flex">
+      )}
+      <div className={`w-full ${compact ? "xl:w-full" : "xl:w-[60%]"} flex`}>
         {screen === 0 && (
-          <div className="w-full px-4 xs:px-6 md:px-8 lg:px-10 2xl:px-12 py-8 flex flex-col gap-8 items-center bg-bg-400 max-xs:bg-bg-600 dark:bg-black dark:max-xs:bg-bg-1100 rounded-xl ">
+          <div className={`w-full px-4 xs:px-6 md:px-8 lg:px-10 2xl:px-12 py-8 flex flex-col gap-6 items-center ${compact ? "bg-transparent" : "bg-bg-400 max-xs:bg-bg-600 dark:bg-black dark:max-xs:bg-bg-1100 rounded-xl"}`}>
             <h2 className="text-lg 2xs:text-xl sm:text-2xl font-medium text-text-200 dark:text-text-400 text-center">
               Enter {selectedType === "nattypay" ? "NattyPay" : "Bank"} Account
               Details{" "}
             </h2>
-
-            {beneficiaries?.length > 0 && (
-              <div className="w-full mb-2 flex flex-col gap-1">
-                <h2 className="text-base font-medum text-text-200 dark:text-text-400">
-                  Recent Beneficiaries
-                </h2>
-                {selectedType === "nattypay" && (
-                  <Beneficiaries
-                    beneficiaries={beneficiaries}
-                    handleBeneficiarySelect={handleBeneficiarySelect}
-                    selectedBeneficiary={selectedBeneficiary}
-                  />
-                )}
-
-                {selectedType === "bank" && (
-                  <Beneficiaries
-                    beneficiaries={beneficiaries}
-                    handleBeneficiarySelect={handleBeneficiarySelect}
-                    selectedBeneficiary={selectedBeneficiary}
-                  />
-                )}
-              </div>
-            )}
 
             <motion.form
               whileInView={{ opacity: [0, 1] }}
@@ -573,16 +671,12 @@ const handleShare = async (transaction: TransactionResponse) => {
                   className="w-full text-sm sm:text-base text-text-200 dark:text-text-800 mb-1 flex items-start "
                   htmlFor={"accountNumber"}
                 >
-                  Enter Account Number{" "}
+                  Account Number
                 </label>
-                <div className="w-full flex gap-2 justify-center items-center bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-4 px-3">
+                <div className={`w-full flex gap-2 justify-center items-center ${compact ? "bg-[#1A2233] border-[#2C3947]" : "bg-bg-2400 dark:bg-bg-2100 border-border-600"} border rounded-lg py-4 px-3`}>
                   <input
                     className="w-full bg-transparent p-0 border-none outline-none text-base text-text-200 dark:text-white placeholder:text-text-200 dark:placeholder:text-text-1000 placeholder:text-sm"
-                    placeholder={
-                      selectedType === "nattypay"
-                        ? "Enter Nattypay Account Number"
-                        : "Enter Bank Account Number"
-                    }
+                    placeholder={selectedType === "nattypay" ? "Enter Account Number" : "Enter Bank Account Number"}
                     required={true}
                     type="number"
                     {...register("accountNumber")}
@@ -606,6 +700,14 @@ const handleShare = async (transaction: TransactionResponse) => {
                   </p>
                 ) : null}
               </div>
+
+              {selectedType === "nattypay" && bankData ? (
+                <div className="w-full flex flex-col gap-2">
+                  <div className="w-full flex flex-col gap-2 rounded-xl px-4 py-3 bg-emerald-700/20 border border-emerald-700/40">
+                    <p className="text-sm text-white/90 font-medium">{bankData?.accountName}</p>
+                  </div>
+                </div>
+              ) : null}
 
               {selectedType === "bank" &&
                 watchedAccountNumber.length === 10 && (
@@ -686,6 +788,14 @@ const handleShare = async (transaction: TransactionResponse) => {
                         />
                       </div>
                     )}
+                    {/* Verified name below bank dropdown for Other Banks */}
+                    {selectedType === "bank" && bankData ? (
+                      <div className="w-full mt-3 flex flex-col gap-2">
+                        <div className="w-full flex flex-col gap-2 rounded-xl px-4 py-3 bg-emerald-700/20 border border-emerald-700/40">
+                          <p className="text-sm text-white/90 font-medium">{bankData?.accountName}</p>
+                        </div>
+                      </div>
+                    ) : null}
                   </div>
                 )}
 
@@ -700,123 +810,19 @@ const handleShare = async (transaction: TransactionResponse) => {
                     <>
                       {bankData ? (
                         <div className="w-full flex flex-col gap-6">
-                          <div className="flex flex-col gap-2">
-                            <div className="w-full flex flex-col gap-2 rounded-xl px-4 py-3 bg-bg-400 xs:bg-bg-600 dark:bg-black dark:xs:bg-bg-1100">
-                              <p className="text-sm text-text-200 dark:text-text-1000 font-semibold">
-                                Beneficiary{" "}
-                              </p>
-                              <div className="flex flex-col text-sm  2xs:text-base">
-                                <p className=" text-text-200 dark:text-text-1000 font-medium">
-                                  {bankData?.accountName}
-                                </p>
-                                <p className=" text-primary">
-                                  {bankData?.accountNumber}
-                                </p>
-                              </div>
-                            </div>
-                            <div className="flex self-end items-center gap-2 sm:gap-6">
-                              <p className="text-sm md:text-base dark:text-white dark:text-opacity-60">
-                                Add as beneficiary
-                              </p>
-                              <Switch
-                                checked={isBeneficiaryChecked}
-                                onChange={(e) =>
-                                  setIsBeneficiaryChecked(e.target.checked)
-                                }
-                                {...addBeneficiaryLabel(theme === "dark")}
-                              />
-                            </div>
-                          </div>
 
-                          <div className="w-full flex flex-col md:flex-row gap-4 items-start justify-start">
-                            <div className="flex flex-col justify-center items-center gap-1 w-full text-black dark:text-white">
-                              <label
-                                className="w-full text-sm sm:text-base text-text-200 dark:text-text-800 mb-1 flex items-start "
-                                htmlFor={"amount"}
-                              >
-                                Amount{" "}
-                              </label>
-                              {/* <div className="w-full flex gap-2 justify-center items-center bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-4 px-3">
-                                <input
-                                  className="w-full bg-transparent p-0 border-none outline-none text-base text-text-200 dark:text-white placeholder:text-text-200 dark:placeholder:text-text-1000 placeholder:text-sm"
-                                  placeholder="Enter Amount"
-                                  required={true}
-                                  type="number"
-                                  {...register("amount")}
-                                />
-                              </div> */}
-
-
-<div className="w-full flex gap-2 justify-center items-center bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-4 px-3">
-  <input
-    className="w-full bg-transparent p-0 border-none outline-none text-base text-text-200 dark:text-white placeholder:text-text-200 dark:placeholder:text-text-1000 placeholder:text-sm"
-    placeholder="Enter Amount"
-    required={true}
-    type="text"
-    {...register("amount", {
-      onChange: (e) => {
-        const value = e.target.value.replace(/,/g, '');
-        if (/^\d*\.?\d*$/.test(value)) {
-          e.target.value = formatNumberWithCommas(value);
-        }
-      }
-    })}
-  />
-</div>
-
-                              {errors?.amount?.message ? (
-                                <p className="flex self-start text-red-500 font-semibold mt-0.5 text-sm">
-                                  {errors?.amount?.message}
-                                </p>
-                              ) : null}
-                            </div>
-
-                            <div className="flex flex-col justify-center items-center gap-1 w-full text-black dark:text-white">
-                              <label
-                                className="w-full text-sm sm:text-base text-text-200 dark:text-text-800 mb-1 flex items-start "
-                                htmlFor={"description"}
-                              >
-                                Narration{" "}
-                              </label>
-                              <div className="w-full flex gap-2 justify-center items-center bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-4 px-3">
-                                <input
-                                  className="w-full bg-transparent p-0 border-none outline-none text-base text-text-200 dark:text-white placeholder:text-text-200 dark:placeholder:text-text-1000 placeholder:text-sm"
-                                  placeholder="Reason (optional)"
-                                  type="text"
-                                  {...register("description")}
-                                />
-                              </div>
-
-                              {errors?.description?.message ? (
-                                <p className="flex self-start text-red-500 font-semibold mt-0.5 text-sm">
-                                  {errors?.description?.message}
-                                </p>
-                              ) : null}
-                            </div>
-                          </div>
-
-                          {selectedType === "nattypay" && (
-                            <div className="w-full flex flex-col gap-4 mt-4">
-                              {" "}
-                              <CustomButton
-                                type="submit"
-                                disabled={!isValid}
-                                className="w-full border-2 border-primary text-white text-base 2xs:text-lg max-2xs:px-6 py-3.5"
-                              >
-                                Confirm{" "}
+                          {!compact && (
+                            <div className="w-full grid grid-cols-2 gap-4 mt-4">
+                              <CustomButton type="button" className="w-full border border-primary text-white py-3.5" onClick={() => onBackFirstStep && onBackFirstStep()}>
+                                Back
                               </CustomButton>
-                            </div>
-                          )}
-
-                          {selectedType === "bank" && watchedBankCode && (
-                            <div className="w-full flex flex-col gap-4 mt-4">
-                              {" "}
                               <CustomButton
-                                type="submit"
-                                disabled={!isValid}
+                                type="button"
+                                disabled={!bankData || (selectedType === "bank" && !watchedBankCode)}
+                                onClick={() => goTo(1)}
                                 className="w-full border-2 border-primary text-white text-base 2xs:text-lg max-2xs:px-6 py-3.5"
                               >
-                                Confirm{" "}
+                                Next
                               </CustomButton>
                             </div>
                           )}
@@ -845,15 +851,154 @@ const handleShare = async (transaction: TransactionResponse) => {
                 </>
               )}
             </motion.form>
+
+            {compact && beneficiaries?.length > 0 && (
+              <div className="w-full mt-2 flex flex-col gap-3">
+                <div className="w-full flex items-center justify-start gap-6">
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('recent')}
+                    className={`text-sm font-medium pb-1 border-b-2 ${activeTab==='recent' ? 'text-[#F2C94C] border-[#F2C94C]' : 'text-white/70 border-transparent'}`}
+                  >
+                    Recent Transactions
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('saved')}
+                    className={`text-sm font-medium pb-1 border-b-2 ${activeTab==='saved' ? 'text-[#F2C94C] border-[#F2C94C]' : 'text-white/70 border-transparent'}`}
+                  >
+                    Saved Beneficiary
+                  </button>
+                </div>
+                <div className="w-full flex flex-col divide-y divide-white/5 rounded-lg overflow-hidden">
+                  {(activeTab === 'saved' ? beneficiaries : beneficiaries).slice(0, 3).map((b) => (
+                    <button
+                      key={b.id}
+                      onClick={() => handleBeneficiarySelect(b)}
+                      className={`w-full flex items-center justify-between gap-3 px-2 py-3 hover:bg-white/5 transition-colors ${
+                        selectedBeneficiary === b.id ? "bg-white/5" : ""
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full bg-green-500/20 grid place-items-center">
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22C55E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-3-3.87"/><path d="M4 21v-2a4 4 0 0 1 3-3.87"/><circle cx="12" cy="7" r="4"/></svg>
+                        </div>
+                        <div className="flex flex-col text-left">
+                          <p className="text-white text-sm font-medium leading-tight">{b.accountName}</p>
+                          <p className="text-white/70 text-xs leading-tight">{b.accountNumber}</p>
+                        </div>
+                      </div>
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-4 h-4 text-white/60"><path fill="currentColor" d="M9.29 6.71a1 1 0 0 0 0 1.41L13.17 12l-3.88 3.88a1 1 0 1 0 1.42 1.41l4.59-4.58a1 1 0 0 0 0-1.41L10.71 6.7a1 1 0 0 0-1.42.01Z"/></svg>
+                    </button>
+                  ))}
+                </div>
+                {/* Footer buttons below the list */}
+                <div className="w-full grid grid-cols-2 gap-4 mt-4">
+                  <CustomButton type="button" className="w-full border border-primary text-white py-3.5" onClick={() => onBackFirstStep && onBackFirstStep()}>
+                    Back
+                  </CustomButton>
+                  <CustomButton
+                    type="button"
+                    disabled={!bankData || (selectedType === 'bank' && !watchedBankCode)}
+                    onClick={() => goTo(1)}
+                    className="w-full border-2 border-primary text-white text-base 2xs:text-lg max-2xs:px-6 py-3.5"
+                  >
+                    Next
+                  </CustomButton>
+                </div>
+              </div>
+            )}
           </div>
         )}
         {screen === 1 && (
-          <div className="w-full dark:max-xs:px-4 xs:px-6 md:px-8 lg:px-10 2xl:px-12 py-8 flex flex-col gap-8 items-center bg-bg-400 dark:bg-black dark:max-xs:bg-bg-1100 rounded-xl ">
+          <div className={`w-full dark:max-xs:px-4 xs:px-6 md:px-8 lg:px-10 2xl:px-12 py-8 flex flex-col gap-8 items-center ${compact ? "bg-transparent" : "bg-bg-400 dark:bg-black dark:max-xs:bg-bg-1100 rounded-xl"}`}>
+            <h2 className="text-xl sm:text-2xl font-medium text-text-200 dark:text-text-400 text-center">
+              Enter Amount
+            </h2>
+
+            <div className="w-full flex flex-col gap-4 items-start justify-start">
+              <div className="flex flex-col justify-center items-center gap-1 w-full text-black dark:text-white">
+                <label className="w-full text-sm sm:text-base text-text-200 dark:text-text-800 mb-1 flex items-start " htmlFor={"amount"}>
+                  Amount
+                </label>
+                <div className="w-full flex gap-2 justify-center items-center bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-4 px-3">
+                  <input
+                    className="w-full bg-transparent p-0 border-none outline-none text-base text-text-200 dark:text-white placeholder:text-text-200 dark:placeholder:text-text-1000 placeholder:text-sm"
+                    placeholder="Enter Amount"
+                    required={true}
+                    type="text"
+                    {...register("amount", {
+                      onChange: (e) => {
+                        const value = e.target.value.replace(/,/g, '');
+                        if (/^\d*\.?\d*$/.test(value)) {
+                          e.target.value = formatNumberWithCommas(value);
+                        }
+                      }
+                    })}
+                  />
+                </div>
+                {/* Available Balance hint */}
+                <div className="w-full mt-1">
+                  <p className="text-xs text-[#7FB3FF]">Available Balance (₦{formatNumberWithCommas(String(availableBalance))})</p>
+                </div>
+                {errors?.amount?.message ? (
+                  <p className="flex self-start text-red-500 font-semibold mt-0.5 text-sm">{errors?.amount?.message}</p>
+                ) : null}
+              </div>
+
+              <div className="flex flex-col justify-center items-center gap-1 w-full text-black dark:text-white">
+                <label className="w-full text-sm sm:text-base text-text-200 dark:text-text-800 mb-1 flex items-start " htmlFor={"description"}>
+                  Narration (Optional)
+                </label>
+                <div className="w-full flex gap-2 justify-center items-center bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-4 px-3">
+                  <input
+                    className="w-full bg-transparent p-0 border-none outline-none text-base text-text-200 dark:text-white placeholder:text-text-200 dark:placeholder:text-text-1000 placeholder:text-sm"
+                    placeholder="Reason (optional)"
+                    type="text"
+                    {...register("description")}
+                  />
+                </div>
+                {errors?.description?.message ? (
+                  <p className="flex self-start text-red-500 font-semibold mt-0.5 text-sm">{errors?.description?.message}</p>
+                ) : null}
+              </div>
+            </div>
+
+            {/* Quick amount chips */}
+            <div className="w-full grid grid-cols-3 xs:grid-cols-5 gap-2">
+              {[1000,5000,10000,20000,25000].map((amt)=> (
+                <button
+                  key={amt}
+                  type="button"
+                  onClick={() => {
+                    const v = String(amt);
+                    setValue('amount', v as any, { shouldValidate: true, shouldDirty: true });
+                  }}
+                  className="px-3 py-2 rounded-md bg-[#1F2937] text-white/80 text-xs hover:bg-white/10 border border-white/10"
+                >
+                  ₦{formatNumberWithCommas(String(amt))}
+                </button>
+              ))}
+            </div>
+
+            <div className="w-full flex gap-4 mt-4">
+              <CustomButton type="button" className="w-full border border-[#F2C94C] text-white py-3.5 rounded-xl" onClick={() => goTo(0)}>
+                Back
+              </CustomButton>
+              <CustomButton type="button" disabled={!isValid} className="w-full bg-[#D4B139] hover:bg-[#c7a42f] text-black py-3.5 rounded-xl" onClick={() => goTo(2)}>
+                Next
+              </CustomButton>
+            </div>
+          </div>
+        )}
+
+        {screen === 2 && (
+          <div className={`w-full dark:max-xs:px-4 xs:px-6 md:px-8 lg:px-10 2xl:px-12 py-8 flex flex-col gap-6 items-center ${compact ? "bg-transparent" : "bg-bg-400 dark:bg-black dark:max-xs:bg-bg-1100 rounded-xl"}`}>
             <h2 className="text-2xl sm:text-3xl font-medium text-text-200 dark:text-text-400 text-center">
               ₦ {formatNumberWithCommas(watchedAmount)}
             </h2>
 
-            <div className="w-full flex flex-col gap-2 text-sm sm:text-base">
+            <div className={`w-full flex flex-col gap-2 text-sm sm:text-base ${compact ? "rounded-xl border border-white/10 bg-white/5 p-4" : ""}`}>
               {selectedType === "bank" && bankName ? (
                 <div className="w-full flex justify-between gap-2 ">
                   <p className="text-sm text-text-200 dark:text-text-400">
@@ -924,17 +1069,76 @@ const handleShare = async (transaction: TransactionResponse) => {
               </div>
             </div>
 
-            <CustomButton
-              type="button"
-              className="w-full border-2 border-primary text-white text-base 2xs:text-lg max-2xs:px-6 py-3.5"
-              onClick={() => setScreen(2)}
-            >
-              Confirm{" "}
-            </CustomButton>
+            {/* In compact modal, show PIN input and actions here (combined confirm + pin screen) */}
+            {compact ? (
+              <div className="w-full flex flex-col gap-4">
+                <div className="flex flex-col justify-center items-center gap-1 w-full text-black dark:text-white">
+                  <label
+                    className="w-full text-sm sm:text-base text-text-200 dark:text-text-800 mb-1 flex items-start "
+                    htmlFor={"pin"}
+                  >
+                    Enter Transaction PIN
+                  </label>
+                  <div className="w-full flex gap-2 items-center">
+                    <div className="w-full flex gap-2 justify-center items-center bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-3.5 px-3">
+                      <input
+                        className="w-full bg-transparent p-0 border-none outline-none text-base text-text-200 dark:text-white placeholder:text-text-200 dark:placeholder:text-text-1000 placeholder:text-sm"
+                        placeholder="Enter PIN"
+                        type="password"
+                        maxLength={4}
+                        value={pin}
+                        onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
+                        disabled={isVerifyingBiometric}
+                      />
+                    </div>
+                    {fingerprintPaymentEnabled && isFingerprintAvailable && (
+                      <button
+                        type="button"
+                        onClick={handleFingerprintClick}
+                        disabled={isVerifyingBiometric || transferLoading}
+                        className={`shrink-0 w-10 h-10 grid place-items-center rounded-md transition-colors ${
+                          isVerifyingBiometric
+                            ? "bg-white/20 text-white/50 cursor-not-allowed"
+                            : "bg-white/10 border border-white/10 hover:bg-[#D4B139] hover:border-[#D4B139] text-white/80 hover:text-black"
+                        }`}
+                        title="Use Fingerprint/Face ID"
+                      >
+                        <RiFingerprintLine className="text-lg" />
+                      </button>
+                    )}
+                  </div>
+                  {isVerifyingBiometric && (
+                    <p className="text-xs text-white/60 mt-1">Verifying with biometric...</p>
+                  )}
+                </div>
+
+                <div className="w-full grid grid-cols-2 gap-4 mt-2">
+                  <CustomButton type="button" className="w-full border border-[#F2C94C] text-white py-3.5 rounded-xl" onClick={() => goTo(1)}>
+                    Back
+                  </CustomButton>
+                  <CustomButton
+                    type="button"
+                    disabled={!pin || transferLoading}
+                    onClick={() => handleTransfer()}
+                    className="w-full bg-[#D4B139] hover:bg-[#c7a42f] text-black py-3.5 rounded-xl"
+                  >
+                    {transferLoading ? <SpinnerLoader width={25} height={25} color="#000" /> : 'Pay'}
+                  </CustomButton>
+                </div>
+              </div>
+            ) : (
+              <CustomButton
+                type="button"
+                className="w-full border-2 border-primary text-white text-base 2xs:text-lg max-2xs:px-6 py-3.5"
+                onClick={() => goTo(3)}
+              >
+                Confirm{" "}
+              </CustomButton>
+            )}
           </div>
         )}
 
-        {screen === 2 && (
+        {screen === 3 && (
           <div className="w-full dark:max-xs:px-4 xs:px-6 md:px-8 lg:px-10 2xl:px-12 py-8 flex flex-col gap-8 items-center bg-bg-400 dark:bg-black dark:max-xs:bg-bg-1100 rounded-xl ">
             <h2 className="text-xl sm:text-2xl font-medium text-text-200 dark:text-text-400 text-center">
               Enter Transaction PIN{" "}
@@ -956,9 +1160,28 @@ const handleShare = async (transaction: TransactionResponse) => {
                     type="password"
                     value={pin}
                     maxLength={4}
-                    onChange={(e) => setPin(e.target.value)}
+                    onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
+                    disabled={isVerifyingBiometric}
                   />
+                  {fingerprintPaymentEnabled && isFingerprintAvailable && (
+                    <button
+                      type="button"
+                      onClick={handleFingerprintClick}
+                      disabled={isVerifyingBiometric || transferLoading}
+                      className={`shrink-0 w-10 h-10 grid place-items-center rounded-md transition-colors ${
+                        isVerifyingBiometric
+                          ? "bg-white/20 text-white/50 cursor-not-allowed"
+                          : "bg-white/10 border border-white/10 hover:bg-[#D4B139] hover:border-[#D4B139] text-white/80 hover:text-black"
+                      }`}
+                      title="Use Fingerprint/Face ID"
+                    >
+                      <RiFingerprintLine className="text-lg" />
+                    </button>
+                  )}
                 </div>
+                {isVerifyingBiometric && (
+                  <p className="text-xs text-white/60 mt-1 text-center">Verifying with biometric...</p>
+                )}
               </div>
               <p className="flex self-center text-center text-text-200 dark:text-text-400 text-sm sm:text-base mt-2.5">
                 Transaction PIN secured by Nattypay
@@ -967,21 +1190,12 @@ const handleShare = async (transaction: TransactionResponse) => {
 
             <CustomButton
               type="button"
-              disabled={!pin || pin.length !== 4 || transferLoading}
+              disabled={(!pin || pin.length !== 4) && !isVerifyingBiometric || transferLoading}
+              isLoading={isVerifyingBiometric || transferLoading}
               className="w-full border-2 border-primary text-white text-base 2xs:text-lg max-2xs:px-6 py-3.5"
               onClick={() => {
                 if (pin && pin.length === 4 && bankData) {
-                  initiateTransfer({
-                    accountName: bankData?.accountName,
-                    accountNumber: watchedAccountNumber,
-                    amount: watchedAmount,
-                    description: watchedDescription,
-                    walletPin: pin,
-                    sessionId: watchedSessionId,
-                    bankCode: watchedBankCode,
-                    currency: "NGN",
-                    addBeneficiary: isBeneficiaryChecked,
-                  });
+                  handleTransfer();
                 } else {
                   ErrorToast({
                     title: "Invalid PIN Entered",
@@ -999,188 +1213,83 @@ const handleShare = async (transaction: TransactionResponse) => {
           </div>
         )}
 
-        {screen === 3 && (
-          <div className="w-full dark:max-xs:px-4 xs:px-6 md:px-8 lg:px-10 2xl:px-12 py-8 flex flex-col gap-8 items-center bg-gradient-to-b from-bg-400 to-bg-500 dark:from-black dark:to-bg-1100 rounded-2xl shadow-lg">
-            <div className="pb-6 w-full border-b border-border-100/20 flex flex-col items-center justify-center gap-3 text-center">
-              <div
-                className="flex items-center justify-center w-16 h-16 bg-gradient-to-r from-green-500 to-green-600 rounded-full"
-                style={{
-                  animation: "shadowBeat 1.5s ease-in-out infinite",
-                  boxShadow: "0 0 0 0 rgba(34, 197, 94, 0.7)",
+        {screen === 4 && (
+          <div className="w-full dark:max-xs:px-4 xs:px-6 md:px-8 lg:px-10 2xl:px-12 py-8 flex flex-col gap-6 bg-bg-400 dark:bg-black dark:max-xs:bg-bg-1100 rounded-2xl">
+            <div className="flex items-center justify-between mb-2">
+              <div>
+                <h3 className="text-lg font-semibold text-text-200 dark:text-text-400">Transaction History</h3>
+                <p className="text-xs text-text-800/80">View complete information about this transaction</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setBankData(null);
+                  goTo(0);
+                  reset();
                 }}
+                className="w-8 h-8 grid place-items-center rounded-md bg-white/10 border border-white/10"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="w-8 h-8 text-white"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M20 6L9 17l-5-5" />
-                </svg>
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <h2 className="text-xl font-bold bg-gradient-to-r from-green-500 to-green-500 bg-clip-text text-transparent">
-                  Payment successful!
-                </h2>
-                <p className="text-sm text-text-800 opacity-80">
-                  {new Date().toLocaleString("en-US", {
-                    month: "long",
-                    day: "2-digit",
-                    year: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    hour12: true,
-                  })}
-                </p>
-              </div>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-4 h-4 text-white/70"><path fill="currentColor" d="m12 13.4l4.6 4.6q.275.275.688.275t.712-.3q.275-.275.275-.687t-.3-.713L13.4 12l4.6-4.6q.275-.275.275-.688t-.3-.712q-.275-.275-.687-.275t-.713.3L12 10.6L7.4 6q-.275-.275-.688-.275t-.712.3q-.275.275-.275.687t.3.713L10.6 12l-4.6 4.6q-.275.275-.275.688t.3.712q.275.275.687.275t.713-.3z"/></svg>
+              </button>
             </div>
 
-            <h2 className="text-3xl sm:text-4xl font-bold text-text-200 dark:text-text-400 text-center tracking-tight">
-              ₦ {watchedAmount}
-            </h2>
-
-            <div className="w-full flex flex-col gap-3 text-sm sm:text-base bg-white/5 rounded-xl p-4 backdrop-blur-sm">
-              <div className="w-full flex justify-between gap-2 ">
-                <p className="text-sm text-text-200 dark:text-text-400">
-                  Transaction Type{" "}
-                </p>
-                <p className="text-text-200 dark:text-text-400 font-semibold text-right">
-                  {selectedType === "bank"
-                    ? "Bank Transfer"
-                    : "Wallet Transfer"}
-                </p>
-              </div>
-
-              {selectedType === "bank" && bankName ? (
-                <div className="w-full flex justify-between gap-2 ">
-                  <p className="text-sm text-text-200 dark:text-text-400">
-                    Bank Name{" "}
-                  </p>
-                  <p className="text-text-200 dark:text-text-400 font-semibold text-right">
-                    {bankName}
-                  </p>
+            <div className="w-full rounded-xl border border-white/10 bg-white/5 p-4">
+              <div className="w-full flex items-center justify-between rounded-lg bg-[#0E2D1C] px-4 py-3 mb-4">
+                <div className="flex items-center gap-2 text-green-400 text-sm">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-4 h-4"><path fill="currentColor" d="m10.6 15.6l6.025-6.025q.275-.275.675-.262t.7.287t.287.7t-.262.675l-6.75 6.75q-.3.3-.7.3t-.7-.3L6.95 13.25q-.275-.275-.275-.675t.3-.7t.7-.288t.675.263z"/></svg>
+                  <span>Successful</span>
                 </div>
-              ) : null}
-
-              <div className="w-full flex justify-between gap-2 ">
-                <p className="text-sm text-text-200 dark:text-text-400">
-                  Account number
-                </p>
-                <p className="text-text-200 dark:text-text-400 font-semibold text-right">
-                  {bankData?.accountNumber}
-                </p>
+                <div className="text-white font-semibold">₦ {formatNumberWithCommas(String(transaction?.transferDetails?.amount || watchedAmount))}</div>
               </div>
 
-              <div className="w-full flex justify-between gap-2 ">
-                <p className="text-sm text-text-200 dark:text-text-400">
-                  Account name
-                </p>
-                <p className="text-text-200 dark:text-text-400 font-semibold text-right">
-                  {bankData?.accountName}
-                </p>
-              </div>
-
-              <div className="w-full flex justify-between gap-2 ">
-                <p className="text-sm text-text-200 dark:text-text-400">
-                  Amount
-                </p>
-                <p className="text-text-200 dark:text-text-400 font-semibold text-right">
-                  ₦ {watchedAmount?.toLocaleString()}
-                </p>
-              </div>
-
-              {selectedType === "bank" ? (
-                <div className="w-full flex justify-between gap-2 ">
-                  <p className="text-sm text-text-200 dark:text-text-400">
-                    Transfer fees{" "}
-                  </p>
-                  <p className="text-text-200 dark:text-text-400 font-semibold text-right">
-                    ₦ {fee?.toLocaleString()}
-                  </p>
+              <div className="grid grid-cols-1 gap-3 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-text-800">Transaction ID</span>
+                  <span className="text-white flex items-center gap-2">
+                    {transaction?.transactionRef || transaction?.id}
+                    <button
+                      type="button"
+                      onClick={() => transaction?.transactionRef && navigator.clipboard.writeText(transaction.transactionRef)}
+                      className="p-1 rounded hover:bg-white/10"
+                      title="Copy"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-4 h-4 text-white/70"><path fill="currentColor" d="M7 21q-.825 0-1.412-.587T5 19V7q0-.825.588-1.412T7 5h8q.825 0 1.413.588T17 7v12q0 .825-.587 1.413T15 21zm0-2h8V7H7zm10-2V5H9V3h8q.825 0 1.413.588T19 5v12z"/></svg>
+                    </button>
+                  </span>
                 </div>
-              ) : null}
-
-              {watchedDescription ? (
-                <div className="w-full flex justify-between gap-2 ">
-                  <p className="text-sm text-text-200 dark:text-text-400">
-                    Narration
-                  </p>
-                  <p className="text-text-200 dark:text-text-400 font-semibold text-right">
-                    {watchedDescription}
-                  </p>
+                <div className="flex items-center justify-between">
+                  <span className="text-text-800">Date & Time</span>
+                  <span className="text-white">{transaction ? format(new Date(transaction.createdAt), "MMM d, yyyy h:mm a") : ''}</span>
                 </div>
-              ) : null}
-
-              <div className="w-full flex justify-between gap-2">
-                <p className="text-sm text-text-200 dark:text-text-400">
-                  Debit from
-                </p>
-                <p className="text-text-200 dark:text-text-400 font-semibold text-right">
-                  NGN Account{" "}
-                </p>
+                <div className="flex items-center justify-between">
+                  <span className="text-text-800">Payment Method</span>
+                  <span className="text-white">Available Balance</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-text-800">Transaction Type</span>
+                  <span className="text-white">{selectedType === 'bank' ? 'Inter-bank Transfer' : 'Intra-bank Transfer'}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-text-800">To</span>
+                  <span className="text-white">{transaction?.transferDetails?.beneficiaryName || bankData?.accountName}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-text-800">Recipient Account</span>
+                  <span className="text-white">{transaction?.transferDetails?.beneficiaryAccountNumber || bankData?.accountNumber}</span>
+                </div>
               </div>
             </div>
 
             <div className="w-full grid grid-cols-2 gap-4 mt-2">
-              <button 
-                className="group flex items-center justify-center gap-3 px-6 py-4 rounded-xl bg-gradient-to-r from-[#FFB800] to-[#FF9500] hover:from-[#FF9500] hover:to-[#FFB800] transition-all duration-300 text-white font-semibold shadow-lg shadow-[#FFB800]/20 hover:shadow-[#FFB800]/30 hover:scale-[1.02]"
-                onClick={() => transaction && handleShare(transaction)}
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="w-5 h-5 transition-transform duration-300 group-hover:-translate-y-1"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
-                  <polyline points="16 6 12 2 8 6" />
-                  <line x1="12" y1="2" x2="12" y2="15" />
-                </svg>
-                Share
+              <button type="button" className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl border border-white/10 bg-transparent text-white hover:bg-white/5">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-4 h-4"><path fill="currentColor" d="M12 13q-1.25 0-2.125-.875T9 10q0-1.25.875-2.125T12 7q1.25 0 2.125.875T15 10q0 1.25-.875 2.125T12 13m0 8q-2.5-2.1-4-3.6T5.5 15.875T4 12q0-3.35 2.325-5.675T12 4t5.675 2.325T20 12q0 2.2-1.5 4.125T16 17.4z"/></svg>
+                Contact Support
               </button>
-
-              <button
-                className="group flex items-center justify-center gap-3 px-6 py-4 rounded-xl bg-gradient-to-r from-[#FFB800] to-[#FF9500] hover:from-[#FF9500] hover:to-[#FFB800] transition-all duration-300 text-white font-semibold shadow-lg shadow-[#FFB800]/20 hover:shadow-[#FFB800]/30 hover:scale-[1.02]"
-                onClick={() => transaction && handleDownload(transaction)}
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="w-5 h-5 transition-transform duration-300 group-hover:translate-y-1"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                  <polyline points="7 10 12 15 17 10" />
-                  <line x1="12" y1="15" x2="12" y2="3" />
-                </svg>
-                Download
+              <button type="button" className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-[#F2C94C] text-black hover:bg-[#e6be46]" onClick={() => transaction && handleDownload(transaction)}>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-4 h-4"><path fill="currentColor" d="M12 16q-.2 0-.375-.063T11.3 15.8l-3.9-3.9q-.275-.275-.275-.688T7.7 10.5t.713-.3t.687.275l2.1 2.1V5q0-.425.288-.712T12 4q.425 0 .713.288T13 5v7.575l2.1-2.1q.275-.275.688-.275t.712.3q.275.275.275.688t-.275.712l-3.9 3.9q-.125.125-.3.188T12 16M5 20q-.825 0-1.412-.587T3 18v-1q0-.425.288-.712T4 16t.713.288T5 17v1h14v-1q0-.425.288-.712T20 16t.713.288T21 17v1q0 .825-.587 1.413T19 20z"/></svg>
+                Download Receipt
               </button>
             </div>
-
-            <CustomButton
-              type="button"
-              className="w-full mt-2 border-2 border-primary/20 hover:border-primary/40 text-white text-base 2xs:text-lg max-2xs:px-6 py-4 rounded-xl transition-all duration-300 hover:bg-primary/10"
-              onClick={() => {
-                setBankData(null);
-                setScreen(0);
-                reset();
-              }}
-            >
-              Continue
-            </CustomButton>
           </div>
         )}
       </div>

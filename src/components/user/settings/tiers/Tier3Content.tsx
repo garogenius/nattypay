@@ -65,7 +65,6 @@ const Tier3Content = () => {
 
   const onSubmit = async (data: FormData) => {
     try {
-      // console.log(data);
       verify({
         state: data.state,
         city: data.city,

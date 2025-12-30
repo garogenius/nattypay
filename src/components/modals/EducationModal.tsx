@@ -1,0 +1,306 @@
+"use client";
+
+import React, { useRef, useState } from "react";
+import { CgClose } from "react-icons/cg";
+import { IoChevronDown } from "react-icons/io5";
+import CustomButton from "@/components/shared/Button";
+import useOnClickOutside from "@/hooks/useOnClickOutside";
+import {
+  useGetEducationBillers,
+  useGetEducationBillerItems,
+  useVerifyEducationCustomer,
+  usePayForEducation,
+} from "@/api/education/education.queries";
+import SpinnerLoader from "@/components/Loader/SpinnerLoader";
+import ErrorToast from "@/components/toast/ErrorToast";
+import useUserStore from "@/store/user.store";
+
+interface EducationModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+const EducationModal: React.FC<EducationModalProps> = ({ isOpen, onClose }) => {
+  const [step, setStep] = useState<"form" | "verify" | "confirm" | "result">("form");
+  const [billerOpen, setBillerOpen] = useState(false);
+  const [itemOpen, setItemOpen] = useState(false);
+  const [selectedBiller, setSelectedBiller] = useState<{name: string; billerCode: string} | null>(null);
+  const [selectedItem, setSelectedItem] = useState<{name: string; itemCode: string; amount?: number} | null>(null);
+  const [customerId, setCustomerId] = useState<string>("");
+  const [amount, setAmount] = useState<string>("");
+  const [walletPin, setWalletPin] = useState<string>("");
+  const [resultSuccess, setResultSuccess] = useState<boolean | null>(null);
+  const [verifiedCustomer, setVerifiedCustomer] = useState<any>(null);
+  const { user } = useUserStore();
+
+  const billerRef = useRef<HTMLDivElement>(null);
+  const itemRef = useRef<HTMLDivElement>(null);
+  useOnClickOutside(billerRef, () => setBillerOpen(false));
+  useOnClickOutside(itemRef, () => setItemOpen(false));
+
+  // Fetch education billers
+  const { billers, isPending: billersLoading } = useGetEducationBillers();
+
+  // Fetch biller items when biller is selected
+  const { items, isLoading: itemsLoading } = useGetEducationBillerItems({
+    billerCode: selectedBiller?.billerCode || "",
+  });
+
+  const canProceed = !!selectedBiller && !!selectedItem && customerId.length > 0;
+  const canVerify = canProceed && (amount ? Number(amount) > 0 : true);
+
+  const handleClose = () => {
+    setStep("form");
+    setBillerOpen(false);
+    setItemOpen(false);
+    setSelectedBiller(null);
+    setSelectedItem(null);
+    setCustomerId("");
+    setAmount("");
+    setWalletPin("");
+    setResultSuccess(null);
+    setVerifiedCustomer(null);
+    onClose();
+  };
+
+  const onVerifySuccess = (data: any) => {
+    setVerifiedCustomer(data?.data?.data);
+    setStep("confirm");
+  };
+
+  const onVerifyError = (error: any) => {
+    const errorMessage = error?.response?.data?.message;
+    ErrorToast({
+      title: "Verification Failed",
+      descriptions: Array.isArray(errorMessage) ? errorMessage : [errorMessage],
+    });
+  };
+
+  const { mutate: verifyCustomer, isPending: verifying } = useVerifyEducationCustomer(
+    onVerifyError,
+    onVerifySuccess
+  );
+
+  const handleVerify = () => {
+    if (!selectedBiller || !selectedItem || !customerId) return;
+    verifyCustomer({
+      billerCode: selectedBiller.billerCode,
+      itemCode: selectedItem.itemCode,
+      customerId,
+    });
+  };
+
+  const onPaySuccess = (data: any) => {
+    setResultSuccess(true);
+    setStep("result");
+  };
+
+  const onPayError = (error: any) => {
+    const errorMessage = error?.response?.data?.message;
+    setResultSuccess(false);
+    setStep("result");
+    ErrorToast({
+      title: "Payment Failed",
+      descriptions: Array.isArray(errorMessage) ? errorMessage : [errorMessage],
+    });
+  };
+
+  const { mutate: payEducation, isPending: paying } = usePayForEducation(
+    onPayError,
+    onPaySuccess
+  );
+
+  const handleConfirm = () => {
+    if (walletPin.length !== 4 || !selectedBiller || !selectedItem) return;
+    payEducation({
+      billerCode: selectedBiller.billerCode,
+      itemCode: selectedItem.itemCode,
+      customerId,
+      amount: Number(amount || selectedItem.amount || 0),
+      currency: "NGN",
+      walletPin,
+      customerName: verifiedCustomer?.customerName || user?.fullname || "",
+      customerEmail: user?.email || "",
+      customerPhone: user?.phoneNumber || "",
+      addBeneficiary: false,
+    });
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="z-[999999] overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 flex justify-center items-center w-full md:inset-0 h-[100dvh]">
+      <div className="fixed inset-0 transition-opacity" aria-hidden="true">
+        <div className="absolute inset-0 bg-black/80 dark:bg-black/60" onClick={handleClose} />
+      </div>
+      <div className="relative mx-4 bg-bg-600 dark:bg-bg-1100 border border-border-800 dark:border-border-700 w-full max-w-md rounded-2xl overflow-visible">
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 pb-2">
+          <div>
+            <h2 className="text-white text-lg font-semibold">{step === "form" ? "Education" : step === "verify" ? "Education" : step === "confirm" ? "Education" : "Transaction History"}</h2>
+            <p className="text-white/60 text-sm">{step === "form" ? "Enter payment details to continue" : step === "verify" ? "Verify customer details" : step === "confirm" ? "Confirm Transactions" : "View complete information about this transaction"}</p>
+          </div>
+          <button onClick={handleClose} className="p-1 hover:bg-white/10 rounded transition-colors">
+            <CgClose className="text-xl text-white/70" />
+          </button>
+        </div>
+
+        <div className="px-4 pb-4">
+          {step === "form" && (
+            <div className="flex flex-col gap-4">
+              {/* Biller */}
+              <div className="flex flex-col gap-2" ref={billerRef}>
+                <label className="text-white/70 text-sm">Select Biller</label>
+                <div onClick={() => setBillerOpen(!billerOpen)} className="w-full bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-3 px-4 text-white text-sm outline-none cursor-pointer flex items-center justify-between">
+                  <span className={selectedBiller ? "text-white" : "text-white/50"}>{selectedBiller?.name || "Select biller (WAEC, JAMB, School)"}</span>
+                  <IoChevronDown className={`w-4 h-4 text-white/70 transition-transform ${billerOpen ? 'rotate-180' : ''}`} />
+                </div>
+                {billerOpen && (
+                  <div className="relative">
+                    <div className="absolute top-1 left-0 right-0 bg-bg-600 dark:bg-bg-1100 border border-border-800 dark:border-border-700 rounded-lg shadow-lg z-50 overflow-hidden max-h-60 overflow-y-auto">
+                      {billersLoading ? (
+                        <div className="flex items-center justify-center py-4">
+                          <SpinnerLoader width={20} height={20} color="#D4B139" />
+                        </div>
+                      ) : (billers || []).map((b: any) => (
+                        <button
+                          key={b.billerCode}
+                          onClick={() => {
+                            setSelectedBiller({ name: b.billerName || b.name, billerCode: b.billerCode });
+                            setSelectedItem(null);
+                            setBillerOpen(false);
+                          }}
+                          className="w-full text-left px-4 py-3 text-white/80 hover:bg-white/5 text-sm"
+                        >
+                          {b.billerName || b.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Item */}
+              {selectedBiller && (
+                <div className="flex flex-col gap-2" ref={itemRef}>
+                  <label className="text-white/70 text-sm">Select Item</label>
+                  <div onClick={() => selectedBiller && setItemOpen(!itemOpen)} className={`w-full bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-3 px-4 text-white text-sm outline-none cursor-pointer flex items-center justify-between ${!selectedBiller ? 'opacity-60 pointer-events-none' : ''}`}>
+                    <span className={selectedItem ? "text-white" : "text-white/50"}>{selectedItem?.name || (selectedBiller ? 'Select item' : 'Select biller first')}</span>
+                    <IoChevronDown className={`w-4 h-4 text-white/70 transition-transform ${itemOpen ? 'rotate-180' : ''}`} />
+                  </div>
+                  {itemOpen && (
+                    <div className="relative">
+                      <div className="absolute top-1 left-0 right-0 bg-bg-600 dark:bg-bg-1100 border border-border-800 dark:border-border-700 rounded-lg shadow-lg z-50 overflow-hidden max-h-60 overflow-y-auto">
+                        {itemsLoading ? (
+                          <div className="flex items-center justify-center py-4">
+                            <SpinnerLoader width={20} height={20} color="#D4B139" />
+                          </div>
+                        ) : (items || []).map((it: any) => (
+                          <button
+                            key={it.itemCode}
+                            onClick={() => {
+                              setSelectedItem({ name: it.itemName || it.name, itemCode: it.itemCode, amount: it.amount });
+                              if (it.amount) setAmount(String(it.amount));
+                              setItemOpen(false);
+                            }}
+                            className="w-full text-left px-4 py-3 text-white hover:bg-white/5 text-sm flex items-center justify-between"
+                          >
+                            <span>{it.itemName || it.name}</span>
+                            {it.amount && <span className="text-[#D4B139] font-medium">₦{Number(it.amount).toLocaleString()}</span>}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Customer ID */}
+              <div className="flex flex-col gap-2">
+                <label className="text-white/70 text-sm">Customer ID (Registration/Student Number)</label>
+                <input className="w-full bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-3 px-4 text-white placeholder:text-white/60 text-sm outline-none" placeholder="Enter customer ID" value={customerId} onChange={(e)=> setCustomerId(e.target.value)} />
+              </div>
+
+              {/* Amount (if not fixed) */}
+              {selectedItem && !selectedItem.amount && (
+                <div className="flex flex-col gap-2">
+                  <label className="text-white/70 text-sm">Amount</label>
+                  <input className="w-full bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-3 px-4 text-white placeholder:text-white/60 text-sm outline-none" placeholder="Enter amount" value={amount} onChange={(e)=> setAmount(e.target.value.replace(/[^\d.]/g, ''))} />
+                </div>
+              )}
+
+              {/* Amount Display */}
+              {(selectedItem?.amount || amount) && (
+                <div className="flex items-center justify-center py-2">
+                  <div className="flex items-center gap-2 text-green-500">
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    <span className="font-bold text-lg">₦{Number(selectedItem?.amount || amount || 0).toLocaleString()}.00</span>
+                  </div>
+                </div>
+              )}
+
+              <CustomButton
+                type="button"
+                disabled={!canVerify}
+                isLoading={verifying}
+                className="w-full bg-[#D4B139] hover:bg-[#D4B139]/90 text-black font-medium py-3 rounded-lg transition-colors mt-2"
+                onClick={handleVerify}
+              >
+                Verify Customer
+              </CustomButton>
+            </div>
+          )}
+
+          {step === "confirm" && (
+            <div className="flex flex-col gap-6">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between"><span className="text-white/60 text-sm">Biller</span><span className="text-white text-sm font-medium">{selectedBiller?.name}</span></div>
+                {selectedItem && (
+                  <div className="flex items-center justify-between"><span className="text-white/60 text-sm">Item</span><span className="text-white text-sm font-medium">{selectedItem.name}</span></div>
+                )}
+                <div className="flex items-center justify-between"><span className="text-white/60 text-sm">Customer ID</span><span className="text-white text-sm font-medium">{customerId}</span></div>
+                {verifiedCustomer && (
+                  <div className="flex items-center justify-between"><span className="text-white/60 text-sm">Customer Name</span><span className="text-white text-sm font-medium">{verifiedCustomer.customerName || "N/A"}</span></div>
+                )}
+                <div className="flex items-center justify-between"><span className="text-white/60 text-sm">Amount</span><span className="text-white text-sm font-medium">₦{Number(selectedItem?.amount || amount || 0).toLocaleString()}</span></div>
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="text-white/60 text-sm">Enter Transaction PIN</label>
+                <input type="password" maxLength={4} value={walletPin} onChange={(e)=> setWalletPin(e.target.value.replace(/\D/g, ""))} className="w-full bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-3 px-4 text-white text-sm outline-none" />
+              </div>
+              <div className="flex gap-4 mt-2">
+                <CustomButton onClick={()=> setStep("form")} className="flex-1 bg-transparent border border-border-600 text-white hover:bg-white/5 py-3 rounded-lg">Back</CustomButton>
+                <CustomButton onClick={handleConfirm} disabled={walletPin.length!==4 || paying} isLoading={paying} className="flex-1 bg-[#D4B139] hover:bg-[#D4B139]/90 text-black py-3 rounded-lg">Pay</CustomButton>
+              </div>
+            </div>
+          )}
+
+          {step === "result" && (
+            <div className="flex flex-col items-center gap-4">
+              <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: resultSuccess ? '#22c55e' : '#ef4444' }}>
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  {resultSuccess ? (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  ) : (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  )}
+                </svg>
+              </div>
+              <span className={`${resultSuccess ? 'text-emerald-400' : 'text-red-400'} text-sm font-medium`}>{resultSuccess ? 'Successful' : 'Failed'}</span>
+              <span className="text-white text-2xl font-bold">₦{Number(selectedItem?.amount || amount || 0).toLocaleString()}.00</span>
+              <div className="flex gap-3 mt-4 w-full">
+                <CustomButton onClick={handleClose} className="flex-1 bg-transparent border border-border-600 text-white hover:bg-white/5 py-3 rounded-lg">Contact Support</CustomButton>
+                <CustomButton onClick={handleClose} className="flex-1 bg-[#D4B139] hover:bg-[#D4B139]/90 text-black py-3 rounded-lg">Download Receipt</CustomButton>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default EducationModal;
+
