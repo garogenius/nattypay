@@ -11,7 +11,6 @@ import { useEffect, useState } from "react";
 import OtpInput from "react-otp-input";
 import useAuthEmailStore from "@/store/authEmail.store";
 import useTimerStore from "@/store/timer.store";
-import SpinnerLoader from "../Loader/SpinnerLoader";
 import icons from "../../../../public/icons";
 import {
   useResendVerifyEmailPreRegister,
