@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import CustomButton from "@/components/shared/Button";
 import useNavigate from "@/hooks/useNavigate";
-import images from "../../../public/images";
+import images from "../../../../public/images";
 
 const WelcomeContent = () => {
   const navigate = useNavigate();
