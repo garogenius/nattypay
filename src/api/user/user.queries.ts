@@ -9,6 +9,7 @@ import {
   createAccountRequest,
   createBusinessAccountRequest,
   createForeignAccountRequest,
+  createOvalPersonRequest,
   createPinRequest,
   deleteAccountRequest,
   getBeneficiariesRequest,
@@ -22,6 +23,7 @@ import {
   tier2VerificationRequest,
   tier3VerificationRequest,
   updateUserRequest,
+  uploadDocumentRequest,
   validatePhoneNumberRequest,
   verifyNinRequest,
   verifyPhoneNumberRequest,
@@ -392,4 +394,38 @@ export const useGetUserStatisticsPieChart = (params?: { period?: string }) => {
     isPending,
     isError,
   };
+};
+
+// KYC Document Upload
+export const useUploadDocument = (
+  onError: (error: any) => void,
+  onSuccess: (data: any) => void
+) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: uploadDocumentRequest,
+    onError,
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["user"] });
+      onSuccess(data);
+    },
+  });
+};
+
+// Oval Person API
+export const useCreateOvalPerson = (
+  onError: (error: any) => void,
+  onSuccess: (data: any) => void
+) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: createOvalPersonRequest,
+    onError,
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["user"] });
+      onSuccess(data);
+    },
+  });
 };

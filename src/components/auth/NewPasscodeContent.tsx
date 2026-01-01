@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
+import Image from "next/image";
 import CustomButton from "@/components/shared/Button";
 import Link from "next/link";
 import useNavigate from "@/hooks/useNavigate";
@@ -13,6 +14,7 @@ import ErrorToast from "@/components/toast/ErrorToast";
 import SuccessToast from "@/components/toast/SuccessToast";
 import useAuthEmailStore from "@/store/authEmail.store";
 import PasscodeChangedSuccessModal from "@/components/modals/PasscodeChangedSuccessModal";
+import images from "../../../public/images";
 
 const schema = yup.object().shape({
   newPasscode: yup.string().length(4, "Passcode must be 4 digits").required("New passcode is required"),
@@ -197,10 +199,19 @@ const NewPasscodeContent = () => {
               {/* Footer */}
               <div className="text-center text-xs text-gray-500 mt-8">
                 <p>
-                  Licenced by CBN a{" "}
-                  <span className="inline-block w-3 h-3 bg-green-500 rounded-full"></span>{" "}
-                  Deposits Insured by{" "}
+                  <span className="flex items-center justify-center gap-2 flex-wrap">
+                    <span>Licenced by</span>
+                    <Image
+                      src={images.cbnLogo}
+                      alt="CBN Logo"
+                      width={40}
+                      height={20}
+                      className="h-5 w-auto object-contain"
+                    />
+                    <span className="inline-block w-3 h-3 bg-green-500 rounded-full"></span>
+                    <span>Deposits Insured by</span>
                   <span className="text-blue-600 underline">NDIC</span>
+                  </span>
                 </p>
               </div>
             </div>

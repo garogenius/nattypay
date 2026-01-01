@@ -126,7 +126,9 @@ const LoginWithBiometricContent = () => {
       setValue("hasStoredIdentifier", false);
     }
     if (name) {
-      setUserName(name);
+      // Extract username (first word) if it's a fullname (contains spaces)
+      const displayName = name.includes(" ") ? name.split(" ")[0] : name;
+      setUserName(displayName);
     }
 
     // Get device info
@@ -271,7 +273,7 @@ const LoginWithBiometricContent = () => {
           value: user.email,
           masked: maskIdentifier(user.email, "email"),
         },
-        user.fullname || user.username
+        user.username || user.fullname
       );
     } else if (user?.phoneNumber) {
       storeUserIdentifier(
@@ -280,7 +282,7 @@ const LoginWithBiometricContent = () => {
           value: user.phoneNumber,
           masked: maskIdentifier(user.phoneNumber, "phone"),
         },
-        user.fullname || user.username
+        user.username || user.fullname
       );
     }
 
@@ -419,7 +421,7 @@ const LoginWithBiometricContent = () => {
           value: user.email,
           masked: maskIdentifier(user.email, "email"),
         },
-        user.fullname || user.username
+        user.username || user.fullname
       );
     } else if (user?.phoneNumber) {
       storeUserIdentifier(
@@ -428,7 +430,7 @@ const LoginWithBiometricContent = () => {
           value: user.phoneNumber,
           masked: maskIdentifier(user.phoneNumber, "phone"),
         },
-        user.fullname || user.username
+        user.username || user.fullname
       );
     }
 
@@ -535,17 +537,15 @@ const LoginWithBiometricContent = () => {
           <div className="w-full max-w-md">
             {/* Form Card */}
             <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-lg">
-              {/* Logo */}
+              {/* Logo Icon */}
               <div className="flex justify-center mb-6">
-                <div className="w-16 h-16 bg-gray-800 rounded-lg flex items-center justify-center">
                   <Image
-                    src={images.logo2}
-                    alt="NattyPay Logo"
-                    width={48}
-                    height={48}
-                    className="w-12 h-12"
+                  src={images.singleLogo}
+                  alt="NattyPay Icon"
+                  width={80}
+                  height={80}
+                  className="w-20 h-20 object-contain"
                   />
-                </div>
               </div>
 
               {/* Welcome Message */}
@@ -564,31 +564,46 @@ const LoginWithBiometricContent = () => {
               {isBiometricAvailable && !showPasscodeForm && (
                 <div className="mb-6">
                   <div className="flex flex-col items-center">
-                    {/* Fingerprint Icon/Stamp */}
-                    <button
-                      type="button"
-                      onClick={handleBiometricLogin}
-                      disabled={biometricLoginPending}
-                      className="group relative w-32 h-32 rounded-full bg-gradient-to-br from-[#D4B139]/10 to-[#D4B139]/5 border-4 border-[#D4B139]/30 flex items-center justify-center hover:border-[#D4B139] hover:shadow-lg hover:shadow-[#D4B139]/20 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
                       {biometricType === "fingerprint" ? (
+                      // Fingerprint Icon - Large dark gray fingerprint
+                      <div className="flex flex-col items-center w-full">
+                        <div className="w-40 h-40 flex items-center justify-center mb-6">
                         <svg
-                          className="w-20 h-20 text-[#D4B139] group-hover:scale-110 transition-transform duration-300"
+                            className="w-40 h-40 text-gray-700"
                           fill="none"
                           stroke="currentColor"
-                          strokeWidth={1.5}
+                            strokeWidth={1.5}
                           viewBox="0 0 24 24"
                         >
                           <path
                             strokeLinecap="round"
                             strokeLinejoin="round"
-                            d="M7.864 4.243A7.5 7.5 0 0119.5 10.5c0 2.92-.556 5.709-1.568 8.268M5.742 6.364A7.465 7.465 0 004.5 10.5c0 2.92.556 5.709 1.568 8.268M2 13h2a2 2 0 002-2V9a2 2 0 00-2-2H2m16 0h-2a2 2 0 00-2 2v4a2 2 0 002 2h2M7 8h2m-2 4h2m6-4h2m-2 4h2"
+                              d="M7.864 4.243A7.5 7.5 0 0119.5 10.5c0 2.92-.556 5.709-1.568 8.268M5.742 6.364A7.465 7.465 0 004.5 10.5c0 2.92.556 5.709 1.568 8.268M2 13h2a2 2 0 002-2V9a2 2 0 00-2-2H2m16 0h-2a2 2 0 00-2 2v4a2 2 0 002 2h2M7 8h2m-2 4h2m6-4h2m-2 4h2"
                           />
                         </svg>
-                      ) : (
-                        <div className="w-20 h-20 rounded-full border-4 border-[#D4B139] flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                        </div>
+                        <p className="text-base font-medium text-gray-700 mb-6">
+                          Click to log in with Fingerprint
+                        </p>
+                        <CustomButton
+                          type="button"
+                          onClick={handleBiometricLogin}
+                          disabled={biometricLoginPending}
+                          isLoading={biometricLoginPending}
+                          className="w-full bg-[#D4B139] hover:bg-[#c7a42f] text-white font-medium py-3.5 rounded-lg"
+                        >
+                          Login With Fingerprint
+                        </CustomButton>
+                      </div>
+                    ) : (
+                      // FaceID Icon - Dashed square with face icon and two dots below
+                      <div className="flex flex-col items-center w-full">
+                        <div className="w-40 h-40 flex flex-col items-center justify-center mb-6">
+                          {/* Dashed square outline */}
+                          <div className="relative w-28 h-28 border-2 border-dashed border-gray-400 rounded-lg flex items-center justify-center">
+                            {/* Face icon inside */}
                           <svg
-                            className="w-14 h-14 text-[#D4B139]"
+                              className="w-20 h-20 text-gray-700"
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
@@ -596,30 +611,38 @@ const LoginWithBiometricContent = () => {
                             <path
                               strokeLinecap="round"
                               strokeLinejoin="round"
-                              strokeWidth={2}
+                              strokeWidth={1.5}
                               d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                             />
                           </svg>
+                          </div>
+                          {/* Two dots below */}
+                          <div className="flex gap-1.5 mt-3">
+                            <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                            <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                          </div>
+                        </div>
+                        <p className="text-base font-medium text-gray-700 mb-6">
+                          Click to log in with FaceID
+                        </p>
+                        <CustomButton
+                          type="button"
+                          onClick={handleBiometricLogin}
+                          disabled={biometricLoginPending}
+                          isLoading={biometricLoginPending}
+                          className="w-full bg-[#D4B139] hover:bg-[#c7a42f] text-white font-medium py-3.5 rounded-lg"
+                        >
+                          Login With FaceID
+                        </CustomButton>
                         </div>
                       )}
-                      {biometricLoginPending && (
-                        <div className="absolute inset-0 rounded-full bg-[#D4B139]/20 animate-pulse" />
-                      )}
-                    </button>
-                    
-                    <p className="text-base font-medium text-gray-700 mt-4 mb-2">
-                      {biometricType === "fingerprint" ? "Touch to login with Fingerprint" : "Click to login with Face ID"}
-                    </p>
-                    <p className="text-sm text-gray-500 text-center mb-6">
-                      {userName ? `Welcome back, ${userName}!` : "Use your biometric to access your account"}
-                    </p>
                   </div>
 
                   {/* Login with Passcode Button */}
                   <CustomButton
                     type="button"
                     onClick={() => setShowPasscodeForm(true)}
-                    className="w-full bg-transparent border-2 border-gray-300 hover:border-[#D4B139] text-gray-700 hover:text-[#D4B139] font-medium py-3 rounded-lg transition-colors"
+                    className="w-full bg-transparent border-2 border-gray-300 hover:border-[#D4B139] text-gray-700 hover:text-[#D4B139] font-medium py-3 rounded-lg transition-colors mt-4"
                   >
                     Login with Passcode
                   </CustomButton>
@@ -628,7 +651,7 @@ const LoginWithBiometricContent = () => {
 
               {/* Passcode Input - Show when passcode form is requested or biometric is not available */}
               {(showPasscodeForm || !isBiometricAvailable) && (
-                <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                 {!storedIdentifier && (
                   <div className="flex flex-col gap-1">
                     <label className="text-sm font-medium text-gray-700">Email or Phone Number</label>
@@ -675,14 +698,14 @@ const LoginWithBiometricContent = () => {
                   </Link>
                 </div>
 
-                  <CustomButton
-                    type="submit"
-                    disabled={!isValid || loginLoading}
-                    isLoading={loginLoading}
-                    className="w-full bg-[#D4B139] hover:bg-[#c7a42f] text-black font-medium py-3 rounded-lg"
-                  >
-                    Login
-                  </CustomButton>
+                <CustomButton
+                  type="submit"
+                  disabled={!isValid || loginLoading}
+                  isLoading={loginLoading}
+                  className="w-full bg-[#D4B139] hover:bg-[#c7a42f] text-black font-medium py-3 rounded-lg"
+                >
+                  Login
+                </CustomButton>
                   
                   {/* Back to Biometric Button - Only show if biometric is available */}
                   {isBiometricAvailable && (
@@ -694,7 +717,7 @@ const LoginWithBiometricContent = () => {
                       Use Biometric Instead
                     </CustomButton>
                   )}
-                </form>
+              </form>
               )}
 
               {/* Account Options */}
@@ -727,10 +750,17 @@ const LoginWithBiometricContent = () => {
 
               {/* Footer */}
               <div className="text-center text-xs text-gray-500 mt-8">
-                <p>
-                  Licenced by CBN a{" "}
-                  <span className="inline-block w-3 h-3 bg-green-500 rounded-full"></span>{" "}
-                  Deposits Insured by{" "}
+                <p className="flex items-center justify-center gap-2 flex-wrap">
+                  <span>Licenced by</span>
+                  <Image
+                    src={images.cbnLogo}
+                    alt="CBN Logo"
+                    width={40}
+                    height={20}
+                    className="h-5 w-auto object-contain"
+                  />
+                  <span className="inline-block w-3 h-3 bg-green-500 rounded-full"></span>
+                  <span>Deposits Insured by</span>
                   <span className="text-blue-600 underline">NDIC</span>
                 </p>
               </div>

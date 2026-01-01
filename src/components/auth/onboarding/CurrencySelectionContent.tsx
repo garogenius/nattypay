@@ -10,6 +10,7 @@ import { useRegister, useBusinessRegister } from "@/api/auth/auth.queries";
 import ErrorToast from "@/components/toast/ErrorToast";
 import SuccessToast from "@/components/toast/SuccessToast";
 import useAuthEmailStore from "@/store/authEmail.store";
+import images from "../../../../public/images";
 
 const currencies = [
   {
@@ -120,17 +121,13 @@ const CurrencySelectionContent = () => {
       return;
     }
 
-    // Prepare registration payload with currency
+    // Prepare registration payload
     const registrationPayload: any = {
       username: registrationData.username,
       fullname: registrationData.fullname,
       password: registrationData.password,
       dateOfBirth: registrationData.dateOfBirth,
-      currency: selectedCurrency,
       accountType: registrationData.accountType,
-      ...(registrationData.accountType === "BUSINESS" && registrationData.companyRegistrationNumber
-        ? { companyRegistrationNumber: registrationData.companyRegistrationNumber }
-        : {}),
     };
 
     // Add email or phoneNumber based on what was provided
@@ -143,8 +140,13 @@ const CurrencySelectionContent = () => {
 
     // Call appropriate registration API
     if (registrationData.accountType === "BUSINESS") {
+      // Business registration uses countryCode instead of currency
+      registrationPayload.companyRegistrationNumber = registrationData.companyRegistrationNumber;
+      registrationPayload.countryCode = selectedCurrency;
       signupBusiness(registrationPayload);
     } else {
+      // Personal registration uses currency
+      registrationPayload.currency = selectedCurrency;
       signupPersonal(registrationPayload);
     }
   };
@@ -247,10 +249,19 @@ const CurrencySelectionContent = () => {
             {/* Footer */}
             <div className="text-center text-xs text-gray-500 mt-8">
               <p>
-                Licenced by CBN a{" "}
-                <span className="inline-block w-3 h-3 bg-green-500 rounded-full"></span>{" "}
-                Deposits Insured by{" "}
-                <span className="text-blue-600 underline">NDIC</span>
+                <span className="flex items-center justify-center gap-2 flex-wrap">
+                  <span>Licenced by</span>
+                  <Image
+                    src={images.cbnLogo}
+                    alt="CBN Logo"
+                    width={40}
+                    height={20}
+                    className="h-5 w-auto object-contain"
+                  />
+                  <span className="inline-block w-3 h-3 bg-green-500 rounded-full"></span>
+                  <span>Deposits Insured by</span>
+                  <span className="text-blue-600 underline">NDIC</span>
+                </span>
               </p>
             </div>
           </div>

@@ -6,6 +6,7 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import React, { useState, useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import CustomButton from "@/components/shared/Button";
 import useNavigate from "@/hooks/useNavigate";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
@@ -15,6 +16,7 @@ import useRegistrationStore from "@/store/registration.store";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import useOnClickOutside from "@/hooks/useOnClickOutside";
+import images from "../../../../public/images";
 
 const schema = yup.object().shape({
   tab: yup.string().oneOf(["mobile", "email"]).required(),
@@ -418,10 +420,19 @@ const CreateAccountPersonalContent = () => {
             {/* Footer */}
             <div className="text-center text-xs text-gray-500 mt-8">
               <p>
-                Licenced by CBN a{" "}
-                <span className="inline-block w-3 h-3 bg-green-500 rounded-full"></span>{" "}
-                Deposits Insured by{" "}
-                <span className="text-blue-600 underline">NDIC</span>
+                <span className="flex items-center justify-center gap-2 flex-wrap">
+                  <span>Licenced by</span>
+                  <Image
+                    src={images.cbnLogo}
+                    alt="CBN Logo"
+                    width={40}
+                    height={20}
+                    className="h-5 w-auto object-contain"
+                  />
+                  <span className="inline-block w-3 h-3 bg-green-500 rounded-full"></span>
+                  <span>Deposits Insured by</span>
+                  <span className="text-blue-600 underline">NDIC</span>
+                </span>
               </p>
             </div>
           </div>

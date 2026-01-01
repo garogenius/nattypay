@@ -2,7 +2,6 @@
 
 "use client";
 
-import { motion } from "framer-motion";
 import Image from "next/image";
 import CustomButton from "@/components/shared/Button";
 import ErrorToast from "@/components/toast/ErrorToast";
@@ -10,7 +9,6 @@ import SuccessToast from "@/components/toast/SuccessToast";
 import useNavigate from "@/hooks/useNavigate";
 import { useEffect, useState } from "react";
 import OtpInput from "react-otp-input";
-import images from "../../../public/images";
 import useAuthEmailStore from "@/store/authEmail.store";
 import useTimerStore from "@/store/timer.store";
 import SpinnerLoader from "../Loader/SpinnerLoader";
@@ -95,8 +93,6 @@ const PreRegisterVerifyEmailContent = () => {
 
   const handleVerify = async () => {
     if (authEmail) {
-      // Reset any previous error state
-      resetVerification();
       verifyEmail({
         email: authEmail,
         otpCode: token,

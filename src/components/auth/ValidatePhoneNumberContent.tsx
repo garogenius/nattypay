@@ -4,6 +4,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import OtpInput from "react-otp-input";
 import CustomButton from "@/components/shared/Button";
 import ErrorToast from "@/components/toast/ErrorToast";
@@ -12,6 +13,7 @@ import useNavigate from "@/hooks/useNavigate";
 import useAuthEmailStore from "@/store/authEmail.store";
 import useTimerStore from "@/store/timer.store";
 import useUserStore from "@/store/user.store";
+import images from "../../../public/images";
 import {
   useValidatePhoneNumber,
   useVerifyPhoneNumber,
@@ -292,10 +294,19 @@ const ValidatePhoneNumberContent = () => {
             {/* Footer */}
             <div className="text-center text-xs text-gray-500 mt-8">
               <p>
-                Licenced by CBN a{" "}
-                <span className="inline-block w-3 h-3 bg-green-500 rounded-full"></span>{" "}
-                Deposits Insured by{" "}
+                <span className="flex items-center justify-center gap-2 flex-wrap">
+                  <span>Licenced by</span>
+                  <Image
+                    src={images.cbnLogo}
+                    alt="CBN Logo"
+                    width={40}
+                    height={20}
+                    className="h-5 w-auto object-contain"
+                  />
+                  <span className="inline-block w-3 h-3 bg-green-500 rounded-full"></span>
+                  <span>Deposits Insured by</span>
                 <span className="text-blue-600 underline">NDIC</span>
+                </span>
               </p>
             </div>
           </div>

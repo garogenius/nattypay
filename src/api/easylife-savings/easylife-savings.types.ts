@@ -80,3 +80,25 @@ export interface EasyLifeWithdrawResponse {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

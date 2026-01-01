@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
+import Image from "next/image";
 import CustomButton from "@/components/shared/Button";
 import useNavigate from "@/hooks/useNavigate";
 import BvnInfoModal from "@/components/modals/BvnInfoModal";
@@ -21,6 +22,7 @@ import useUserStore from "@/store/user.store";
 import OtpInput from "react-otp-input";
 import useTimerStore from "@/store/timer.store";
 import Cookies from "js-cookie";
+import images from "../../../../public/images";
 
 const schema = yup.object().shape({
   verificationType: yup.string().required("Please select BVN or NIN"),
@@ -596,10 +598,17 @@ const OpenAccountContent = () => {
 
               {/* Footer */}
               <div className="text-center text-xs text-gray-500 mt-8">
-                <p>
-                  Licenced by CBN a{" "}
-                  <span className="inline-block w-3 h-3 bg-green-500 rounded-full"></span>{" "}
-                  Deposits Insured by{" "}
+                <p className="flex items-center justify-center gap-2 flex-wrap">
+                  <span>Licenced by</span>
+                  <Image
+                    src={images.cbnLogo}
+                    alt="CBN Logo"
+                    width={40}
+                    height={20}
+                    className="h-5 w-auto object-contain"
+                  />
+                  <span className="inline-block w-3 h-3 bg-green-500 rounded-full"></span>
+                  <span>Deposits Insured by</span>
                   <span className="text-blue-600 underline">NDIC</span>
                 </p>
               </div>

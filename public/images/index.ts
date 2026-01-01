@@ -1,6 +1,7 @@
 import logo from "./logo.svg";
 import singleLogo from "./single-logo.png";
-import logo2 from "./logo2.svg"
+import logo2 from "./logo2.svg";
+import cbnLogo from "./cbn.png";
 
 import heroImage from "./home/landingPage/heroImage.png";
 
@@ -160,6 +161,7 @@ export default {
   logo,
   singleLogo,
   logo2,
+  cbnLogo,
   landingPage,
   about,
   map,

@@ -5,6 +5,7 @@
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
+import Image from "next/image";
 import CustomButton from "@/components/shared/Button";
 import ErrorToast from "@/components/toast/ErrorToast";
 import SuccessToast from "@/components/toast/SuccessToast";
@@ -14,6 +15,7 @@ import { useValidatePhoneNumber } from "@/api/user/user.queries";
 import { useRouter } from "next/navigation";
 import AuthInput from "./AuthInput";
 import useUserStore from "@/store/user.store";
+import images from "../../../public/images";
 
 const schema = yup.object().shape({
   phoneNumber: yup
@@ -170,10 +172,19 @@ const AddPhoneNumberContent = () => {
             {/* Footer */}
             <div className="text-center text-xs text-gray-500 mt-8">
               <p>
-                Licenced by CBN a{" "}
-                <span className="inline-block w-3 h-3 bg-green-500 rounded-full"></span>{" "}
-                Deposits Insured by{" "}
+                <span className="flex items-center justify-center gap-2 flex-wrap">
+                  <span>Licenced by</span>
+                  <Image
+                    src={images.cbnLogo}
+                    alt="CBN Logo"
+                    width={40}
+                    height={20}
+                    className="h-5 w-auto object-contain"
+                  />
+                  <span className="inline-block w-3 h-3 bg-green-500 rounded-full"></span>
+                  <span>Deposits Insured by</span>
                 <span className="text-blue-600 underline">NDIC</span>
+                </span>
               </p>
             </div>
           </div>

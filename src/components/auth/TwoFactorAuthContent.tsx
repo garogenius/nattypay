@@ -4,6 +4,7 @@
 
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import Image from "next/image";
 import CustomButton from "@/components/shared/Button";
 import ErrorToast from "@/components/toast/ErrorToast";
 import SuccessToast from "@/components/toast/SuccessToast";
@@ -16,6 +17,7 @@ import useUserStore from "@/store/user.store";
 import Cookies from "js-cookie";
 import { initializeFCM } from "@/services/fcm.service";
 import { User } from "@/constants/types";
+import images from "../../../public/images";
 import { useQueryClient } from "@tanstack/react-query";
 
 const TwoFactorAuthContent = () => {
@@ -346,10 +348,19 @@ const TwoFactorAuthContent = () => {
             {/* Footer */}
             <div className="text-center text-xs text-gray-500 mt-8">
               <p>
-                Licenced by CBN a{" "}
-                <span className="inline-block w-3 h-3 bg-green-500 rounded-full"></span>{" "}
-                Deposits Insured by{" "}
+                <span className="flex items-center justify-center gap-2 flex-wrap">
+                  <span>Licenced by</span>
+                  <Image
+                    src={images.cbnLogo}
+                    alt="CBN Logo"
+                    width={40}
+                    height={20}
+                    className="h-5 w-auto object-contain"
+                  />
+                  <span className="inline-block w-3 h-3 bg-green-500 rounded-full"></span>
+                  <span>Deposits Insured by</span>
                 <span className="text-blue-600 underline">NDIC</span>
+                </span>
               </p>
             </div>
           </div>

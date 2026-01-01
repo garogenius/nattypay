@@ -146,7 +146,7 @@ const QRCodeModal: React.FC<QRCodeModalProps> = ({ isOpen, onClose, onQRDecoded 
         const playVideo = async () => {
           try {
             await video.play();
-            setCameraActive(true);
+        setCameraActive(true);
             setCameraError("");
             setCameraLoading(false);
           } catch (playError: any) {
@@ -192,10 +192,10 @@ const QRCodeModal: React.FC<QRCodeModalProps> = ({ isOpen, onClose, onQRDecoded 
       stopCamera();
       
       if (error.name === "NotAllowedError" || error.name === "PermissionDeniedError") {
-        ErrorToast({
-          title: "Camera Access Denied",
+      ErrorToast({
+        title: "Camera Access Denied",
           descriptions: ["Please allow camera access in your browser settings to scan QR codes"],
-        });
+      });
       } else if (error.name === "NotFoundError" || error.name === "DevicesNotFoundError") {
         ErrorToast({
           title: "No Camera Found",
@@ -344,12 +344,12 @@ const QRCodeModal: React.FC<QRCodeModalProps> = ({ isOpen, onClose, onQRDecoded 
               <div className={`relative w-full aspect-square bg-black rounded-lg overflow-hidden ${
                 (cameraActive || cameraLoading) ? 'block' : 'hidden'
               }`}>
-                <video
-                  ref={videoRef}
-                  className="w-full h-full object-cover"
-                  playsInline
-                  muted
-                  autoPlay
+                  <video
+                    ref={videoRef}
+                    className="w-full h-full object-cover"
+                    playsInline
+                    muted
+                    autoPlay
                   style={{ 
                     display: (cameraActive || cameraLoading) ? 'block' : 'none',
                     width: '100%', 
@@ -357,7 +357,7 @@ const QRCodeModal: React.FC<QRCodeModalProps> = ({ isOpen, onClose, onQRDecoded 
                     objectFit: 'cover',
                     visibility: (cameraActive || cameraLoading) ? 'visible' : 'hidden'
                   }}
-                />
+                  />
                 {cameraLoading && (
                   <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-20">
                     <div className="flex flex-col items-center gap-3">
@@ -369,28 +369,28 @@ const QRCodeModal: React.FC<QRCodeModalProps> = ({ isOpen, onClose, onQRDecoded 
                 {cameraActive && !cameraLoading && (
                   <>
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-                      <div className="w-64 h-64 border-2 border-[#D4B139] rounded-lg" />
-                    </div>
-                    <button
-                      onClick={captureFrame}
-                      disabled={decoding}
+                    <div className="w-64 h-64 border-2 border-[#D4B139] rounded-lg" />
+                  </div>
+                  <button
+                    onClick={captureFrame}
+                    disabled={decoding}
                       className="absolute bottom-4 left-1/2 -translate-x-1/2 w-16 h-16 rounded-full bg-[#D4B139] border-4 border-white flex items-center justify-center disabled:opacity-50 z-20 hover:scale-105 transition-transform"
-                    >
-                      {decoding ? (
-                        <SpinnerLoader width={24} height={24} color="#000" />
-                      ) : (
-                        <FiCamera className="text-2xl text-black" />
-                      )}
-                    </button>
-                    <button
-                      onClick={stopCamera}
+                  >
+                    {decoding ? (
+                      <SpinnerLoader width={24} height={24} color="#000" />
+                    ) : (
+                      <FiCamera className="text-2xl text-black" />
+                    )}
+                  </button>
+                  <button
+                    onClick={stopCamera}
                       className="absolute top-4 right-4 w-10 h-10 rounded-full bg-red-500 flex items-center justify-center z-20 hover:bg-red-600 transition-colors"
-                    >
-                      <CgClose className="text-white text-lg" />
-                    </button>
+                  >
+                    <CgClose className="text-white text-lg" />
+                  </button>
                   </>
                 )}
-              </div>
+                </div>
 
               {!cameraActive && !cameraLoading && (
                 <>
@@ -408,8 +408,8 @@ const QRCodeModal: React.FC<QRCodeModalProps> = ({ isOpen, onClose, onQRDecoded 
                         </>
                       ) : (
                         <>
-                          <FiCamera className="text-xl" />
-                          <span>Open Camera</span>
+                      <FiCamera className="text-xl" />
+                      <span>Open Camera</span>
                         </>
                       )}
                     </button>
@@ -514,20 +514,20 @@ const QRCodeModal: React.FC<QRCodeModalProps> = ({ isOpen, onClose, onQRDecoded 
                       />
                     ) : qrCode.length > 2953 ? (
                       // QR code data is too long
-                      <div className="text-center p-8 max-w-xs">
-                        <p className="text-red-400 text-sm mb-2">
-                          QR code data is too long to generate.
-                        </p>
-                        <p className="text-gray-600 text-xs mb-4">
-                          The payment data exceeds QR code capacity. Please try with a smaller amount or contact support.
-                        </p>
-                        <div className="bg-gray-100 p-3 rounded text-left">
-                          <p className="text-xs text-gray-600 font-mono break-all">
-                            {qrCode.substring(0, 100)}...
+                        <div className="text-center p-8 max-w-xs">
+                          <p className="text-red-400 text-sm mb-2">
+                            QR code data is too long to generate.
                           </p>
+                          <p className="text-gray-600 text-xs mb-4">
+                            The payment data exceeds QR code capacity. Please try with a smaller amount or contact support.
+                          </p>
+                          <div className="bg-gray-100 p-3 rounded text-left">
+                            <p className="text-xs text-gray-600 font-mono break-all">
+                              {qrCode.substring(0, 100)}...
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    ) : (
+                      ) : (
                       // Generate QR code from data
                       <div id="qr-code-svg">
                         <QRCodeSVG
@@ -537,7 +537,7 @@ const QRCodeModal: React.FC<QRCodeModalProps> = ({ isOpen, onClose, onQRDecoded 
                           includeMargin={true}
                         />
                       </div>
-                    )}
+                      )}
                   </div>
                   <div className="flex gap-2 w-full">
                     <CustomButton

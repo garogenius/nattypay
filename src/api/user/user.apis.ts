@@ -1,4 +1,5 @@
 import { request } from "@/utils/axios-utils";
+import axios from "axios";
 import {
   IChangePassword,
   IChangePasswordWithOtp,
@@ -7,6 +8,7 @@ import {
   ICreateAccount,
   ICreateBusinessAccount,
   ICreateForeignAccount,
+  ICreateOvalPerson,
   ICreatePin,
   IRequestChangePassword,
   IResetPin,
@@ -232,5 +234,35 @@ export const getUserStatisticsPieChartRequest = async (params?: { period?: strin
   return request({
     url: `/user/statistics-pie-chart${queryString ? `?${queryString}` : ""}`,
     method: "get",
+  });
+};
+
+// KYC Document Upload
+export const uploadDocumentRequest = async (formData: FormData) => {
+  return request({
+    url: "/user/upload-document",
+    method: "post",
+    data: formData,
+    headers: {
+      "Content-Type": "multipart/form-data", // Important for file upload
+    },
+  });
+};
+
+// Oval Person API
+export const createOvalPersonRequest = async (data: ICreateOvalPerson) => {
+  // This is an external API call, so we use axios directly instead of the request utility
+  const ovalApiUrl = process.env.NEXT_PUBLIC_OVAL_API_URL || "https://api.useoval.com";
+  
+  return axios({
+    url: `${ovalApiUrl}/person`,
+    method: "post",
+    data,
+    headers: {
+      "accept": "application/json",
+      "content-type": "application/json",
+      // Add authorization if needed
+      // "Authorization": `Bearer ${token}`,
+    },
   });
 };

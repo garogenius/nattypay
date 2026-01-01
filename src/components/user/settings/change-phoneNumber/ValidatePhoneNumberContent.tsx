@@ -75,13 +75,16 @@ const ValidatePhoneNumberContent = () => {
       return;
     }
 
-    // Create FormData for updateUser API - only send what backend needs
+    // Create a clean FormData - only send phoneNumber when updating phone number
+    // Backend validation rejects passport fields and requires fullName to be non-empty if sent
+    // So we only send phoneNumber to avoid validation errors
     const formData = new FormData();
-    formData.append("phoneNumber", data.phoneNumber);
-    // Backend requires fullName (camelCase) - not fullname or dateOfBirth
-    if (user.fullname) {
-      formData.append("fullName", user.fullname);
-    }
+    
+    // Only append phoneNumber - explicitly exclude all other fields
+    formData.append("phoneNumber", data.phoneNumber.trim());
+
+    // Debug: Log what we're sending (remove in production if needed)
+    // console.log("FormData entries:", Array.from(formData.entries()));
 
     updateUser(formData);
   };

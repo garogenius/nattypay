@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { useState } from "react";
+import Image from "next/image";
 import CustomButton from "@/components/shared/Button";
 import Link from "next/link";
 import useNavigate from "@/hooks/useNavigate";
@@ -11,6 +12,7 @@ import { useForgotPassword } from "@/api/auth/auth.queries";
 import ErrorToast from "@/components/toast/ErrorToast";
 import SuccessToast from "@/components/toast/SuccessToast";
 import useAuthEmailStore from "@/store/authEmail.store";
+import images from "../../../public/images";
 
 const schema = yup.object().shape({
   email: yup
@@ -193,10 +195,19 @@ const ForgotPasscodeContent = () => {
             {/* Footer */}
             <div className="text-center text-xs text-gray-500 mt-8">
               <p>
-                Licenced by CBN a{" "}
-                <span className="inline-block w-3 h-3 bg-green-500 rounded-full"></span>{" "}
-                Deposits Insured by{" "}
-                <span className="text-purple-600">INDIC</span>
+                <span className="flex items-center justify-center gap-2 flex-wrap">
+                  <span>Licenced by</span>
+                  <Image
+                    src={images.cbnLogo}
+                    alt="CBN Logo"
+                    width={40}
+                    height={20}
+                    className="h-5 w-auto object-contain"
+                  />
+                  <span className="inline-block w-3 h-3 bg-green-500 rounded-full"></span>
+                  <span>Deposits Insured by</span>
+                  <span className="text-purple-600">NDIC</span>
+                </span>
               </p>
             </div>
           </div>

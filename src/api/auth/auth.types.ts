@@ -25,7 +25,7 @@ export interface IBusinessRegister {
   password: string;
   dateOfBirth: string; // Format: "15-Jan-1990"
   companyRegistrationNumber: string;
-  currency: string; // "NGN", "USD", "EUR", "GBP"
+  countryCode: string; // "NGN", "USD", "EUR", "GBP" - Note: countryCode not currency
   accountType: "BUSINESS";
 }
 

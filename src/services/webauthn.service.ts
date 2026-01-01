@@ -312,10 +312,10 @@ const extractCosePublicKey = (attestation: AuthenticatorAttestationResponse): Ar
   const maybeGetPublicKey = (attestation as any).getPublicKey as undefined | (() => ArrayBuffer);
   if (typeof maybeGetPublicKey === "function") {
     try {
-      const pk = maybeGetPublicKey.call(attestation);
+    const pk = maybeGetPublicKey.call(attestation);
       if (pk && pk.byteLength > 0) {
         return pk;
-      }
+  }
     } catch (error) {
       // Fall through to manual extraction
       console.warn("getPublicKey() failed, falling back to manual extraction:", error);
@@ -561,7 +561,7 @@ const extractCoseKeyFromAuthData = (authData: Uint8Array): Uint8Array => {
     throw new Error(`Invalid authenticator data: aaguid out of bounds (offset: ${offset}, length: ${authData.byteLength})`);
   }
   offset += 16;
-  
+
   // credentialIdLength (2 bytes, big-endian)
   if (offset + 2 > authData.byteLength) {
     throw new Error(`Invalid authenticator data: credentialIdLength out of bounds (offset: ${offset}, length: ${authData.byteLength})`);

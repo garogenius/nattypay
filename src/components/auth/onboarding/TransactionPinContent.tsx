@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
+import Image from "next/image";
 import CustomButton from "@/components/shared/Button";
 import useNavigate from "@/hooks/useNavigate";
 import OtpInput from "react-otp-input";
@@ -13,6 +14,7 @@ import SuccessToast from "@/components/toast/SuccessToast";
 import { useQueryClient } from "@tanstack/react-query";
 import Cookies from "js-cookie";
 import { isTokenExpired } from "@/utils/tokenChecker";
+import images from "../../../../public/images";
 
 const schema = yup.object().shape({
   pin: yup.string().length(4, "PIN must be 4 digits").required("PIN is required"),
@@ -223,10 +225,19 @@ const TransactionPinContent = () => {
               {/* Footer */}
               <div className="text-center text-xs text-gray-500 mt-8">
                 <p>
-                  Licenced by CBN a{" "}
-                  <span className="inline-block w-3 h-3 bg-green-500 rounded-full"></span>{" "}
-                  Deposits Insured by{" "}
+                  <span className="flex items-center justify-center gap-2 flex-wrap">
+                    <span>Licenced by</span>
+                    <Image
+                      src={images.cbnLogo}
+                      alt="CBN Logo"
+                      width={40}
+                      height={20}
+                      className="h-5 w-auto object-contain"
+                    />
+                    <span className="inline-block w-3 h-3 bg-green-500 rounded-full"></span>
+                    <span>Deposits Insured by</span>
                   <span className="text-blue-600 underline">NDIC</span>
+                  </span>
                 </p>
               </div>
             </form>
