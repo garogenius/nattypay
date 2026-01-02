@@ -768,7 +768,7 @@ const AccountsContent: React.FC = () => {
 
                       {/* Modals */}
                       <ShowCardDetailsModal isOpen={openDetails} onClose={() => { setOpenDetails(false); setSelectedCard(null); }} card={selectedCard} />
-                      <ChangePinModal isOpen={openChangePin} onClose={() => { setOpenChangePin(false); setSelectedCard(null); }} cardId={selectedCard?.id} />
+                      <ChangePinModal isOpen={openChangePin} onClose={() => { setOpenChangePin(false); setSelectedCard(null); }} />
                       <ConfirmActionModal
                         isOpen={openBlock}
                         onClose={() => setOpenBlock(false)}
