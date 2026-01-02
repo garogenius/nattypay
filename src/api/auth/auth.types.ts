@@ -95,8 +95,7 @@ export interface IBiometricStatusV1 {
 }
 
 export interface IBiometricChallengeRequestV1 {
-  deviceId: string;
-  credentialId?: string;
+  identifier: string; // deviceId/identifier for the device
 }
 
 export interface IBiometricChallengeResponseV1 {

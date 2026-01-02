@@ -459,11 +459,14 @@ const LoginWithBiometricContent = () => {
       }
 
       const deviceId = getDeviceId();
+      if (!deviceId || deviceId.trim().length === 0) {
+        throw new Error("Device ID is not available. Please refresh the page and try again.");
+      }
 
       // Step 1: Generate challenge (server-side)
+      // API expects 'identifier' (deviceId) and does not accept credentialId
       const challengeResponse = await biometricChallengeV1Request({
-        deviceId,
-        credentialId: storedCredentialId,
+        identifier: deviceId.trim(),
       });
       const challenge = challengeResponse?.data?.challenge as string | undefined;
       if (!challenge) {

@@ -51,9 +51,11 @@ const CardsContent: React.FC = () => {
 
   // Fetch currency accounts to check for account availability
   const { accounts: currencyAccounts } = useGetCurrencyAccounts();
-  const supportedCurrencies: Array<"USD" | "EUR" | "GBP"> = ["USD", "EUR", "GBP"];
+  // Only USD is available for account creation, but cards can be created for USD, EUR, GBP if account exists
+  const availableAccountCurrencies: Array<"USD"> = ["USD"]; // Only USD can be created
+  const supportedCardCurrencies: Array<"USD" | "EUR" | "GBP"> = ["USD", "EUR", "GBP"];
   const hasCurrencyAccount = (currency: "USD" | "EUR" | "GBP") => 
-    currencyAccounts.some((acc: any) => (acc.currency || "").toUpperCase() === currency);
+    Array.isArray(currencyAccounts) && currencyAccounts.some((acc: any) => acc && acc.currency && String(acc.currency).toUpperCase().trim() === currency.toUpperCase().trim());
 
   const onCreateCardError = (error: any) => {
     const errorMessage = error?.response?.data?.message;
@@ -539,26 +541,36 @@ const CardsContent: React.FC = () => {
             </button>
             {currencyDropdownOpen && (
               <div className="absolute right-0 mt-2 w-48 rounded-xl bg-bg-600 dark:bg-bg-2200 border border-border-800 dark:border-border-700 shadow-2xl p-2 text-white z-50">
-                {supportedCurrencies.map((currency) => (
-                  <button
-                    key={currency}
-                    type="button"
-                    onClick={() => {
-                      setSelectedCurrency(currency);
-                      setCurrencyDropdownOpen(false);
-                    }}
-                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5 ${selectedCurrency === currency ? "bg-white/10" : ""}`}
-                  >
-                    <NextImage 
-                      src={getCurrencyIconByString(currency.toLowerCase()) || ""} 
-                      alt="flag" 
-                      width={18} 
-                      height={18} 
-                      className="w-5 h-5" 
-                    />
-                    <span className="text-sm flex-1 text-white">{currency} Cards</span>
-                  </button>
-                ))}
+                {supportedCardCurrencies.map((currency) => {
+                  const hasAccount = hasCurrencyAccount(currency);
+                  const isAvailable = availableAccountCurrencies.includes(currency as "USD");
+                  
+                  return (
+                    <button
+                      key={currency}
+                      type="button"
+                      onClick={() => {
+                        setSelectedCurrency(currency);
+                        setCurrencyDropdownOpen(false);
+                      }}
+                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5 ${selectedCurrency === currency ? "bg-white/10" : ""}`}
+                    >
+                      <NextImage 
+                        src={getCurrencyIconByString(currency.toLowerCase()) || ""} 
+                        alt="flag" 
+                        width={18} 
+                        height={18} 
+                        className="w-5 h-5" 
+                      />
+                      <span className="text-sm flex-1 text-white">{currency} Cards</span>
+                      {!hasAccount && (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-yellow-500/10 text-yellow-400 border border-yellow-500/20">
+                          No Account
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -640,6 +652,7 @@ const CardsContent: React.FC = () => {
                 <p className="text-blue-400 text-xs font-medium mb-1">Note</p>
                 <p className="text-white/80 text-xs">• NGN cards are not available</p>
                 <p className="text-white/80 text-xs">• You can create virtual cards for USD, EUR, or GBP</p>
+                <p className="text-white/80 text-xs">• Only USD accounts can be created (EUR and GBP accounts are not available for creation)</p>
               </div>
               <div className="flex flex-col gap-1">
                 <label className="text-white/70 text-xs">Card Label</label>

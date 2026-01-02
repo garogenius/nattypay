@@ -50,6 +50,14 @@ const CurrencySelectionContent = () => {
   const [selectedCurrency, setSelectedCurrency] = useState<string>("NGN");
   const [isRegistrationComplete, setIsRegistrationComplete] = useState(false);
 
+  // Only NGN is available during onboarding
+  const isCurrencyEnabled = (currencyCode: string) => currencyCode === "NGN";
+
+  // Ensure NGN is always selected during onboarding
+  useEffect(() => {
+    setSelectedCurrency("NGN");
+  }, []);
+
   // Redirect if no registration data (but not if registration just completed)
   useEffect(() => {
     if (!registrationData && !isRegistrationComplete) {
@@ -193,37 +201,58 @@ const CurrencySelectionContent = () => {
 
             {/* Currency Options */}
             <div className="space-y-4 mb-6">
-              {currencies.map((currency) => (
-                <button
-                  key={currency.code}
-                  type="button"
-                  onClick={() => setSelectedCurrency(currency.code)}
-                  className={`w-full flex items-center justify-between p-4 border-2 rounded-lg transition-all ${
-                    selectedCurrency === currency.code
-                      ? "border-[#D4B139] bg-[#D4B139]/5"
-                      : "border-gray-200 hover:border-gray-300"
-                  }`}
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="text-2xl">{currency.flag}</div>
-                    <div className="text-left">
-                      <p className="font-medium text-gray-900">{currency.label}</p>
-                      <p className="text-sm text-gray-600">{currency.description}</p>
-                    </div>
-                  </div>
-                  <div
-                    className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                      selectedCurrency === currency.code
-                        ? "border-[#D4B139] bg-[#D4B139]"
-                        : "border-gray-300"
+              {currencies.map((currency) => {
+                const isEnabled = isCurrencyEnabled(currency.code);
+                const isSelected = selectedCurrency === currency.code;
+                
+                return (
+                  <button
+                    key={currency.code}
+                    type="button"
+                    onClick={() => {
+                      if (isEnabled) {
+                        setSelectedCurrency(currency.code);
+                      }
+                    }}
+                    disabled={!isEnabled}
+                    className={`w-full flex items-center justify-between p-4 border-2 rounded-lg transition-all ${
+                      !isEnabled
+                        ? "border-gray-200 bg-gray-50 opacity-60 cursor-not-allowed"
+                        : isSelected
+                        ? "border-[#D4B139] bg-[#D4B139]/5"
+                        : "border-gray-200 hover:border-gray-300"
                     }`}
                   >
-                    {selectedCurrency === currency.code && (
-                      <div className="w-3 h-3 rounded-full bg-white"></div>
-                    )}
-                  </div>
-                </button>
-              ))}
+                    <div className="flex items-center gap-4">
+                      <div className="text-2xl">{currency.flag}</div>
+                      <div className="text-left">
+                        <p className={`font-medium ${!isEnabled ? "text-gray-500" : "text-gray-900"}`}>
+                          {currency.label}
+                        </p>
+                        <p className={`text-sm ${!isEnabled ? "text-gray-400" : "text-gray-600"}`}>
+                          {currency.description}
+                        </p>
+                        {!isEnabled && (
+                          <p className="text-xs text-gray-400 mt-1">Not available during onboarding</p>
+                        )}
+                      </div>
+                    </div>
+                    <div
+                      className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                        !isEnabled
+                          ? "border-gray-300 bg-gray-100"
+                          : isSelected
+                          ? "border-[#D4B139] bg-[#D4B139]"
+                          : "border-gray-300"
+                      }`}
+                    >
+                      {isSelected && isEnabled && (
+                        <div className="w-3 h-3 rounded-full bg-white"></div>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
             </div>
 
             {/* Action Buttons */}

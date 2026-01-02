@@ -57,18 +57,23 @@ export const useGetCurrencyAccounts = () => {
   // Handle different possible response structures
   let accounts: any[] = [];
   if (data?.data) {
-    // Try data.data.data first (nested array)
-    if (Array.isArray(data.data.data)) {
+    // Try data.data.accounts first (most common structure)
+    if (Array.isArray(data.data.accounts)) {
+      accounts = data.data.accounts;
+    }
+    // Try data.data.data (nested array)
+    else if (Array.isArray(data.data.data)) {
       accounts = data.data.data;
     }
     // Try data.data if it's an array
     else if (Array.isArray(data.data)) {
       accounts = data.data;
     }
-    // Try data.data.accounts if it exists
-    else if (Array.isArray(data.data.accounts)) {
-      accounts = data.data.accounts;
-    }
+  }
+
+  // Ensure accounts is always an array
+  if (!Array.isArray(accounts)) {
+    accounts = [];
   }
 
   return { accounts, isPending, isError, refetch };

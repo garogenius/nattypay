@@ -43,7 +43,10 @@ const AccountsContent: React.FC = () => {
   const { cards, isPending: cardsLoading, refetch: refetchCards } = useGetCards();
   
   // Initialize currency state first
-  const currencies: Array<"NGN" | "USD" | "EUR" | "GBP"> = ["NGN", "USD", "EUR", "GBP"];
+  // Only NGN and USD are available for account creation
+  const allCurrencies: Array<"NGN" | "USD" | "EUR" | "GBP"> = ["NGN", "USD", "EUR", "GBP"];
+  const availableCurrencies: Array<"NGN" | "USD"> = ["NGN", "USD"]; // Only these can be created
+  const currencies: Array<"NGN" | "USD" | "EUR" | "GBP"> = allCurrencies; // Show all for viewing
   const initialCurrency = (user?.wallet?.[0]?.currency || "NGN").toUpperCase() as typeof currencies[number];
   const [selectedCurrency, setSelectedCurrency] = useState<typeof currencies[number]>(initialCurrency);
   const [showCreateAccount, setShowCreateAccount] = useState(false);
@@ -70,8 +73,8 @@ const AccountsContent: React.FC = () => {
       return null;
     }
     const found = currencyAccounts.find((acc: ICurrencyAccount) => {
-      if (!acc) return false;
-      const accCurrency = String(acc.currency || "").toUpperCase().trim();
+      if (!acc || !acc.currency) return false;
+      const accCurrency = String(acc.currency).toUpperCase().trim();
       const selected = String(selectedCurrency).toUpperCase().trim();
       return accCurrency === selected;
     });
@@ -94,8 +97,8 @@ const AccountsContent: React.FC = () => {
         return walletCurrency === k.toUpperCase();
       });
       const hasCurrencyAccount = !isNGN && Array.isArray(currencyAccounts) && currencyAccounts.length > 0 && currencyAccounts.some((acc: ICurrencyAccount) => {
-        if (!acc) return false;
-        const accCurrency = String(acc.currency || "").toUpperCase().trim();
+        if (!acc || !acc.currency) return false;
+        const accCurrency = String(acc.currency).toUpperCase().trim();
         const targetCurrency = String(k).toUpperCase().trim();
         const matches = accCurrency === targetCurrency;
         if (process.env.NODE_ENV === 'development' && k === 'USD') {
@@ -335,8 +338,25 @@ const AccountsContent: React.FC = () => {
       return;
     }
 
+    // Only allow creating USD accounts (NGN uses wallet)
+    if (selectedCurrency === "NGN") {
+      ErrorToast({
+        title: "Invalid Currency",
+        descriptions: ["NGN accounts are managed through your wallet. Please use your NGN wallet instead."],
+      });
+      return;
+    }
+
+    if (!availableCurrencies.includes(selectedCurrency as "NGN" | "USD")) {
+      ErrorToast({
+        title: "Currency Not Available",
+        descriptions: [`${selectedCurrency} account creation is not available. Only NGN and USD accounts can be created.`],
+      });
+      return;
+    }
+
     createAccount({
-      currency: selectedCurrency as "USD" | "EUR" | "GBP",
+      currency: selectedCurrency as "USD",
       label: accountLabel.trim(),
     });
   };
@@ -384,12 +404,23 @@ const AccountsContent: React.FC = () => {
             <div className="absolute right-0 mt-2 w-64 rounded-xl bg-bg-600 dark:bg-bg-2200 border border-border-800 dark:border-border-700 shadow-2xl p-2 text-white z-50">
               {currencies.map((k) => {
                 const hasAccount = currencyAccountStatus[k] || false;
+                const isAvailable = availableCurrencies.includes(k as "NGN" | "USD");
                 
                 return (
                   <button
                     key={k}
-                    onClick={() => { setSelectedCurrency(k); setMenuOpen(false); }}
-                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5 ${selectedCurrency === k ? "bg-white/10" : ""}`}
+                    onClick={() => { 
+                      if (isAvailable) {
+                        setSelectedCurrency(k); 
+                        setMenuOpen(false);
+                      }
+                    }}
+                    disabled={!isAvailable}
+                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg ${
+                      isAvailable 
+                        ? `hover:bg-white/5 ${selectedCurrency === k ? "bg-white/10" : ""} cursor-pointer` 
+                        : "opacity-50 cursor-not-allowed"
+                    }`}
                   >
                     <NextImage 
                       src={getCurrencyIconByString(k.toLowerCase()) || ""} 
@@ -399,7 +430,11 @@ const AccountsContent: React.FC = () => {
                       className="w-5 h-5" 
                     />
                     <span className="text-sm flex-1 text-white">{k} Account</span>
-                    {hasAccount ? (
+                    {!isAvailable ? (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-500/10 text-gray-400 border border-gray-500/20">
+                        Unavailable
+                      </span>
+                    ) : hasAccount ? (
                       <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
                         View
                       </span>
@@ -427,46 +462,59 @@ const AccountsContent: React.FC = () => {
               <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center">
                 <FiPlus className="text-2xl text-white/40" />
               </div>
-              <p className="text-white/60 text-sm text-center">
-                You don't have a {selectedCurrency} account yet
-              </p>
-              {!showCreateAccount ? (
-                <CustomButton
-                  onClick={() => setShowCreateAccount(true)}
-                  className="bg-[#D4B139] hover:bg-[#c7a42f] text-black px-6 py-2.5 rounded-lg text-sm font-medium"
-                >
-                  Create {selectedCurrency} Account
-                </CustomButton>
+              {availableCurrencies.includes(selectedCurrency as "NGN" | "USD") ? (
+                <>
+                  <p className="text-white/60 text-sm text-center">
+                    You don't have a {selectedCurrency} account yet
+                  </p>
+                  {!showCreateAccount ? (
+                    <CustomButton
+                      onClick={() => setShowCreateAccount(true)}
+                      className="bg-[#D4B139] hover:bg-[#c7a42f] text-black px-6 py-2.5 rounded-lg text-sm font-medium"
+                    >
+                      Create {selectedCurrency} Account
+                    </CustomButton>
+                  ) : (
+                    <div className="w-full max-w-sm flex flex-col gap-3">
+                      <div className="flex flex-col gap-1">
+                        <label className="text-white/70 text-xs">Account Label</label>
+                        <input
+                          className="w-full bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-3 px-3 text-white text-sm placeholder:text-white/50 outline-none"
+                          placeholder="e.g., Personal USD Account"
+                          value={accountLabel}
+                          onChange={(e) => setAccountLabel(e.target.value)}
+                        />
+                      </div>
+                      <div className="flex gap-3">
+                        <CustomButton
+                          onClick={() => {
+                            setShowCreateAccount(false);
+                            setAccountLabel("");
+                          }}
+                          className="flex-1 bg-transparent border border-white/15 text-white rounded-lg py-2.5"
+                        >
+                          Cancel
+                        </CustomButton>
+                        <CustomButton
+                          onClick={handleCreateAccount}
+                          disabled={creatingAccount || !accountLabel.trim()}
+                          isLoading={creatingAccount}
+                          className="flex-1 bg-[#D4B139] hover:bg-[#c7a42f] text-black rounded-lg py-2.5"
+                        >
+                          Create
+                        </CustomButton>
+                      </div>
+                    </div>
+                  )}
+                </>
               ) : (
-                <div className="w-full max-w-sm flex flex-col gap-3">
-                  <div className="flex flex-col gap-1">
-                    <label className="text-white/70 text-xs">Account Label</label>
-                    <input
-                      className="w-full bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-3 px-3 text-white text-sm placeholder:text-white/50 outline-none"
-                      placeholder="e.g., Personal USD Account"
-                      value={accountLabel}
-                      onChange={(e) => setAccountLabel(e.target.value)}
-                    />
-                  </div>
-                  <div className="flex gap-3">
-                    <CustomButton
-                      onClick={() => {
-                        setShowCreateAccount(false);
-                        setAccountLabel("");
-                      }}
-                      className="flex-1 bg-transparent border border-white/15 text-white rounded-lg py-2.5"
-                    >
-                      Cancel
-                    </CustomButton>
-                    <CustomButton
-                      onClick={handleCreateAccount}
-                      disabled={creatingAccount || !accountLabel.trim()}
-                      isLoading={creatingAccount}
-                      className="flex-1 bg-[#D4B139] hover:bg-[#c7a42f] text-black rounded-lg py-2.5"
-                    >
-                      Create
-                    </CustomButton>
-                  </div>
+                <div className="text-center">
+                  <p className="text-white/60 text-sm mb-2">
+                    {selectedCurrency} account creation is not available
+                  </p>
+                  <p className="text-white/40 text-xs">
+                    Only NGN and USD accounts can be created at this time
+                  </p>
                 </div>
               )}
             </div>
