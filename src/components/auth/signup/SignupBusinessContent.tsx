@@ -4,7 +4,7 @@
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
-import { useRegister } from "@/api/auth/auth.queries";
+import { useBusinessRegister } from "@/api/auth/auth.queries";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import AuthInput from "../AuthInput";
@@ -134,17 +134,19 @@ const SignupBusinessContent = () => {
     mutate: signup,
     isPending: registerPending,
     isError: registerError,
-  } = useRegister(onError, onSuccess);
+  } = useBusinessRegister(onError, onSuccess);
 
   const registerLoading = registerPending && !registerError;
 
   const onSubmit = async (data: RegisterFormData) => {
     setAuthEmail(data?.email);
-    // Exclude confirmPassword from API request
-    const { confirmPassword, ...restData } = data;
+    // Exclude confirmPassword and businessName from API request
+    const { confirmPassword, businessName, currency, ...restData } = data;
     const registerData = {
       ...restData,
-      countryCode: data.currency,
+      countryCode: currency,
+      accountType: "BUSINESS" as const,
+      companyRegistrationNumber: businessName || "",
     };
     signup(registerData);
   };
