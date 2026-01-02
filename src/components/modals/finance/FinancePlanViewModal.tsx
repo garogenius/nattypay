@@ -315,8 +315,6 @@ const FinancePlanViewModal: React.FC<FinancePlanViewModalProps> = ({ isOpen, onC
                     <p className="text-white font-medium">
                       {investment?.expectedReturn 
                         ? formatCurrency(investment.expectedReturn)
-                        : fixedDeposit?.totalPayout
-                        ? formatCurrency(fixedDeposit.totalPayout)
                         : formatCurrency(displayPlan.amount + displayPlan.earned)
                       }
                     </p>
@@ -427,12 +425,6 @@ const FinancePlanViewModal: React.FC<FinancePlanViewModalProps> = ({ isOpen, onC
                     </div>
                   )}
 
-                  {fixedDeposit?.totalPayout && (
-                    <div className="flex justify-between">
-                      <span className="text-white/60 text-sm">Total Payout</span>
-                      <span className="text-white text-sm">{formatCurrency(fixedDeposit.totalPayout)}</span>
-                    </div>
-                  )}
 
                   {fixedDeposit?.durationMonths && (
                     <div className="flex justify-between">
