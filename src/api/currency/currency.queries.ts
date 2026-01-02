@@ -108,14 +108,14 @@ export const useCreateCard = (
 };
 
 export const useGetCards = () => {
-  const { data, isPending, isError } = useQuery({
+  const { data, isPending, isError, refetch } = useQuery({
     queryKey: ["currency-cards"],
     queryFn: () => getCardsRequest(),
   });
 
   const cards: IVirtualCard[] = data?.data?.data || [];
 
-  return { cards, isPending, isError };
+  return { cards, isPending, isError, refetch };
 };
 
 export const useGetCardById = (cardId: string | null) => {
