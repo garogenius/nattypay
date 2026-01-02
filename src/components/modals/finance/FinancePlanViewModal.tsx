@@ -69,26 +69,26 @@ const FinancePlanViewModal: React.FC<FinancePlanViewModalProps> = ({ isOpen, onC
     ? {
         ...plan,
         name: `Investment #${investment.id.slice(-8).toUpperCase()}`,
-        amount: investment.amount || investment.capitalAmount || plan.amount,
+        amount: investment.amount || investment.capitalAmount || plan?.amount || 0,
         earned: investment.interestAmount || 0,
         status: investment.status,
         agreementReference: investment.agreementReference,
         transactionReference: investment.transaction?.transactionRef || investment.transactionId,
-        interestRate: investment.roiRate ? `${(investment.roiRate * 100).toFixed(0)}% per annum` : plan.interestRate,
-        startDate: investment.startDate ? new Date(investment.startDate).toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" }).replace(/\//g, "-") : plan.startDate,
-        endDate: investment.maturityDate ? new Date(investment.maturityDate).toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" }).replace(/\//g, "-") : plan.endDate,
+        interestRate: investment.roiRate ? `${(investment.roiRate * 100).toFixed(0)}% per annum` : plan?.interestRate || "",
+        startDate: investment.startDate ? new Date(investment.startDate).toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" }).replace(/\//g, "-") : plan?.startDate || "",
+        endDate: investment.maturityDate ? new Date(investment.maturityDate).toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" }).replace(/\//g, "-") : plan?.endDate || "",
       }
     : fixedDeposit
     ? {
         ...plan,
         name: `Fixed Deposit #${fixedDeposit.id.slice(-8).toUpperCase()}`,
-        amount: fixedDeposit.principalAmount ?? plan.amount,
+        amount: fixedDeposit.principalAmount ?? plan?.amount ?? 0,
         earned: 0,
         status: fixedDeposit.status,
-        interestRate: fixedDeposit.interestRate ? `${(fixedDeposit.interestRate * 100).toFixed(2)}% per annum` : plan.interestRate,
-        duration: fixedDeposit.durationMonths ? `${fixedDeposit.durationMonths} ${fixedDeposit.durationMonths === 1 ? 'month' : 'months'}` : plan.duration,
-        startDate: fixedDeposit.startDate ? new Date(fixedDeposit.startDate).toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" }).replace(/\//g, "-") : plan.startDate,
-        endDate: fixedDeposit.maturityDate ? new Date(fixedDeposit.maturityDate).toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" }).replace(/\//g, "-") : plan.endDate,
+        interestRate: fixedDeposit.interestRate ? `${(fixedDeposit.interestRate * 100).toFixed(2)}% per annum` : plan?.interestRate || "",
+        duration: fixedDeposit.durationMonths ? `${fixedDeposit.durationMonths} ${fixedDeposit.durationMonths === 1 ? 'month' : 'months'}` : plan?.duration || "",
+        startDate: fixedDeposit.startDate ? new Date(fixedDeposit.startDate).toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" }).replace(/\//g, "-") : plan?.startDate || "",
+        endDate: fixedDeposit.maturityDate ? new Date(fixedDeposit.maturityDate).toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" }).replace(/\//g, "-") : plan?.endDate || "",
       }
     : plan;
 
