@@ -140,7 +140,9 @@ const SavingsContent: React.FC = () => {
     const daysLeft = diffDays > 0 ? diffDays : 0;
 
     const isEasyLife = tab === "easylife";
-    const planType = !isEasyLife && isSavingsPlan(plan) ? plan.type || plan.planType : undefined;
+    const planType = !isEasyLife && isSavingsPlan(plan) 
+      ? (plan as SavingsPlan).type || (plan as SavingsPlan).planType 
+      : undefined;
 
     const startDate =
       isFixedDeposit(plan)
@@ -364,7 +366,10 @@ const SavingsContent: React.FC = () => {
       <BreakPlanModal 
         isOpen={breakOpen} 
         onClose={()=> { setBreakOpen(false); setPlanToBreak(""); refetch(); }} 
-        planName={filteredPlans.find(p => p.id === planToBreak)?.name || planToBreak}
+        planName={(() => {
+          const foundPlan = filteredPlans.find(p => p.id === planToBreak);
+          return foundPlan && 'name' in foundPlan ? foundPlan.name : planToBreak;
+        })()}
         planId={planToBreak}
         planType={tab === "easylife" ? "easylife" : "target"}
         onConfirm={() => {

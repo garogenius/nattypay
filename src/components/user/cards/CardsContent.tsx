@@ -43,7 +43,8 @@ const CardsContent: React.FC = () => {
 
   // Fetch all virtual cards (USD, EUR, GBP)
   const { cards, isPending: cardsLoading, refetch: refetchCards } = useGetCards();
-  const virtualCards = cards.filter((card: IVirtualCard) => 
+  const safeCards = Array.isArray(cards) ? cards : [];
+  const virtualCards = safeCards.filter((card: IVirtualCard) => 
     card.isVirtual && 
     (card.currency === "USD" || card.currency === "EUR" || card.currency === "GBP")
   );
@@ -592,8 +593,8 @@ const CardsContent: React.FC = () => {
 
       {/* Modals */}
       <ShowCardDetailsModal isOpen={openDetails} onClose={()=> { setOpenDetails(false); setSelectedCard(null); }} card={selectedCard} />
-      <ChangePinModal isOpen={openChangePin} onClose={()=> { setOpenChangePin(false); setSelectedCard(null); }} cardId={selectedCard?.id} />
-      <ResetPinModal isOpen={openResetPin} onClose={()=> { setOpenResetPin(false); setSelectedCard(null); }} cardId={selectedCard?.id} />
+      <ChangePinModal isOpen={openChangePin} onClose={()=> { setOpenChangePin(false); setSelectedCard(null); }} />
+      <ResetPinModal isOpen={openResetPin} onClose={()=> { setOpenResetPin(false); setSelectedCard(null); }} />
       <SpendingLimitModal isOpen={openLimit} onClose={()=> { setOpenLimit(false); setSelectedCard(null); }} card={selectedCard} />
       <ConfirmActionModal 
         isOpen={openFreeze}

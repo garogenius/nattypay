@@ -90,7 +90,6 @@ user:User
   const handleVerify = async () => {
     if (bvnDetails.bvn && bvnDetails.verificationId) {
       validateBvnVerification({
-        bvn: bvnDetails.bvn,
         verificationId: bvnDetails.verificationId,
         otpCode: token,
         isBusiness: user?.isBusiness || false,

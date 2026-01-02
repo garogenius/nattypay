@@ -545,40 +545,25 @@ const ProfileContent = () => {
       referralCode: user?.referralCode || "",
       accountTier: `Tier ${user?.tierLevel}` || "",
       accountNumber: accountNumber || "",
-      // KYC Fields - matching actual user response structure
-      passportNumber: user?.passportNumber || "",
-      passportCountry: user?.passportCountry || "",
-      passportIssueDate: user?.passportIssueDate || "",
-      passportExpiryDate: user?.passportExpiryDate || "",
-      passportDocumentUrl: user?.passportDocumentUrl || "",
-      bankStatementUrl: user?.bankStatementUrl || "",
-      bankStatementIssueDate: user?.bankStatementIssueDate || "",
-      bankStatementExpiryDate: user?.bankStatementExpiryDate || "",
-      utilityBillUrl: (user as any)?.utilityBillUrl || "",
-      utilityBillIssueDate: (user as any)?.utilityBillIssueDate || "",
-      utilityBillExpiryDate: (user as any)?.utilityBillExpiryDate || "",
       // Address fields - matching actual user response structure
-      address: user?.address || "",
-      state: user?.state || "",
-      city: user?.city || "",
-      postalCode: user?.postalCode || "",
+      address: (user as any)?.address || "",
+      state: (user as any)?.state || "",
+      city: (user as any)?.city || "",
+      postalCode: (user as any)?.postalCode || "",
       // Background information - check both top-level and nested
-      employmentStatus: user?.employmentStatus || (user as any)?.background_information?.employment_status || "",
-      occupation: user?.occupation || (user as any)?.background_information?.occupation || "",
-      primaryPurpose: user?.primaryPurpose || (user as any)?.background_information?.primary_purpose || "",
-      sourceOfFunds: user?.sourceOfFunds || (user as any)?.background_information?.source_of_funds || "",
-      expectedMonthlyInflow: user?.expectedMonthlyInflow || (user as any)?.background_information?.expected_monthly_inflow || 0,
+      employmentStatus: (user as any)?.employmentStatus || (user as any)?.background_information?.employment_status || "",
+      occupation: (user as any)?.occupation || (user as any)?.background_information?.occupation || "",
+      primaryPurpose: (user as any)?.primaryPurpose || (user as any)?.background_information?.primary_purpose || "",
+      sourceOfFunds: (user as any)?.sourceOfFunds || (user as any)?.background_information?.source_of_funds || "",
+      expectedMonthlyInflow: (user as any)?.expectedMonthlyInflow || (user as any)?.background_information?.expected_monthly_inflow || 0,
       // Additional fields for Oval API
       name_first: (user as any)?.name_first || "",
       name_last: (user as any)?.name_last || "",
       name_other: (user as any)?.name_other || "",
       id_level: (user as any)?.id_level || "primary",
-      id_type: (user as any)?.id_type || "passport",
       id_number: (user as any)?.id_number || "",
       id_country: (user as any)?.id_country || "",
       bank_id_number: (user as any)?.bank_id_number || "",
-      dob: (user as any)?.dob || "",
-      phone: (user as any)?.phone || "",
     },
     resolver: yupResolver(schema),
     mode: "onChange",
@@ -595,9 +580,6 @@ const ProfileContent = () => {
       const month = newDate.toLocaleString("en-US", { month: "short" });
       const year = newDate.getFullYear();
       setValue("dateOfBirth", `${day}-${month}-${year}`);
-      // Also set the YYYY-MM-DD format for Oval API
-      const apiDate = `${year}-${String(newDate.getMonth() + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-      setValue("dob", apiDate);
       setShowDatePicker(false);
     }
   };
@@ -646,55 +628,25 @@ const ProfileContent = () => {
         referralCode: user?.referralCode || "",
         accountTier: `Tier ${user?.tierLevel}` || "",
         accountNumber: accountNumber || "",
-        // Passport fields - ensure these are always updated from user data
-        passportNumber: user?.passportNumber || "",
-        passportCountry: user?.passportCountry || "",
-        passportIssueDate: user?.passportIssueDate || "",
-        passportExpiryDate: user?.passportExpiryDate || "",
-        passportDocumentUrl: user?.passportDocumentUrl || "",
-        // Bank statement fields - ensure these are always updated from user data
-        bankStatementUrl: user?.bankStatementUrl || "",
-        bankStatementIssueDate: user?.bankStatementIssueDate || "",
-        bankStatementExpiryDate: user?.bankStatementExpiryDate || "",
-        // Utility bill fields
-        utilityBillUrl: (user as any)?.utilityBillUrl || "",
-        utilityBillIssueDate: (user as any)?.utilityBillIssueDate || "",
-        utilityBillExpiryDate: (user as any)?.utilityBillExpiryDate || "",
         // Address fields
-        address: user?.address || "",
-        state: user?.state || "",
-        city: user?.city || "",
-        postalCode: user?.postalCode || "",
+        address: (user as any)?.address || "",
+        state: (user as any)?.state || "",
+        city: (user as any)?.city || "",
+        postalCode: (user as any)?.postalCode || "",
         // Background information - check both top-level and nested
-        employmentStatus: user?.employmentStatus || (user as any)?.background_information?.employment_status || "",
-        occupation: user?.occupation || (user as any)?.background_information?.occupation || "",
-        primaryPurpose: user?.primaryPurpose || (user as any)?.background_information?.primary_purpose || "",
-        sourceOfFunds: user?.sourceOfFunds || (user as any)?.background_information?.source_of_funds || "",
-        expectedMonthlyInflow: user?.expectedMonthlyInflow || (user as any)?.background_information?.expected_monthly_inflow || 0,
+        employmentStatus: (user as any)?.employmentStatus || (user as any)?.background_information?.employment_status || "",
+        occupation: (user as any)?.occupation || (user as any)?.background_information?.occupation || "",
+        primaryPurpose: (user as any)?.primaryPurpose || (user as any)?.background_information?.primary_purpose || "",
+        sourceOfFunds: (user as any)?.sourceOfFunds || (user as any)?.background_information?.source_of_funds || "",
+        expectedMonthlyInflow: (user as any)?.expectedMonthlyInflow || (user as any)?.background_information?.expected_monthly_inflow || 0,
         // KYC Fields
         name_first: (user as any)?.name_first || "",
         name_last: (user as any)?.name_last || "",
         name_other: (user as any)?.name_other || "",
-        phone: (user as any)?.phone || user?.phoneNumber || "",
-        dob: (user as any)?.dob || "",
         id_level: (user as any)?.id_level || "primary",
-        id_type: (user as any)?.id_type || "passport",
         id_number: (user as any)?.id_number || "",
         id_country: (user as any)?.id_country || "",
         bank_id_number: (user as any)?.bank_id_number || "",
-        // Address fields (from nested object if exists)
-        address_line1: (user as any)?.address?.line1 || "",
-        address_line2: (user as any)?.address?.line2 || "",
-        address_city: (user as any)?.address?.city || "",
-        address_state: (user as any)?.address?.state || "",
-        address_country: (user as any)?.address?.country || "",
-        address_postal_code: (user as any)?.address?.postal_code || "",
-        // Background information (from nested object if exists)
-        employment_status: (user as any)?.background_information?.employment_status || "",
-        occupation: (user as any)?.background_information?.occupation || "",
-        primary_purpose: (user as any)?.background_information?.primary_purpose || "",
-        source_of_funds: (user as any)?.background_information?.source_of_funds || "",
-        expected_monthly_inflow: (user as any)?.background_information?.expected_monthly_inflow || 0,
       }, { keepDefaultValues: false });
     }
   }, [user, reset]);
@@ -902,12 +854,12 @@ const ProfileContent = () => {
       return;
     }
 
-    // Get all required fields from form or user data
+    // Get all required fields from user data (passport fields not in form schema)
     const currentFormData = watch();
-    const documentNumber = currentFormData.passportNumber || user?.passportNumber || "";
-    const documentCountry = currentFormData.passportCountry || user?.passportCountry || "";
-    let issueDate = normalizeDate(currentFormData.passportIssueDate || user?.passportIssueDate || "");
-    let expiryDate = normalizeDate(currentFormData.passportExpiryDate || user?.passportExpiryDate || "");
+    const documentNumber = (user as any)?.passportNumber || "";
+    const documentCountry = (user as any)?.passportCountry || "";
+    let issueDate = normalizeDate((user as any)?.passportIssueDate || "");
+    let expiryDate = normalizeDate((user as any)?.passportExpiryDate || "");
 
     if (!documentNumber || !documentCountry) {
       ErrorToast({
@@ -965,10 +917,10 @@ const ProfileContent = () => {
       return;
     }
 
-    // Get dates from form or user data
+    // Get dates from user data (bank statement fields not in form schema)
     const currentFormData = watch();
-    let issueDate = normalizeDate(currentFormData.bankStatementIssueDate || user?.bankStatementIssueDate || "");
-    let expiryDate = normalizeDate(currentFormData.bankStatementExpiryDate || user?.bankStatementExpiryDate || "");
+    let issueDate = normalizeDate((user as any)?.bankStatementIssueDate || "");
+    let expiryDate = normalizeDate((user as any)?.bankStatementExpiryDate || "");
 
     if (!issueDate || !expiryDate) {
       ErrorToast({
@@ -1018,8 +970,8 @@ const ProfileContent = () => {
 
     // Get dates from form or user data
     const currentFormData = watch();
-    let issueDate = normalizeDate(currentFormData.utilityBillIssueDate || (user as any)?.utilityBillIssueDate || "");
-    let expiryDate = normalizeDate(currentFormData.utilityBillExpiryDate || (user as any)?.utilityBillExpiryDate || "");
+    let issueDate = normalizeDate((user as any)?.utilityBillIssueDate || "");
+    let expiryDate = normalizeDate((user as any)?.utilityBillExpiryDate || "");
 
     if (!issueDate || !expiryDate) {
       ErrorToast({
@@ -1138,8 +1090,8 @@ const ProfileContent = () => {
 
     // If KYC fields are filled, also create/update Oval person record
     if (data.name_first && data.name_last && data.id_number && data.id_country) {
-      // Use dob field if available, otherwise parse dateOfBirth
-      let dobFormatted = data.dob || "";
+      // Use dateOfBirth field (dob not in schema)
+      let dobFormatted = "";
       if (!dobFormatted && data.dateOfBirth) {
         try {
           // Try to parse the date format (could be "15-Jan-1990" or already YYYY-MM-DD)
@@ -1168,6 +1120,7 @@ const ProfileContent = () => {
 
       // Prepare documents array
       const documents: any[] = [];
+      const passportUrl = (user as any)?.passportDocumentUrl;
       if (passportUrl) {
         documents.push({
           type: "passport",
@@ -1176,6 +1129,7 @@ const ProfileContent = () => {
           expiry_date: "2030-01-01",
         });
       }
+      const bankStatementUrl = (user as any)?.bankStatementUrl;
       if (bankStatementUrl) {
         documents.push({
           type: "bank_statement",
@@ -1187,12 +1141,12 @@ const ProfileContent = () => {
 
       const ovalPersonData = {
         id_level: (data.id_level as "primary" | "secondary") || "primary",
-        id_type: (data.id_type as "passport" | "drivers_license" | "national_id") || "passport",
+        id_type: ((user as any)?.id_type as "passport" | "drivers_license" | "national_id") || "passport",
         kyc_level: "basic" as const,
         name_first: data.name_first || "",
         name_last: data.name_last || "",
         name_other: data.name_other || "",
-        phone: data.phone || data.phoneNumber || "",
+        phone: data.phoneNumber || "",
         email: data.email || "",
         dob: dobFormatted || "",
         id_number: data.id_number || "",
@@ -2019,17 +1973,13 @@ const ProfileContent = () => {
                           className="w-full bg-transparent p-0 border-none outline-none text-base text-text-200 dark:text-white placeholder:text-text-200 dark:placeholder:text-text-1000 placeholder:text-sm"
                           placeholder="Enter passport number"
                           type="text"
-                          {...register("passportNumber")}
+                          value={(user as any)?.passportNumber || ""}
+                          readOnly
                         />
                         <button type="button" className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 grid place-items-center rounded-md bg-[#D4B139]/15 text-[#D4B139] border border-[#D4B139]/30">
                           <FiEdit2 className="text-xs" />
                         </button>
                       </div>
-                      {errors?.passportNumber?.message ? (
-                        <p className="flex self-start text-red-500 font-semibold mt-0.5 text-sm">
-                          {errors?.passportNumber?.message}
-                        </p>
-                      ) : null}
                     </div>
 
                     {/* Passport Country */}
@@ -2043,9 +1993,9 @@ const ProfileContent = () => {
                           onClick={() => setPassportCountryDropdownOpen(!passportCountryDropdownOpen)}
                           className="w-full flex gap-2 justify-between items-center bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-4 px-3 text-left"
                         >
-                          <span className={`text-base ${watch("passportCountry") ? "text-text-200 dark:text-white" : "text-text-200 dark:text-text-1000"}`}>
-                            {watch("passportCountry") 
-                              ? COUNTRIES.find(c => c.code === watch("passportCountry"))?.name || watch("passportCountry")
+                          <span className={`text-base ${(user as any)?.passportCountry ? "text-text-200 dark:text-white" : "text-text-200 dark:text-text-1000"}`}>
+                            {(user as any)?.passportCountry 
+                              ? COUNTRIES.find(c => c.code === (user as any)?.passportCountry)?.name || (user as any)?.passportCountry
                               : "Select country"}
                           </span>
                           <FiChevronRight className={`text-text-200 dark:text-text-400 transition-transform ${passportCountryDropdownOpen ? "rotate-90" : ""}`} />
@@ -2062,11 +2012,10 @@ const ProfileContent = () => {
                                   </span>
                                 </div>
                               )}
-                              onSelect={(country) => {
-                                setValue("passportCountry", country.code);
-                                clearErrors("passportCountry");
-                                setPassportCountryDropdownOpen(false);
-                              }}
+                               onSelect={(country) => {
+                                 // Passport fields not in form schema - handled via separate API
+                                 setPassportCountryDropdownOpen(false);
+                               }}
                               showSearch={true}
                               placeholder="Search country..."
                               isOpen={passportCountryDropdownOpen}
@@ -2075,11 +2024,6 @@ const ProfileContent = () => {
                           </div>
                         )}
                       </div>
-                      {errors?.passportCountry?.message ? (
-                        <p className="flex self-start text-red-500 font-semibold mt-0.5 text-sm">
-                          {errors?.passportCountry?.message}
-                        </p>
-                      ) : null}
                     </div>
 
                     {/* Issue Date */}
@@ -2092,9 +2036,9 @@ const ProfileContent = () => {
                           onClick={() => setShowPassportIssueDatePicker(!showPassportIssueDatePicker)}
                           className="cursor-pointer w-full flex gap-2 justify-center items-center bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-4 px-3"
                         >
-                          {watch("passportIssueDate") ? (
+                          {(user as any)?.passportIssueDate ? (
                             <div className="w-full bg-transparent p-0 border-none outline-none text-base text-text-200 dark:text-white">
-                              {watch("passportIssueDate")}
+                              {(user as any)?.passportIssueDate}
                             </div>
                           ) : (
                             <div className="w-full bg-transparent p-0 border-none outline-none text-base text-text-200 dark:text-white/50">
@@ -2102,22 +2046,17 @@ const ProfileContent = () => {
                             </div>
                           )}
                         </div>
-                        {errors?.passportIssueDate?.message ? (
-                          <p className="flex self-start text-red-500 font-semibold mt-0.5 text-sm">
-                            {errors?.passportIssueDate?.message}
-                          </p>
-                        ) : null}
                       </div>
                       {showPassportIssueDatePicker && (
                         <div ref={passportIssueDatePickerRef} className="absolute z-10 mt-1">
                           <DatePicker
-                            selected={watch("passportIssueDate") ? new Date(watch("passportIssueDate")) : null}
+                            selected={(user as any)?.passportIssueDate ? new Date((user as any)?.passportIssueDate) : null}
                             onChange={(date: Date | null) => {
                               if (date) {
                                 const year = date.getFullYear();
                                 const month = String(date.getMonth() + 1).padStart(2, "0");
                                 const day = String(date.getDate()).padStart(2, "0");
-                                setValue("passportIssueDate", `${year}-${month}-${day}`);
+                                // Passport fields not in form schema - handled via separate API
                                 setShowPassportIssueDatePicker(false);
                               }
                             }}
@@ -2139,9 +2078,9 @@ const ProfileContent = () => {
                           onClick={() => setShowPassportExpiryDatePicker(!showPassportExpiryDatePicker)}
                           className="cursor-pointer w-full flex gap-2 justify-center items-center bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-4 px-3"
                         >
-                          {watch("passportExpiryDate") ? (
+                          {(user as any)?.passportExpiryDate ? (
                             <div className="w-full bg-transparent p-0 border-none outline-none text-base text-text-200 dark:text-white">
-                              {watch("passportExpiryDate")}
+                              {(user as any)?.passportExpiryDate}
                             </div>
                           ) : (
                             <div className="w-full bg-transparent p-0 border-none outline-none text-base text-text-200 dark:text-white/50">
@@ -2149,22 +2088,17 @@ const ProfileContent = () => {
                             </div>
                           )}
                         </div>
-                        {errors?.passportExpiryDate?.message ? (
-                          <p className="flex self-start text-red-500 font-semibold mt-0.5 text-sm">
-                            {errors?.passportExpiryDate?.message}
-                          </p>
-                        ) : null}
                       </div>
                       {showPassportExpiryDatePicker && (
                         <div ref={passportExpiryDatePickerRef} className="absolute z-10 mt-1">
                           <DatePicker
-                            selected={watch("passportExpiryDate") ? new Date(watch("passportExpiryDate")) : null}
+                            selected={(user as any)?.passportExpiryDate ? new Date((user as any)?.passportExpiryDate) : null}
                             onChange={(date: Date | null) => {
                               if (date) {
                                 const year = date.getFullYear();
                                 const month = String(date.getMonth() + 1).padStart(2, "0");
                                 const day = String(date.getDate()).padStart(2, "0");
-                                setValue("passportExpiryDate", `${year}-${month}-${day}`);
+                                // Passport fields not in form schema - handled via separate API
                                 setShowPassportExpiryDatePicker(false);
                               }
                             }}
@@ -2189,12 +2123,12 @@ const ProfileContent = () => {
                     >
                       <FiUpload className="text-base" />
                       <span>
-                        {user?.passportDocumentUrl
-                          ? `Update Passport Document (${user.passportNumber || "Uploaded"})`
+                        {(user as any)?.passportDocumentUrl
+                          ? `Update Passport Document (${(user as any)?.passportNumber || "Uploaded"})`
                           : "Upload Passport Document"}
                       </span>
                     </button>
-                    {user?.passportDocumentUrl && (
+                    {(user as any)?.passportDocumentUrl && (
                       <div className="flex items-center gap-2 text-sm text-white/70">
                         <span>✓ Passport document uploaded</span>
                       </div>
@@ -2205,11 +2139,10 @@ const ProfileContent = () => {
                     <CustomButton
                       type="button"
                       onClick={async () => {
-                        const currentData = watch();
-                        const documentNumber = currentData.passportNumber || user?.passportNumber || "";
-                        const documentCountry = currentData.passportCountry || user?.passportCountry || "";
-                        let issueDate = normalizeDate(currentData.passportIssueDate || user?.passportIssueDate || "");
-                        let expiryDate = normalizeDate(currentData.passportExpiryDate || user?.passportExpiryDate || "");
+                        const documentNumber = (user as any)?.passportNumber || "";
+                        const documentCountry = (user as any)?.passportCountry || "";
+                        let issueDate = normalizeDate((user as any)?.passportIssueDate || "");
+                        let expiryDate = normalizeDate((user as any)?.passportExpiryDate || "");
 
                         if (!documentNumber || !documentCountry) {
                           ErrorToast({
@@ -2244,7 +2177,7 @@ const ProfileContent = () => {
                         }
 
                         // Check if document exists - if not, user must upload via modal first
-                        if (!user?.passportDocumentUrl) {
+                        if (!(user as any)?.passportDocumentUrl) {
                           ErrorToast({
                             title: "Document Required",
                             descriptions: ["Please upload a passport document first using the upload button above"],
@@ -2254,7 +2187,7 @@ const ProfileContent = () => {
 
                         // Fetch the existing document and re-upload with updated metadata
                         try {
-                          const response = await fetch(user.passportDocumentUrl);
+                          const response = await fetch((user as any)?.passportDocumentUrl);
                           const blob = await response.blob();
                           const file = new File([blob], "passport.pdf", { type: blob.type });
 
@@ -2302,9 +2235,9 @@ const ProfileContent = () => {
                           onClick={() => setShowBankStatementIssueDatePicker(!showBankStatementIssueDatePicker)}
                           className="cursor-pointer w-full flex gap-2 justify-center items-center bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-4 px-3"
                         >
-                          {watch("bankStatementIssueDate") ? (
+                          {(user as any)?.bankStatementIssueDate ? (
                             <div className="w-full bg-transparent p-0 border-none outline-none text-base text-text-200 dark:text-white">
-                              {watch("bankStatementIssueDate")}
+                              {(user as any)?.bankStatementIssueDate}
                             </div>
                           ) : (
                             <div className="w-full bg-transparent p-0 border-none outline-none text-base text-text-200 dark:text-white/50">
@@ -2312,22 +2245,17 @@ const ProfileContent = () => {
                             </div>
                           )}
                         </div>
-                        {errors?.bankStatementIssueDate?.message ? (
-                          <p className="flex self-start text-red-500 font-semibold mt-0.5 text-sm">
-                            {errors?.bankStatementIssueDate?.message}
-                          </p>
-                        ) : null}
                       </div>
                       {showBankStatementIssueDatePicker && (
                         <div ref={bankStatementIssueDatePickerRef} className="absolute z-10 mt-1">
                           <DatePicker
-                            selected={watch("bankStatementIssueDate") ? new Date(watch("bankStatementIssueDate")) : null}
+                            selected={(user as any)?.bankStatementIssueDate ? new Date((user as any)?.bankStatementIssueDate) : null}
                             onChange={(date: Date | null) => {
                               if (date) {
                                 const year = date.getFullYear();
                                 const month = String(date.getMonth() + 1).padStart(2, "0");
                                 const day = String(date.getDate()).padStart(2, "0");
-                                setValue("bankStatementIssueDate", `${year}-${month}-${day}`);
+                                // Bank statement fields not in form schema - handled via separate API
                                 setShowBankStatementIssueDatePicker(false);
                               }
                             }}
@@ -2349,9 +2277,9 @@ const ProfileContent = () => {
                           onClick={() => setShowBankStatementExpiryDatePicker(!showBankStatementExpiryDatePicker)}
                           className="cursor-pointer w-full flex gap-2 justify-center items-center bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-4 px-3"
                         >
-                          {watch("bankStatementExpiryDate") ? (
+                          {(user as any)?.bankStatementExpiryDate ? (
                             <div className="w-full bg-transparent p-0 border-none outline-none text-base text-text-200 dark:text-white">
-                              {watch("bankStatementExpiryDate")}
+                              {(user as any)?.bankStatementExpiryDate}
                             </div>
                           ) : (
                             <div className="w-full bg-transparent p-0 border-none outline-none text-base text-text-200 dark:text-white/50">
@@ -2359,22 +2287,17 @@ const ProfileContent = () => {
                             </div>
                           )}
                         </div>
-                        {errors?.bankStatementExpiryDate?.message ? (
-                          <p className="flex self-start text-red-500 font-semibold mt-0.5 text-sm">
-                            {errors?.bankStatementExpiryDate?.message}
-                          </p>
-                        ) : null}
                       </div>
                       {showBankStatementExpiryDatePicker && (
                         <div ref={bankStatementExpiryDatePickerRef} className="absolute z-10 mt-1">
                           <DatePicker
-                            selected={watch("bankStatementExpiryDate") ? new Date(watch("bankStatementExpiryDate")) : null}
+                            selected={(user as any)?.bankStatementExpiryDate ? new Date((user as any)?.bankStatementExpiryDate) : null}
                             onChange={(date: Date | null) => {
                               if (date) {
                                 const year = date.getFullYear();
                                 const month = String(date.getMonth() + 1).padStart(2, "0");
                                 const day = String(date.getDate()).padStart(2, "0");
-                                setValue("bankStatementExpiryDate", `${year}-${month}-${day}`);
+                                // Bank statement fields not in form schema - handled via separate API
                                 setShowBankStatementExpiryDatePicker(false);
                               }
                             }}
@@ -2399,13 +2322,13 @@ const ProfileContent = () => {
                     >
                       <FiUpload className="text-base" />
                       <span>
-                        {user?.bankStatementUrl ? "Update Bank Statement Document" : "Upload Bank Statement Document"}
+                        {(user as any)?.bankStatementUrl ? "Update Bank Statement Document" : "Upload Bank Statement Document"}
                       </span>
                     </button>
-                    {user?.bankStatementUrl && (
+                    {(user as any)?.bankStatementUrl && (
                       <div className="flex items-center gap-2 text-sm text-white/70">
                         <span>✓ Bank statement document uploaded</span>
-                        {user.isAddressVerified && (
+                        {(user as any)?.isAddressVerified && (
                           <span className="text-green-400 ml-2">• Address Verified</span>
                         )}
                       </div>
@@ -2417,8 +2340,8 @@ const ProfileContent = () => {
                       type="button"
                       onClick={async () => {
                         const currentData = watch();
-                        let issueDate = normalizeDate(currentData.bankStatementIssueDate || user?.bankStatementIssueDate || "");
-                        let expiryDate = normalizeDate(currentData.bankStatementExpiryDate || user?.bankStatementExpiryDate || "");
+                        let issueDate = normalizeDate((user as any)?.bankStatementIssueDate || "");
+                        let expiryDate = normalizeDate((user as any)?.bankStatementExpiryDate || "");
 
                         if (!issueDate || !expiryDate) {
                           ErrorToast({
@@ -2445,7 +2368,7 @@ const ProfileContent = () => {
                         }
 
                         // Check if document exists - if not, user must upload via modal first
-                        if (!user?.bankStatementUrl) {
+                         if (!(user as any)?.bankStatementUrl) {
                           ErrorToast({
                             title: "Document Required",
                             descriptions: ["Please upload a bank statement document first using the upload button above"],
@@ -2455,7 +2378,7 @@ const ProfileContent = () => {
 
                         // Fetch the existing document and re-upload with updated metadata
                         try {
-                          const response = await fetch(user.bankStatementUrl);
+                          const response = await fetch((user as any)?.bankStatementUrl);
                           const blob = await response.blob();
                           const file = new File([blob], "bank_statement.pdf", { type: blob.type });
 
@@ -2501,9 +2424,9 @@ const ProfileContent = () => {
                           onClick={() => setShowUtilityBillIssueDatePicker(!showUtilityBillIssueDatePicker)}
                           className="cursor-pointer w-full flex gap-2 justify-center items-center bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-4 px-3"
                         >
-                          {watch("utilityBillIssueDate") ? (
+                          {(user as any)?.utilityBillIssueDate ? (
                             <div className="w-full bg-transparent p-0 border-none outline-none text-base text-text-200 dark:text-white">
-                              {watch("utilityBillIssueDate")}
+                              {(user as any)?.utilityBillIssueDate}
                             </div>
                           ) : (
                             <div className="w-full bg-transparent p-0 border-none outline-none text-base text-text-200 dark:text-white/50">
@@ -2511,22 +2434,17 @@ const ProfileContent = () => {
                             </div>
                           )}
                         </div>
-                        {errors?.utilityBillIssueDate?.message ? (
-                          <p className="flex self-start text-red-500 font-semibold mt-0.5 text-sm">
-                            {errors?.utilityBillIssueDate?.message}
-                          </p>
-                        ) : null}
                       </div>
                       {showUtilityBillIssueDatePicker && (
                         <div ref={utilityBillIssueDatePickerRef} className="absolute z-10 mt-1">
                           <DatePicker
-                            selected={watch("utilityBillIssueDate") ? new Date(watch("utilityBillIssueDate")) : null}
+                            selected={(user as any)?.utilityBillIssueDate ? new Date((user as any)?.utilityBillIssueDate) : null}
                             onChange={(date: Date | null) => {
                               if (date) {
                                 const year = date.getFullYear();
                                 const month = String(date.getMonth() + 1).padStart(2, "0");
                                 const day = String(date.getDate()).padStart(2, "0");
-                                setValue("utilityBillIssueDate", `${year}-${month}-${day}`);
+                                // Utility bill fields not in form schema - handled via separate API
                                 setShowUtilityBillIssueDatePicker(false);
                               }
                             }}
@@ -2548,9 +2466,9 @@ const ProfileContent = () => {
                           onClick={() => setShowUtilityBillExpiryDatePicker(!showUtilityBillExpiryDatePicker)}
                           className="cursor-pointer w-full flex gap-2 justify-center items-center bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-4 px-3"
                         >
-                          {watch("utilityBillExpiryDate") ? (
+                          {(user as any)?.utilityBillExpiryDate ? (
                             <div className="w-full bg-transparent p-0 border-none outline-none text-base text-text-200 dark:text-white">
-                              {watch("utilityBillExpiryDate")}
+                              {(user as any)?.utilityBillExpiryDate}
                             </div>
                           ) : (
                             <div className="w-full bg-transparent p-0 border-none outline-none text-base text-text-200 dark:text-white/50">
@@ -2558,22 +2476,17 @@ const ProfileContent = () => {
                             </div>
                           )}
                         </div>
-                        {errors?.utilityBillExpiryDate?.message ? (
-                          <p className="flex self-start text-red-500 font-semibold mt-0.5 text-sm">
-                            {errors?.utilityBillExpiryDate?.message}
-                          </p>
-                        ) : null}
                       </div>
                       {showUtilityBillExpiryDatePicker && (
                         <div ref={utilityBillExpiryDatePickerRef} className="absolute z-10 mt-1">
                           <DatePicker
-                            selected={watch("utilityBillExpiryDate") ? new Date(watch("utilityBillExpiryDate")) : null}
+                            selected={(user as any)?.utilityBillExpiryDate ? new Date((user as any)?.utilityBillExpiryDate) : null}
                             onChange={(date: Date | null) => {
                               if (date) {
                                 const year = date.getFullYear();
                                 const month = String(date.getMonth() + 1).padStart(2, "0");
                                 const day = String(date.getDate()).padStart(2, "0");
-                                setValue("utilityBillExpiryDate", `${year}-${month}-${day}`);
+                                // Utility bill fields not in form schema - handled via separate API
                                 setShowUtilityBillExpiryDatePicker(false);
                               }
                             }}
@@ -2612,9 +2525,8 @@ const ProfileContent = () => {
                     <CustomButton
                       type="button"
                       onClick={async () => {
-                        const currentData = watch();
-                        let issueDate = normalizeDate(currentData.utilityBillIssueDate || (user as any)?.utilityBillIssueDate || "");
-                        let expiryDate = normalizeDate(currentData.utilityBillExpiryDate || (user as any)?.utilityBillExpiryDate || "");
+                        let issueDate = normalizeDate((user as any)?.utilityBillIssueDate || "");
+                        let expiryDate = normalizeDate((user as any)?.utilityBillExpiryDate || "");
 
                         if (!issueDate || !expiryDate) {
                           ErrorToast({
@@ -2949,19 +2861,19 @@ const ProfileContent = () => {
         <UpdateUsernameModal
           isOpen={openUpdateUsername}
           onClose={()=> setOpenUpdateUsername(false)}
-          onSubmit={(username: string)=> { setValue("username", username); setOpenUpdateUsername(false); SuccessToast({ title: "Username updated" }); }}
+          onSubmit={(username: string)=> { setValue("username", username); setOpenUpdateUsername(false); SuccessToast({ title: "Username updated", description: "Your username has been successfully updated." }); }}
         />
         <UpdateAddressModal
           isOpen={openUpdateAddress}
           onClose={()=> setOpenUpdateAddress(false)}
-          onSubmit={(addr: string)=> { setAddressDisplay(addr); setOpenUpdateAddress(false); SuccessToast({ title: "Address updated" }); }}
+          onSubmit={(addr: string)=> { setAddressDisplay(addr); setOpenUpdateAddress(false); SuccessToast({ title: "Address updated", description: "Your address has been successfully updated." }); }}
         />
 
         {/* Security & Privacy Modals */}
         <ChangeTransactionPinModal isOpen={openChangePin} onClose={()=> setOpenChangePin(false)} />
         <ChangePasswordModal isOpen={openChangePassword} onClose={()=> setOpenChangePassword(false)} />
         <ChangePasscodeModal isOpen={openChangePasscode} onClose={()=> setOpenChangePasscode(false)} />
-        <SetSecurityQuestionsModal isOpen={openSetSecurity} onClose={()=> setOpenSetSecurity(false)} onSubmit={()=> { setOpenSetSecurity(false); SuccessToast({ title: "Security questions saved" }); }} />
+        <SetSecurityQuestionsModal isOpen={openSetSecurity} onClose={()=> setOpenSetSecurity(false)} onSubmit={()=> { setOpenSetSecurity(false); SuccessToast({ title: "Security questions saved", description: "Your security questions have been successfully saved." }); }} />
         <LinkedAccountsModal isOpen={openLinked} onClose={()=> setOpenLinked(false)} />
         <DeleteAccountModal isOpen={openDelete} onClose={()=> setOpenDelete(false)} />
         
@@ -2971,7 +2883,7 @@ const ProfileContent = () => {
           onClose={() => setOpenPassportUpload(false)}
           onSubmit={handlePassportUpload}
           initialData={{
-            passportDocumentUrl: user?.passportDocumentUrl || "",
+            passportDocumentUrl: (user as any)?.passportDocumentUrl || "",
           }}
           isLoading={uploadDocumentPending}
         />
@@ -2980,7 +2892,7 @@ const ProfileContent = () => {
           onClose={() => setOpenBankStatementUpload(false)}
           onSubmit={handleBankStatementUpload}
           initialData={{
-            bankStatementUrl: user?.bankStatementUrl || "",
+            bankStatementUrl: (user as any)?.bankStatementUrl || "",
           }}
           isLoading={uploadDocumentPending}
         />

@@ -21,12 +21,9 @@ import {
   getSupportedCurrenciesRequest,
 } from "./currency.apis";
 import {
-  ICreateCurrencyAccount,
-  ICreateCard,
   IFundCard,
   ISetCardLimits,
   IWithdrawCard,
-  IConvertCurrency,
   IVirtualCard,
   ICardTransaction,
   ICurrencyRate,
@@ -113,7 +110,27 @@ export const useGetCards = () => {
     queryFn: () => getCardsRequest(),
   });
 
-  const cards: IVirtualCard[] = data?.data?.data || [];
+  // Handle different possible response structures
+  let cards: IVirtualCard[] = [];
+  if (data?.data) {
+    // Try data.data.data first (nested array)
+    if (Array.isArray(data.data.data)) {
+      cards = data.data.data;
+    }
+    // Try data.data if it's an array
+    else if (Array.isArray(data.data)) {
+      cards = data.data;
+    }
+    // Try data.data.cards if it exists
+    else if (Array.isArray(data.data.cards)) {
+      cards = data.data.cards;
+    }
+  }
+
+  // Ensure cards is always an array
+  if (!Array.isArray(cards)) {
+    cards = [];
+  }
 
   return { cards, isPending, isError, refetch };
 };

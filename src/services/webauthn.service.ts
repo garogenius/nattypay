@@ -25,6 +25,7 @@ export interface WebAuthnRegistrationResult {
   rawId: ArrayBuffer;
   // COSE public key (CBOR encoded), base64url
   publicKey: string;
+  publicKeyBase64?: string; // Optional base64 encoded public key
 }
 
 export interface WebAuthnRegistrationOptions {
@@ -353,7 +354,10 @@ const extractCosePublicKey = (attestation: AuthenticatorAttestationResponse): Ar
 
   try {
     const coseKeyBytes = extractCoseKeyFromAuthData(authData);
-    return coseKeyBytes.buffer;
+    // Create a new ArrayBuffer (not SharedArrayBuffer) and copy the data
+    const buffer = new ArrayBuffer(coseKeyBytes.byteLength);
+    new Uint8Array(buffer).set(coseKeyBytes);
+    return buffer;
   } catch (error: any) {
     throw new Error(`Failed to extract COSE key from authData: ${error.message}`);
   }

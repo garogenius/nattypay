@@ -27,12 +27,12 @@ const PortfolioCard = () => {
   const statsLineData =
     lineStats && !lineError
       ? {
-          labels: lineStats.map((data) => data.date),
+          labels: lineStats.map((data: { date: string; credits: number; debits: number }) => data.date),
           datasets: [
             {
               fill: false,
               label: "Credits (₦)",
-              data: lineStats.map((item) => item.credits),
+              data: lineStats.map((item: { date: string; credits: number; debits: number }) => item.credits),
               borderColor: "#068E44",
               backgroundColor: "#068E44",
               tension: 0.4,
@@ -41,7 +41,7 @@ const PortfolioCard = () => {
             {
               fill: false,
               label: "Debits (₦)",
-              data: lineStats.map((item) => item.debits),
+              data: lineStats.map((item: { date: string; credits: number; debits: number }) => item.debits),
               borderColor: "#E4063D",
               backgroundColor: "#E4063D",
               tension: 0.4,

@@ -1,7 +1,6 @@
 import { request } from "@/utils/axios-utils";
 import {
   ICreateCurrencyAccount,
-  IGetCurrencyAccount,
   ICreateCard,
   IFundCard,
   ISetCardLimits,

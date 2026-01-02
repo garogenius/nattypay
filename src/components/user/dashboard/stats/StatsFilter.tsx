@@ -10,7 +10,7 @@ const StatsFilter = ({
   setSort,
 }: {
   sort: string;
-  setSort: Dispatch<SetStateAction<string>>;
+  setSort: Dispatch<SetStateAction<"all" | "today" | "week" | "month" | "year">>;
 }) => {
   const [sortModalState, setSortModalState] = useState(false);
 
@@ -59,7 +59,7 @@ const StatsFilter = ({
                     : ""
                 }`}
                 onClick={() => {
-                  setSort(item.value);
+                  setSort(item.value as "all" | "today" | "week" | "month" | "year");
                   setSortModalState(false);
                 }}
               >
