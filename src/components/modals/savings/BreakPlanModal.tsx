@@ -157,8 +157,10 @@ const BreakPlanModal: React.FC<BreakPlanModalProps> = ({
   if (!isOpen) return null;
 
   // Use API fields, fallback to legacy fields for backward compatibility
-  const currentAmount = plan?.totalDeposited ?? plan?.currentAmount ?? 0;
-  const interestEarned = plan?.totalInterestAccrued ?? plan?.interestEarned ?? 0;
+  // Type narrowing: currentAmount and interestEarned only exist on SavingsPlan
+  const isSavingsPlan = plan && 'durationMonths' in plan;
+  const currentAmount = plan?.totalDeposited ?? (isSavingsPlan ? (plan as SavingsPlan).currentAmount : undefined) ?? 0;
+  const interestEarned = plan?.totalInterestAccrued ?? (isSavingsPlan ? (plan as SavingsPlan).interestEarned : undefined) ?? 0;
   const penaltyRatePercent =
     typeof plan?.penaltyRate === "number" ? Math.round(plan.penaltyRate * 1000) / 10 : undefined;
 
