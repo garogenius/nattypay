@@ -5,6 +5,7 @@ import RootProtectionProvider from "@/providers/RootProtectionProvider";
 import { usePathname } from 'next/navigation';
 import Image from "next/image";
 import Link from "next/link";
+import images from "../../../public/images";
 
 const hideNavbarPaths = [
   '/account-type',
@@ -28,15 +29,15 @@ export default function AuthLayout({
   return (
     <RootProtectionProvider>
       <div className="relative flex flex-col min-h-screen h-full bg-bg-600 dark:bg-black">
-        {/* Mobile Logo - shown on auth pages */}
-        <div className="absolute top-6 left-6 z-50 lg:hidden">
+        {/* Mobile Logo - hidden on mobile responsive screens */}
+        <div className="fixed top-6 left-6 z-[9999] hidden">
           <Link href="/">
             <Image
-              src="/images/logo.svg"
+              src={images.logo2}
               alt="NattyPay Logo"
               width={120}
               height={40}
-              className="h-10 w-auto"
+              className="h-10 w-auto cursor-pointer"
               priority
             />
           </Link>

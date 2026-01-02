@@ -22,6 +22,7 @@ import {
   useVerifyContact,
   useResendVerifyContact,
 } from "@/api/auth/auth.queries";
+import Cookies from "js-cookie";
 
 const VerifyPhoneNumberContent = () => {
   const navigate = useNavigate();
@@ -32,7 +33,18 @@ const VerifyPhoneNumberContent = () => {
 
   const isValid = token.length === 6; // Changed to 6 digits to match verify-contact API
 
-  const onVerificationSuccess = () => {
+  const onVerificationSuccess = (data: any) => {
+    // Store access token if returned from verification
+    const accessToken = data?.data?.accessToken;
+    if (accessToken) {
+      Cookies.set("accessToken", accessToken, {
+        expires: 7, // 7 days
+        path: "/",
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+      });
+    }
+
     SuccessToast({
       title: "Phone verified",
       description: "Your phone number verification successful",
@@ -277,20 +289,17 @@ const VerifyPhoneNumberContent = () => {
 
             {/* Footer */}
             <div className="text-center text-xs text-gray-500 mt-8">
-              <p>
-                <span className="flex items-center justify-center gap-2 flex-wrap">
-                  <span>Licenced by</span>
-                  <Image
-                    src={images.cbnLogo}
-                    alt="CBN Logo"
-                    width={40}
-                    height={20}
-                    className="h-5 w-auto object-contain"
-                  />
-                  <span className="inline-block w-3 h-3 bg-green-500 rounded-full"></span>
-                  <span>Deposits Insured by</span>
-                  <span className="text-blue-600 underline">NDIC</span>
-                </span>
+              <p className="flex items-center justify-center gap-2 flex-wrap">
+                <span>Licenced by</span>
+                <Image
+                  src={images.cbnLogo}
+                  alt="CBN Logo"
+                  width={40}
+                  height={20}
+                  className="h-5 w-auto object-contain"
+                />
+                <span>Deposits Insured by</span>
+                <span className="text-blue-600 underline">NDIC</span>
               </p>
             </div>
           </div>

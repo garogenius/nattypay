@@ -541,11 +541,11 @@ const AccountsContent: React.FC = () => {
                 </div>
               )}
             </div>
-          ) : (selectedCurrency === "NGN" ? false : (accountsLoading || fetchingAccountDetails)) ? (
+          ) : (selectedCurrency !== "NGN" && (accountsLoading || fetchingAccountDetails)) ? (
             <div className="flex items-center justify-center py-12">
               <div className="w-8 h-8 border-2 border-[#D4B139] border-t-transparent rounded-full animate-spin"></div>
             </div>
-          ) : (selectedCurrency === "NGN" && activeWallet) || (selectedCurrency !== "NGN" && currencyAccount) ? (
+          ) : ((selectedCurrency === "NGN" && activeWallet) || (selectedCurrency !== "NGN" && currencyAccount)) ? (
             <>
               {/* Copy All Account Details Button */}
               <div className="mb-4">

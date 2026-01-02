@@ -104,7 +104,7 @@ const Wcu = () => {
             >
               <CustomButton
                 onClick={() => {
-                  navigate("/account-type");
+                  navigate("/welcome");
                 }}
                 className="flex items-center gap-2.5  rounded-3xl px-6 py-3 bg-primary text-black"
               >

@@ -70,6 +70,7 @@ client.interceptors.response.use(
           pathname.startsWith("/login") ||
           pathname.startsWith("/add-phone-number") ||
           pathname.startsWith("/validate-phoneNumber") ||
+          pathname.startsWith("/verify-phoneNumber") ||
           pathname.startsWith("/two-factor-auth") ||
           pathname.startsWith("/verify-email") ||
           pathname.startsWith("/currency-selection") ||
@@ -77,7 +78,8 @@ client.interceptors.response.use(
           pathname.startsWith("/face-setup") ||
           pathname.startsWith("/transaction-pin") ||
           pathname.startsWith("/onboarding-success") ||
-          pathname.startsWith("/account-type");
+          pathname.startsWith("/account-type") ||
+          pathname.startsWith("/welcome");
 
         // Only clear token and redirect if NOT on an auth page
         // This prevents clearing the token during BVN/NIN verification failures

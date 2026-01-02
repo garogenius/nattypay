@@ -111,7 +111,7 @@ const Heroarea = () => {
               <motion.div variants={zoomIn(0.2, 0.5)}>
                 <CustomButton
                   onClick={() => {
-                    navigate("/account-type");
+                    navigate("/welcome");
                   }}
                   className="max-xs:py-2 border-2 border-primary text-text-300 text-base 2xs:text-lg max-2xs:px-6"
                 >

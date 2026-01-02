@@ -85,7 +85,8 @@ const Navbar = () => {
           {/* Desktop Navigation */}
           <div className="hidden md:flex justify-between items-center w-[95%] lg:w-[90%]">
             <div className="flex items-center gap-6">
-              <div className="bg-transparent">
+              <div className="bg-transparent flex items-center gap-2">
+                <span className="text-text-200 dark:text-text-400 font-medium text-sm">CBN</span>
                 <Image
                   onClick={() => navigate("/")}
                   src={images.logo2}
@@ -160,14 +161,17 @@ const Navbar = () => {
 
           {/* Mobile Navigation */}
           <div className="md:hidden flex justify-between items-center w-[95%]">
-            <Image
-              onClick={() => navigate("/")}
-              src={images.logo2}
-              alt="logo"
-              className="w-40 h-auto cursor-pointer"
-            />
+            <div className="flex items-center gap-2">
+              <span className="text-text-200 dark:text-text-400 font-medium text-sm">CBN</span>
+              <Image
+                onClick={() => navigate("/")}
+                src={images.logo2}
+                alt="logo"
+                className="w-40 h-auto cursor-pointer"
+              />
+            </div>
             <div className="flex items-center gap-3">
-              <Link href="/account-type">
+              <Link href="/welcome">
                 <CustomButton className="rounded-2xl px-4 py-2 text-sm bg-secondary">
                   Sign Up
                 </CustomButton>
@@ -293,7 +297,7 @@ const Navbar = () => {
                       </AnimatePresence>
                     </div>
 
-                    <Link href="/account-type" className="w-full px-6 mb-8">
+                    <Link href="/welcome" className="w-full px-6 mb-8">
                       <CustomButton
                         onClick={() => setOpen(false)}
                         className="mt-2 w-full rounded-2xl max-lg:px-6 bg-secondary"

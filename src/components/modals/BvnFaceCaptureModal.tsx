@@ -333,28 +333,28 @@ const BvnFaceCaptureModal: React.FC<BvnFaceCaptureModalProps> = ({
   console.log("Rendering BvnFaceCaptureModal, isOpen:", isOpen, "showCamera:", showCamera);
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" style={{ zIndex: 9999 }}>
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-2 sm:p-4" style={{ zIndex: 9999 }}>
       <div className="absolute inset-0 bg-black/80" onClick={onClose} />
-      <div className="relative w-full max-w-2xl bg-white rounded-2xl p-6 z-10 shadow-xl max-h-[90vh] overflow-y-auto">
+      <div className="relative w-full max-w-sm sm:max-w-md md:max-w-2xl bg-white rounded-xl sm:rounded-2xl p-4 sm:p-6 z-10 shadow-xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-full transition-colors"
+          className="absolute top-2 right-2 sm:top-4 sm:right-4 p-1.5 sm:p-2 hover:bg-gray-100 rounded-full transition-colors"
           disabled={isVerifying}
         >
-          <CgClose className="text-xl text-gray-600" />
+          <CgClose className="text-lg sm:text-xl text-gray-600" />
         </button>
 
-        <div className="mb-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Capture Your Selfie</h2>
-          <p className="text-sm text-gray-600">
+        <div className="mb-4 sm:mb-6">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-1 sm:mb-2">Capture Your Selfie</h2>
+          <p className="text-xs sm:text-sm text-gray-600">
             Take a clear selfie to verify your BVN ({bvn}). Make sure your face is well-lit and clearly visible.
           </p>
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           {showCamera ? (
             <div className="relative w-full">
-              <div className="relative w-full bg-black rounded-lg overflow-hidden" style={{ minHeight: "400px", aspectRatio: "16/9", position: "relative" }}>
+              <div className="relative w-full bg-black rounded-lg overflow-hidden min-h-[250px] sm:min-h-[400px]" style={{ aspectRatio: "16/9", position: "relative" }}>
                 <video
                   ref={videoRef}
                   autoPlay
@@ -368,21 +368,22 @@ const BvnFaceCaptureModal: React.FC<BvnFaceCaptureModalProps> = ({
                   }}
                 />
               {isCameraReady && (
-                <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-4 px-4 z-20">
+                <div className="absolute bottom-2 sm:bottom-4 left-0 right-0 flex justify-center gap-2 sm:gap-4 px-2 sm:px-4 z-20">
                   <CustomButton
                     type="button"
                     onClick={capturePhoto}
-                    className="bg-[#D4B139] hover:bg-[#c7a42f] text-black font-medium py-2.5 px-6 rounded-lg flex items-center gap-2 shadow-lg"
+                    className="bg-[#D4B139] hover:bg-[#c7a42f] text-black font-medium py-2 sm:py-2.5 px-3 sm:px-6 rounded-lg flex items-center gap-1.5 sm:gap-2 shadow-lg text-sm sm:text-base"
                   >
-                    <FiCamera className="text-lg" />
-                    Capture Photo
+                    <FiCamera className="text-base sm:text-lg" />
+                    <span className="hidden xs:inline">Capture Photo</span>
+                    <span className="xs:hidden">Capture</span>
                   </CustomButton>
                   <CustomButton
                     type="button"
                     onClick={stopCamera}
-                    className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2.5 px-6 rounded-lg flex items-center gap-2 shadow-lg"
+                    className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 sm:py-2.5 px-3 sm:px-6 rounded-lg flex items-center gap-1.5 sm:gap-2 shadow-lg text-sm sm:text-base"
                   >
-                    <FiX className="text-lg" />
+                    <FiX className="text-base sm:text-lg" />
                     Cancel
                   </CustomButton>
                 </div>
@@ -400,15 +401,14 @@ const BvnFaceCaptureModal: React.FC<BvnFaceCaptureModalProps> = ({
           ) : null}
           
           {!showCamera && previewUrl ? (
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               <div className="relative w-full">
-                <div className="relative w-full bg-black rounded-lg overflow-hidden" style={{ minHeight: "400px", aspectRatio: "16/9" }}>
+                <div className="relative w-full bg-black rounded-lg overflow-hidden min-h-[250px] sm:min-h-[400px]" style={{ aspectRatio: "16/9" }}>
                   <Image
                     src={previewUrl}
                     alt="Selfie preview"
                     fill
                     className="object-cover"
-                    style={{ minHeight: "400px" }}
                   />
                 </div>
                 <div className="flex gap-2 mt-2">
@@ -439,14 +439,14 @@ const BvnFaceCaptureModal: React.FC<BvnFaceCaptureModalProps> = ({
                   console.log("Opening camera...");
                   startCamera();
                 }}
-                className="w-full bg-[#D4B139] hover:bg-[#c7a42f] text-black font-medium py-3 rounded-lg flex items-center justify-center gap-2"
+                className="w-full bg-[#D4B139] hover:bg-[#c7a42f] text-black font-medium py-2.5 sm:py-3 rounded-lg flex items-center justify-center gap-2 text-sm sm:text-base"
                 disabled={isVerifying}
               >
-                <FiCamera className="text-lg" />
+                <FiCamera className="text-base sm:text-lg" />
                 Open Camera
               </CustomButton>
-              <label className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-3 rounded-lg flex items-center justify-center gap-2 cursor-pointer transition-colors">
-                <FiUpload className="text-lg" />
+              <label className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-2.5 sm:py-3 rounded-lg flex items-center justify-center gap-2 cursor-pointer transition-colors text-sm sm:text-base">
+                <FiUpload className="text-base sm:text-lg" />
                 Upload Photo
                 <input
                   ref={fileInputRef}
@@ -466,7 +466,7 @@ const BvnFaceCaptureModal: React.FC<BvnFaceCaptureModalProps> = ({
             </div>
           )}
 
-          <div className="flex gap-4 pt-4 border-t border-gray-200">
+          <div className="flex gap-2 sm:gap-4 pt-3 sm:pt-4 border-t border-gray-200">
             <CustomButton
               type="button"
               onClick={() => {
@@ -478,7 +478,7 @@ const BvnFaceCaptureModal: React.FC<BvnFaceCaptureModalProps> = ({
                   }
                 }
               }}
-              className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-3 rounded-lg"
+              className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2.5 sm:py-3 rounded-lg text-sm sm:text-base"
               disabled={isVerifying}
             >
               {showCamera ? "Back" : "Cancel"}
@@ -489,7 +489,7 @@ const BvnFaceCaptureModal: React.FC<BvnFaceCaptureModalProps> = ({
                 disabled={!capturedImage || isVerifying}
                 isLoading={isVerifying}
                 onClick={handleVerify}
-                className="flex-1 bg-[#D4B139] hover:bg-[#c7a42f] text-black font-medium py-3 rounded-lg"
+                className="flex-1 bg-[#D4B139] hover:bg-[#c7a42f] text-black font-medium py-2.5 sm:py-3 rounded-lg text-sm sm:text-base"
               >
                 {isVerifying ? "Verifying..." : "Verify BVN"}
               </CustomButton>

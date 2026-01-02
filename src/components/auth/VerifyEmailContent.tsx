@@ -17,6 +17,7 @@ import useTimerStore from "@/store/timer.store";
 import { useRouter } from "next/navigation";
 import SpinnerLoader from "../Loader/SpinnerLoader";
 import icons from "../../../public/icons";
+import Cookies from "js-cookie";
 import {
   useResendVerifyContact,
   useVerifyEmail,
@@ -35,7 +36,18 @@ const VerifyEmailContent = () => {
   // Determine identifier (email or phone)
   const identifier = registrationMethod === "phone" ? authPhoneNumber : authEmail;
 
-  const onVerificationSuccess = () => {
+  const onVerificationSuccess = (data: any) => {
+    // Store access token if returned from verification
+    const accessToken = data?.data?.accessToken;
+    if (accessToken) {
+      Cookies.set("accessToken", accessToken, {
+        expires: 7, // 7 days
+        path: "/",
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+      });
+    }
+
     SuccessToast({
       title: "Contact verified",
       description: registrationMethod === "phone" 

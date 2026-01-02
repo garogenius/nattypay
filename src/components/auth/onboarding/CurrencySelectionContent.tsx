@@ -10,6 +10,7 @@ import { useRegister, useBusinessRegister } from "@/api/auth/auth.queries";
 import ErrorToast from "@/components/toast/ErrorToast";
 import SuccessToast from "@/components/toast/SuccessToast";
 import useAuthEmailStore from "@/store/authEmail.store";
+import Cookies from "js-cookie";
 import images from "../../../../public/images";
 
 const currencies = [
@@ -77,6 +78,17 @@ const CurrencySelectionContent = () => {
   const onSuccess = (data: any) => {
     const user = data?.data?.user;
     const registrationMethod = registrationData?.email ? "email" : "phone";
+    
+    // Store access token if returned from registration
+    const accessToken = data?.data?.accessToken;
+    if (accessToken) {
+      Cookies.set("accessToken", accessToken, {
+        expires: 7, // 7 days
+        path: "/",
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+      });
+    }
     
     if (user?.email) {
       setAuthEmail(user.email);
@@ -281,7 +293,6 @@ const CurrencySelectionContent = () => {
                     height={20}
                     className="h-5 w-auto object-contain"
                   />
-                  <span className="inline-block w-3 h-3 bg-green-500 rounded-full"></span>
                   <span>Deposits Insured by</span>
                   <span className="text-blue-600 underline">NDIC</span>
                 </span>

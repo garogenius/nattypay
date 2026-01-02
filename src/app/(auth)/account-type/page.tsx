@@ -1,6 +1,8 @@
 import AccountTypeSelector from "@/components/auth/accountType/AccountTypeSelector";
 import Link from "next/link";
 import React from "react";
+import Image from "next/image";
+import images from "../../../../public/images";
 
 const AccountTypePage = () => {
   return (
@@ -36,38 +38,16 @@ const AccountTypePage = () => {
       {/* Right Panel - White Background */}
       <div className="w-full lg:w-[60%] bg-white flex flex-col items-center justify-center px-6 sm:px-8 py-12">
         <div className="w-full max-w-md space-y-8">
-          {/* Logo - Globe with NATTY text */}
+          {/* Logo - NattyPay Logo */}
           <div className="flex justify-center mb-8">
-            <div className="relative flex items-center justify-center">
-              {/* Globe Icon with grid */}
-              <div className="relative w-20 h-20">
-                <svg
-                  className="w-full h-full text-[#D4B139]"
-                  viewBox="0 0 120 120"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  {/* Globe circle */}
-                  <circle cx="60" cy="60" r="55" stroke="currentColor" strokeWidth="2.5" fill="none" />
-                  {/* Horizontal grid lines */}
-                  <line x1="10" y1="30" x2="110" y2="30" stroke="currentColor" strokeWidth="1.5" />
-                  <line x1="10" y1="45" x2="110" y2="45" stroke="currentColor" strokeWidth="1.5" />
-                  <line x1="10" y1="60" x2="110" y2="60" stroke="currentColor" strokeWidth="1.5" />
-                  <line x1="10" y1="75" x2="110" y2="75" stroke="currentColor" strokeWidth="1.5" />
-                  <line x1="10" y1="90" x2="110" y2="90" stroke="currentColor" strokeWidth="1.5" />
-                  {/* Vertical grid lines */}
-                  <line x1="25" y1="10" x2="25" y2="110" stroke="currentColor" strokeWidth="1.5" />
-                  <line x1="40" y1="10" x2="40" y2="110" stroke="currentColor" strokeWidth="1.5" />
-                  <line x1="60" y1="10" x2="60" y2="110" stroke="currentColor" strokeWidth="1.5" />
-                  <line x1="80" y1="10" x2="80" y2="110" stroke="currentColor" strokeWidth="1.5" />
-                  <line x1="95" y1="10" x2="95" y2="110" stroke="currentColor" strokeWidth="1.5" />
-                </svg>
-                {/* NATTY text overlay - centered horizontally */}
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-sm font-bold text-[#D4B139] tracking-wide">NATTY</span>
-                </div>
-              </div>
-            </div>
+            <Image
+              src={images.logo2}
+              alt="NattyPay Logo"
+              width={150}
+              height={60}
+              className="h-12 w-auto"
+              priority
+            />
           </div>
 
           {/* Title */}
@@ -91,10 +71,16 @@ const AccountTypePage = () => {
 
           {/* Footer */}
           <div className="text-center text-xs text-gray-500 mt-8">
-            <p>
-              Licenced by CBN a{" "}
-              <span className="inline-block w-3 h-3 bg-green-500 rounded-full"></span>{" "}
-              Deposits Insured by{" "}
+            <p className="flex items-center justify-center gap-2 flex-wrap">
+              <span>Licenced by</span>
+              <Image
+                src={images.cbnLogo}
+                alt="CBN Logo"
+                width={40}
+                height={20}
+                className="h-5 w-auto object-contain"
+              />
+              <span>Deposits Insured by</span>
               <span className="text-blue-600 underline">NDIC</span>
             </p>
           </div>

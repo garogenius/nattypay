@@ -488,9 +488,8 @@ const FaceSetupContent = () => {
                   height={20}
                   className="h-5 w-auto object-contain"
                 />
-                <span className="inline-block w-3 h-3 bg-green-500 rounded-full"></span>
                 <span>Deposits Insured by</span>
-                <span className="text-purple-600">NDIC</span>
+                <span className="text-blue-600 underline">NDIC</span>
               </p>
             </div>
           </div>

@@ -31,7 +31,7 @@ const schema = yup.object().shape({
     otherwise: (schema) => schema.optional(),
   }),
   username: yup.string().required("Username is required"),
-  fullname: yup.string().required("Full name is required"),
+  fullname: yup.string().optional(),
   password: yup
     .string()
     .min(6, "Password must be at least 6 characters")
@@ -40,7 +40,7 @@ const schema = yup.object().shape({
     .string()
     .oneOf([yup.ref("password")], "Passwords do not match")
     .required("Please confirm your password"),
-  dateOfBirth: yup.string().required("Date of birth is required"),
+  dateOfBirth: yup.string().optional(),
   invitationCode: yup.string().optional(),
   termsAccepted: yup.boolean().oneOf([true], "You must accept the terms and conditions"),
 });
@@ -244,62 +244,17 @@ const CreateAccountPersonalContent = () => {
                 </div>
               )}
 
-              {/* Username and Full Name */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col gap-1">
-                  <label className="text-sm font-medium text-gray-700">Username</label>
-                  <input
-                    type="text"
-                    placeholder="Enter your username"
-                    className="w-full border border-gray-300 rounded-lg py-3 px-4 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#D4B139] focus:border-transparent"
-                    {...register("username")}
-                  />
-                  {errors.username && (
-                    <p className="text-red-500 text-xs mt-1">{errors.username.message}</p>
-                  )}
-                </div>
-
-                <div className="flex flex-col gap-1">
-                  <label className="text-sm font-medium text-gray-700">Full Name</label>
-                  <input
-                    type="text"
-                    placeholder="Enter your full name"
-                    className="w-full border border-gray-300 rounded-lg py-3 px-4 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#D4B139] focus:border-transparent"
-                    {...register("fullname")}
-                  />
-                  {errors.fullname && (
-                    <p className="text-red-500 text-xs mt-1">{errors.fullname.message}</p>
-                  )}
-                </div>
-              </div>
-
-              {/* Date of Birth */}
-              <div className="flex flex-col gap-1 relative">
-                <label className="text-sm font-medium text-gray-700">Date of Birth</label>
-                <div
-                  onClick={() => setShowDatePicker(!showDatePicker)}
-                  className="cursor-pointer w-full border border-gray-300 rounded-lg py-3 px-4 text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#D4B139] focus:border-transparent"
-                >
-                  {watchedDateOfBirth || "Select Date of Birth"}
-                </div>
-                {showDatePicker && (
-                  <div ref={datePickerRef} className="absolute z-10 mt-1">
-                    <DatePicker
-                      selected={startDate}
-                      onChange={handleDateChange}
-                      maxDate={new Date()}
-                      inline
-                      calendarClassName="custom-calendar"
-                      showYearDropdown
-                      scrollableYearDropdown
-                      yearDropdownItemNumber={100}
-                      dropdownMode="select"
-                      openToDate={new Date(2000, 0, 1)}
-                    />
-                  </div>
-                )}
-                {errors.dateOfBirth && (
-                  <p className="text-red-500 text-xs mt-1">{errors.dateOfBirth.message}</p>
+              {/* Username */}
+              <div className="flex flex-col gap-1">
+                <label className="text-sm font-medium text-gray-700">Username</label>
+                <input
+                  type="text"
+                  placeholder="Enter your username"
+                  className="w-full border border-gray-300 rounded-lg py-3 px-4 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#D4B139] focus:border-transparent"
+                  {...register("username")}
+                />
+                {errors.username && (
+                  <p className="text-red-500 text-xs mt-1">{errors.username.message}</p>
                 )}
               </div>
 

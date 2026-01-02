@@ -234,9 +234,10 @@ const OpenAccountContent = () => {
       setIsSubmitting(false);
       ErrorToast({
         title: "Authentication Required",
-        descriptions: ["Please login first to verify your identity."],
+        descriptions: ["Please complete your registration and verification first."],
       });
-      navigate("/login");
+      // Don't redirect to login during signup flow - user is on /open-account which is part of signup
+      // The axios interceptor will handle redirects for non-auth pages
       return;
     }
 
@@ -246,10 +247,10 @@ const OpenAccountContent = () => {
       setIsSubmitting(false);
       ErrorToast({
         title: "Invalid Token",
-        descriptions: ["Your session token is invalid. Please login again."],
+        descriptions: ["Your session token is invalid. Please complete verification again."],
       });
-      Cookies.remove("accessToken");
-      navigate("/login");
+      // Don't remove token or redirect - let user retry verification
+      // The axios interceptor will handle redirects for non-auth pages
       return;
     }
 
@@ -607,7 +608,6 @@ const OpenAccountContent = () => {
                     height={20}
                     className="h-5 w-auto object-contain"
                   />
-                  <span className="inline-block w-3 h-3 bg-green-500 rounded-full"></span>
                   <span>Deposits Insured by</span>
                   <span className="text-blue-600 underline">NDIC</span>
                 </p>
