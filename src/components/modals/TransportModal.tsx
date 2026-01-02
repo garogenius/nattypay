@@ -177,7 +177,7 @@ const TransportModal: React.FC<TransportModalProps> = ({ isOpen, onClose }) => {
                           <div className="flex items-center justify-center py-4">
                             <SpinnerLoader width={20} height={20} color="#D4B139" />
                           </div>
-                        ) : plans.length ? plans.map((pl) => (
+                        ) : plans.length ? plans.map((pl: {name: string; amount: number; itemCode: string}) => (
                           <button
                             key={pl.itemCode}
                             onClick={() => {
