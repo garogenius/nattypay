@@ -76,7 +76,7 @@ const ConvertCurrencyModal: React.FC<ConvertCurrencyModalProps> = ({ isOpen, onC
     setStep("result");
     SuccessToast({
       title: "Currency Converted Successfully",
-      descriptions: [`${fromCurrency} ${amount} converted to ${toCurrency} ${convertedAmount?.toLocaleString()}`],
+      description: `${fromCurrency} ${amount} converted to ${toCurrency} ${convertedAmount?.toLocaleString()}`,
     });
   };
 
