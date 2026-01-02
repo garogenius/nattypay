@@ -6,6 +6,7 @@ import useUserStore from "@/store/user.store";
 import CustomButton from "@/components/shared/Button";
 import CustomSelect from "@/components/CustomSelect";
 import { useCreateEasyLifePlan } from "@/api/easylife-savings/easylife-savings.queries";
+import type { EasyLifeContributionFrequency } from "@/api/easylife-savings/easylife-savings.types";
 import ErrorToast from "@/components/toast/ErrorToast";
 import SuccessToast from "@/components/toast/SuccessToast";
 
@@ -125,7 +126,7 @@ const EasyLifeSavingsModal: React.FC<EasyLifeSavingsModalProps> = ({ isOpen, onC
       return;
     }
 
-    const contributionFrequency =
+    const contributionFrequency: EasyLifeContributionFrequency =
       frequency === "Daily"
         ? "DAILY"
         : frequency === "Weekly"
