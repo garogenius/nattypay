@@ -49,7 +49,6 @@ const SavingsWithdrawModal: React.FC<SavingsWithdrawModalProps> = ({
       descriptions,
     });
     setWalletPin("");
-    setPendingWithdraw(false);
   };
 
   const onSuccess = (data: unknown) => {
