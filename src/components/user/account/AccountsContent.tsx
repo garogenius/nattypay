@@ -719,7 +719,7 @@ const AccountsContent: React.FC = () => {
                 </div>
               )}
             </>
-          )}
+          ) : null}
         </div>
 
         {/* Tier & Limits */}

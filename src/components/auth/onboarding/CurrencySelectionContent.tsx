@@ -25,21 +25,21 @@ const currencies = [
     label: "USD Account",
     description: "For transactions in Dollars",
     flag: "🇺🇸",
-    available: false,
+    available: true,
   },
   {
     code: "GBP",
     label: "GBP Account",
     description: "For transactions in Pounds",
     flag: "🇬🇧",
-    available: false,
+    available: true,
   },
   {
     code: "EUR",
     label: "EUR Account",
     description: "For transactions in Euro",
     flag: "🇪🇺",
-    available: false,
+    available: true,
   },
 ];
 
@@ -50,13 +50,10 @@ const CurrencySelectionContent = () => {
   const [selectedCurrency, setSelectedCurrency] = useState<string>("NGN");
   const [isRegistrationComplete, setIsRegistrationComplete] = useState(false);
 
-  // Only NGN is available during onboarding
-  const isCurrencyEnabled = (currencyCode: string) => currencyCode === "NGN";
-
-  // Ensure NGN is always selected during onboarding
-  useEffect(() => {
-    setSelectedCurrency("NGN");
-  }, []);
+  // All currencies are now available for selection
+  const isCurrencyEnabled = (currencyCode: string) => {
+    return currencies.some(currency => currency.code === currencyCode && currency.available);
+  };
 
   // Redirect if no registration data (but not if registration just completed)
   useEffect(() => {
@@ -232,9 +229,6 @@ const CurrencySelectionContent = () => {
                         <p className={`text-sm ${!isEnabled ? "text-gray-400" : "text-gray-600"}`}>
                           {currency.description}
                         </p>
-                        {!isEnabled && (
-                          <p className="text-xs text-gray-400 mt-1">Not available during onboarding</p>
-                        )}
                       </div>
                     </div>
                     <div

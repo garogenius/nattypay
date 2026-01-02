@@ -79,14 +79,17 @@ client.interceptors.response.use(
           pathname.startsWith("/onboarding-success") ||
           pathname.startsWith("/account-type");
 
-        // Clear token and user state
-        Cookies.remove("accessToken");
-        
-        // Clear user store if available (will be handled by UserProtectionProvider)
-        // We just clear the token here, the provider will handle the rest
-
-        // Redirect to login if not already on an auth page
+        // Only clear token and redirect if NOT on an auth page
+        // This prevents clearing the token during BVN/NIN verification failures
+        // which would cause unwanted redirects to login
         if (!isAuthPage) {
+          // Clear token and user state
+          Cookies.remove("accessToken");
+          
+          // Clear user store if available (will be handled by UserProtectionProvider)
+          // We just clear the token here, the provider will handle the rest
+
+          // Redirect to login if not already on an auth page
           const isRedirecting = sessionStorage.getItem("isRedirecting");
           if (!isRedirecting) {
             sessionStorage.setItem("isRedirecting", "true");
@@ -97,6 +100,7 @@ client.interceptors.response.use(
             }, 1000);
           }
         }
+        // If on auth page, don't clear token or redirect - let the error handler handle it
       }
     }
 
