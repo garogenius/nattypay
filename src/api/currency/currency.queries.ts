@@ -52,7 +52,7 @@ export const useCreateCurrencyAccount = (
 };
 
 export const useGetCurrencyAccounts = () => {
-  const { data, isPending, isError } = useQuery({
+  const { data, isPending, isError, refetch } = useQuery({
     queryKey: ["currency-accounts"],
     queryFn: () => getCurrencyAccountsRequest(),
   });
@@ -74,7 +74,7 @@ export const useGetCurrencyAccounts = () => {
     }
   }
 
-  return { accounts, isPending, isError };
+  return { accounts, isPending, isError, refetch };
 };
 
 export const useGetCurrencyAccountByCurrency = (currency: string) => {
