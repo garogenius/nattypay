@@ -1187,14 +1187,14 @@ const ProfileContent = () => {
         </div>
 
         {/* Segmented Tabs (responsive) */}
-        <div className="w-full bg-white/10 rounded-full p-1.5 sm:p-2 overflow-x-auto sm:overflow-visible">
-          <div className="flex sm:grid sm:grid-cols-4 gap-1.5 sm:gap-2 min-w-max sm:min-w-0">
+        <div className="w-full bg-white/10 rounded-full p-1 sm:p-1.5 md:p-2 overflow-x-auto sm:overflow-visible">
+          <div className="flex sm:grid sm:grid-cols-4 gap-1 sm:gap-1.5 md:gap-2 min-w-max sm:min-w-0">
             {[{key:"personal",label:"Personal"},{key:"kyc",label:"KYC Information"},{key:"security",label:"Security & Privacy"},{key:"preferences",label:"Preferences"}].map((t:any)=> (
               <button
                 key={t.key}
                 onClick={()=> setTab(t.key)}
                 type="button"
-                className={`rounded-full py-1.5 sm:py-2 text-[11px] xs:text-xs sm:text-sm font-medium transition-colors whitespace-nowrap flex items-center justify-center ${
+                className={`rounded-full px-3 sm:px-4 py-1.5 sm:py-2 text-[11px] xs:text-xs sm:text-sm font-medium transition-colors whitespace-nowrap flex items-center justify-center ${
                   tab===t.key
                     ? "bg-white/15 text-white"
                     : "text-white/70 hover:text-white"

@@ -90,8 +90,12 @@ export const useGetCurrencyAccountByCurrency = (currency: string) => {
   // Handle different possible response structures
   let account: any = null;
   if (data?.data) {
-    // Try data.data.data first (most common nested structure)
-    if (data.data.data && typeof data.data.data === "object" && !Array.isArray(data.data.data)) {
+    // Try data.data.account first (response structure: { data: { account: {...} } })
+    if (data.data.account && typeof data.data.account === "object" && !Array.isArray(data.data.account)) {
+      account = data.data.account;
+    }
+    // Try data.data.data (nested structure)
+    else if (data.data.data && typeof data.data.data === "object" && !Array.isArray(data.data.data)) {
       account = data.data.data;
     }
     // Try data.data if it's an object (direct account object)

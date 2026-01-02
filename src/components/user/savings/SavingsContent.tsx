@@ -175,18 +175,18 @@ const SavingsContent: React.FC = () => {
 
   return (
     <div className="flex flex-col gap-6 md:gap-8 pb-10 overflow-y-auto scroll-area scroll-smooth pr-1">
-      <div className="w-full flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
-        <div>
+      <div className="w-full flex flex-col gap-2">
+        <div className="w-full flex flex-row items-center justify-between gap-3">
           <h1 className="text-lg sm:text-xl md:text-2xl font-semibold text-white">Savings</h1>
-          <p className="text-white/60 text-xs sm:text-sm">Manage your savings goals and watch your progress grow.</p>
+          <button
+            onClick={()=> setOpen(true)}
+            className="flex items-center gap-2 bg-[#D4B139] hover:bg-[#c7a42f] text-black px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-sm font-medium transition-colors whitespace-nowrap"
+          >
+            <FiPlus className="text-base sm:text-lg" />
+            <span>Start New Plan</span>
+          </button>
         </div>
-        <button
-          onClick={()=> setOpen(true)}
-          className="flex items-center gap-2 bg-[#D4B139] hover:bg-[#c7a42f] text-black px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-sm font-medium transition-colors whitespace-nowrap"
-        >
-          <FiPlus className="text-base sm:text-lg" />
-          <span>Start New Plan</span>
-        </button>
+        <p className="text-white/60 text-xs sm:text-sm">Manage your savings goals and watch your progress grow.</p>
       </div>
 
       <div className="rounded-2xl bg-bg-600 dark:bg-bg-1100 p-6 flex flex-col gap-6">

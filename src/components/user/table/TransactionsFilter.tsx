@@ -121,26 +121,27 @@ const TransactionsFilter = ({ onFilterChange }: FilterProps) => {
   };
 
   return (
-    <div ref={filterRef} className="relative flex items-center gap-2">
+    <div ref={filterRef} className="relative flex items-center gap-1 sm:gap-2">
       {/* Category trigger */}
       <div className="relative">
         <button
           onClick={() => setOpenPanel(openPanel === "category" ? null : "category")}
           className={cn(
-            "rounded-lg px-3.5 py-2 bg-bg-600 dark:bg-bg-1100 text-text-200 dark:text-text-400 border",
+            "rounded-lg px-2 sm:px-2.5 md:px-3.5 py-1.5 sm:py-1.5 md:py-2 bg-bg-600 dark:bg-bg-1100 text-text-200 dark:text-text-400 border text-xs sm:text-sm",
             {
               "border-transparent": !selectedFilters.category,
               "border-secondary": !!selectedFilters.category,
             }
           )}
         >
-          {selectedFilters.category ? "Category" : "All categories"}
+          <span className="hidden xs:inline">{selectedFilters.category ? "Category" : "All categories"}</span>
+          <span className="xs:hidden">{selectedFilters.category ? "Cat" : "All"}</span>
         </button>
         {openPanel === "category" && (
-          <div className="absolute right-0 mt-2 w-72 rounded-2xl border border-white/10 bg-bg-600 dark:bg-bg-1100 shadow-xl z-50">
-            <div className="p-3">
-              <div className="rounded-full bg-white/10 text-white/90 text-sm px-3 py-2">All categories</div>
-              <div className="mt-2 flex flex-col max-h-96 overflow-auto pr-1 no-scrollbar">
+          <div className="absolute right-0 mt-2 w-[calc(100vw-2rem)] sm:w-72 max-w-[280px] sm:max-w-none rounded-2xl border border-white/10 bg-bg-600 dark:bg-bg-1100 shadow-xl z-50">
+            <div className="p-2 sm:p-3">
+              <div className="rounded-full bg-white/10 text-white/90 text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2">All categories</div>
+              <div className="mt-2 flex flex-col max-h-64 sm:max-h-96 overflow-auto pr-1 no-scrollbar">
                 {categoryVisualList.map((item, idx) => {
                   const isHeader = idx === 0; // the 'All categories' pill already rendered above
                   if (isHeader) return null;
@@ -154,7 +155,7 @@ const TransactionsFilter = ({ onFilterChange }: FilterProps) => {
                         isMapped && handleFilterClick("category", item.mapsTo!)
                       }
                       className={cn(
-                        "w-full text-left px-3 py-2 rounded-md text-sm",
+                        "w-full text-left px-2 sm:px-3 py-1.5 sm:py-2 rounded-md text-xs sm:text-sm",
                         isMapped
                           ? isSelected
                             ? "bg-white/10 text-white"
@@ -167,13 +168,13 @@ const TransactionsFilter = ({ onFilterChange }: FilterProps) => {
                   );
                 })}
               </div>
-              <div className="mt-3 flex justify-end">
-                <button onClick={() => setOpenPanel(null)} className="px-4 py-2 rounded-lg bg-[#D4B139] hover:bg-[#c7a42f] text-black text-sm font-medium">Done</button>
+              <div className="mt-2 sm:mt-3 flex justify-end">
+                <button onClick={() => setOpenPanel(null)} className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg bg-[#D4B139] hover:bg-[#c7a42f] text-black text-xs sm:text-sm font-medium">Done</button>
               </div>
               {(selectedFilters.category || selectedFilters.status) && (
                 <div className="mt-2 flex justify-end">
                   <button onClick={handleClearFilters} className="text-xs text-white/70 hover:text-white flex items-center gap-1">
-                    <IoIosCloseCircleOutline className="text-base" /> Clear active filters
+                    <IoIosCloseCircleOutline className="text-sm sm:text-base" /> <span className="hidden sm:inline">Clear active filters</span><span className="sm:hidden">Clear</span>
                   </button>
                 </div>
               )}
@@ -187,19 +188,20 @@ const TransactionsFilter = ({ onFilterChange }: FilterProps) => {
         <button
           onClick={() => setOpenPanel(openPanel === "status" ? null : "status")}
           className={cn(
-            "rounded-lg px-3.5 py-2 bg-bg-600 dark:bg-bg-1100 text-text-200 dark:text-text-400 border",
+            "rounded-lg px-2 sm:px-2.5 md:px-3.5 py-1.5 sm:py-1.5 md:py-2 bg-bg-600 dark:bg-bg-1100 text-text-200 dark:text-text-400 border text-xs sm:text-sm",
             {
               "border-transparent": !selectedFilters.status,
               "border-secondary": !!selectedFilters.status,
             }
           )}
         >
-          {selectedFilters.status ? "Status" : "All Status"}
+          <span className="hidden xs:inline">{selectedFilters.status ? "Status" : "All Status"}</span>
+          <span className="xs:hidden">{selectedFilters.status ? "Stat" : "All"}</span>
         </button>
         {openPanel === "status" && (
-          <div className="absolute right-0 mt-2 w-56 rounded-2xl border border-white/10 bg-bg-600 dark:bg-bg-1100 shadow-xl z-50">
-            <div className="p-3">
-              <div className="rounded-full bg-white/10 text-white/90 text-sm px-3 py-2">All Status</div>
+          <div className="absolute right-0 mt-2 w-[calc(100vw-2rem)] sm:w-56 max-w-[200px] sm:max-w-none rounded-2xl border border-white/10 bg-bg-600 dark:bg-bg-1100 shadow-xl z-50">
+            <div className="p-2 sm:p-3">
+              <div className="rounded-full bg-white/10 text-white/90 text-xs sm:text-sm px-2 sm:px-3 py-1.5 sm:py-2">All Status</div>
               <div className="mt-2 flex flex-col">
                 {statusVisualList.map((item, idx) => {
                   const isHeader = idx === 0;
@@ -211,7 +213,7 @@ const TransactionsFilter = ({ onFilterChange }: FilterProps) => {
                       key={item.label}
                       onClick={() => isMapped && handleFilterClick("status", item.mapsTo!)}
                       className={cn(
-                        "w-full text-left px-3 py-2 rounded-md text-sm",
+                        "w-full text-left px-2 sm:px-3 py-1.5 sm:py-2 rounded-md text-xs sm:text-sm",
                         isMapped
                           ? isSelected
                             ? "bg-white/10 text-white"
@@ -224,8 +226,8 @@ const TransactionsFilter = ({ onFilterChange }: FilterProps) => {
                   );
                 })}
               </div>
-              <div className="mt-3 flex justify-end">
-                <button onClick={() => setOpenPanel(null)} className="px-4 py-2 rounded-lg bg-[#D4B139] hover:bg-[#c7a42f] text-black text-sm font-medium">Done</button>
+              <div className="mt-2 sm:mt-3 flex justify-end">
+                <button onClick={() => setOpenPanel(null)} className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg bg-[#D4B139] hover:bg-[#c7a42f] text-black text-xs sm:text-sm font-medium">Done</button>
               </div>
             </div>
           </div>

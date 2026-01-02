@@ -27,7 +27,7 @@ const FixedDepositModal: React.FC<FixedDepositModalProps> = ({ isOpen, onClose }
 
   const minDeposit = selectedPlan?.minimumDeposit ?? 0;
   const [amount, setAmount] = useState<number>(minDeposit || 0);
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [walletPin, setWalletPin] = useState("");
   const [transactionResult, setTransactionResult] = useState<unknown>(null);
   const [selectedWalletId, setSelectedWalletId] = useState<string | null>(ngnWallet?.id || null);
@@ -122,15 +122,16 @@ const FixedDepositModal: React.FC<FixedDepositModalProps> = ({ isOpen, onClose }
       return;
     }
 
-    if (!ngnWallet) {
+    const selectedWallet = wallets.find(w => w.id === selectedWalletId);
+    if (!selectedWallet) {
       ErrorToast({
         title: "Wallet Required",
-        descriptions: ["NGN wallet not found"],
+        descriptions: ["Please select a wallet"],
       });
       return;
     }
 
-    if (Number(amount) > Number(ngnWallet.balance || 0)) {
+    if (Number(amount) > Number(selectedWallet.balance || 0)) {
       ErrorToast({
         title: "Insufficient Balance",
         descriptions: ["You don't have enough NGN balance to create this fixed deposit"],
@@ -146,6 +147,7 @@ const FixedDepositModal: React.FC<FixedDepositModalProps> = ({ isOpen, onClose }
     setAmount(minDeposit || 0);
     setWalletPin("");
     setTransactionResult(null);
+    setSelectedWalletId(wallets.length > 0 ? wallets[0].id : null);
     onClose();
   };
 
@@ -158,12 +160,12 @@ const FixedDepositModal: React.FC<FixedDepositModalProps> = ({ isOpen, onClose }
   }, [minDeposit]);
 
   useEffect(() => {
-    // Sync selectedWalletId with ngnWallet
-    if (ngnWallet?.id && selectedWalletId !== ngnWallet.id) {
-      setSelectedWalletId(ngnWallet.id);
+    // Set default wallet if none selected
+    if (!selectedWalletId && wallets.length > 0) {
+      setSelectedWalletId(wallets[0].id);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ngnWallet?.id]);
+  }, [wallets.length]);
 
   const interestRateText = selectedPlan
     ? `${(selectedPlan.interestRate * 100).toFixed(2)}% per annum`
@@ -208,36 +210,6 @@ const FixedDepositModal: React.FC<FixedDepositModalProps> = ({ isOpen, onClose }
             <div className="space-y-6">
               <div>
                 <label className="block text-sm font-medium text-white/70 mb-2">
-                  Amount to Deposit {minDeposit ? `(Minimum ₦${Number(minDeposit).toLocaleString()})` : ""}
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/60">₦</span>
-                  <input
-                    type="text"
-                    value={formatCurrency(amount)}
-                    onChange={handleAmountChange}
-                    className="w-full bg-bg-500 dark:bg-bg-1000 border border-border-700 dark:border-border-600 rounded-lg py-3 pl-8 pr-4 text-white focus:outline-none focus:ring-2 focus:ring-[#D4B139] focus:border-transparent"
-                  />
-                </div>
-                <div className="flex items-center justify-between mt-2">
-                  {[50000, 100000, 200000, 500000].map((value) => (
-                    <button
-                      key={value}
-                      onClick={() => setAmount(value)}
-                      className={`px-3 py-1 text-xs rounded-full ${
-                        amount === value
-                          ? 'bg-[#D4B139] text-black'
-                          : 'bg-bg-500 dark:bg-bg-900 text-white/70 hover:bg-white/10'
-                      }`}
-                    >
-                      {formatCurrency(value)}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-white/70 mb-2">
                   Plan
                 </label>
                 <div className="grid grid-cols-1 gap-2">
@@ -273,6 +245,50 @@ const FixedDepositModal: React.FC<FixedDepositModalProps> = ({ isOpen, onClose }
                 </div>
               </div>
 
+              <CustomButton
+                onClick={() => setStep(2)}
+                disabled={!selectedPlan}
+                className="w-full bg-[#D4B139] hover:bg-[#c7a42f] text-black py-3 rounded-lg font-medium"
+              >
+                Continue <FiArrowRight className="inline ml-2" />
+              </CustomButton>
+            </div>
+          </>
+        ) : step === 2 ? (
+          <>
+            <h2 className="text-xl font-semibold text-white mb-6">Start Fixed Deposit</h2>
+            
+            <div className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-white/70 mb-2">
+                  Amount to Deposit {minDeposit ? `(Minimum ₦${Number(minDeposit).toLocaleString()})` : ""}
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/60">₦</span>
+                  <input
+                    type="text"
+                    value={formatCurrency(amount)}
+                    onChange={handleAmountChange}
+                    className="w-full bg-bg-500 dark:bg-bg-1000 border border-border-700 dark:border-border-600 rounded-lg py-3 pl-8 pr-4 text-white focus:outline-none focus:ring-2 focus:ring-[#D4B139] focus:border-transparent"
+                  />
+                </div>
+                <div className="flex items-center justify-between mt-2">
+                  {[50000, 100000, 200000, 500000].map((value) => (
+                    <button
+                      key={value}
+                      onClick={() => setAmount(value)}
+                      className={`px-3 py-1 text-xs rounded-full ${
+                        amount === value
+                          ? 'bg-[#D4B139] text-black'
+                          : 'bg-bg-500 dark:bg-bg-900 text-white/70 hover:bg-white/10'
+                      }`}
+                    >
+                      {formatCurrency(value)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <div className="bg-bg-500 dark:bg-bg-900 p-4 rounded-lg">
                 <div className="flex justify-between mb-2">
                   <span className="text-white/70">Principal Amount:</span>
@@ -285,16 +301,56 @@ const FixedDepositModal: React.FC<FixedDepositModalProps> = ({ isOpen, onClose }
                 </div>
               </div>
 
-              <CustomButton
-                onClick={() => setStep(2)}
-                disabled={!!minDeposit && amount < minDeposit}
-                className="w-full bg-[#D4B139] hover:bg-[#c7a42f] text-black py-3 rounded-lg font-medium"
-              >
-                Continue <FiArrowRight className="inline ml-2" />
-              </CustomButton>
+              {/* Wallet Selection */}
+              <div>
+                <label className="block text-sm font-medium text-white/70 mb-2">
+                  Select Wallet
+                </label>
+                <div className="rounded-lg border border-white/10 bg-transparent divide-y divide-white/10">
+                  <div className="flex items-center justify-between py-3 px-3">
+                    <span className="text-white/80 text-sm">Available Balance (₦{Number(wallets?.[0]?.balance || 0).toLocaleString()})</span>
+                    <span className="w-4 h-4 rounded-full border-2 border-[#D4B139] inline-block" />
+                  </div>
+                  {wallets.map((w) => (
+                    <label key={w.id} className="flex items-center justify-between py-3 px-3 cursor-pointer">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-white grid place-items-center">
+                          <span className="text-black font-bold">{w.currency?.slice(0,1) || 'N'}</span>
+                        </div>
+                        <div className="flex flex-col">
+                          <p className="text-white text-sm font-medium">{w.bankName || w.currency}</p>
+                          <p className="text-white/60 text-xs">{w.accountNumber || '0000000000'} <span className="ml-2 inline-flex text-[10px] px-1.5 py-0.5 rounded bg-white/10">Account</span></p>
+                        </div>
+                      </div>
+                      <input 
+                        type="radio" 
+                        checked={selectedWalletId === w.id} 
+                        onChange={() => setSelectedWalletId(w.id)} 
+                        className="w-4 h-4 accent-[#D4B139]" 
+                      />
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <CustomButton
+                  onClick={() => setStep(1)}
+                  className="flex-1 bg-transparent border border-white/10 text-white hover:bg-white/5 py-3 rounded-lg"
+                >
+                  Back
+                </CustomButton>
+                <CustomButton
+                  onClick={() => setStep(3)}
+                  disabled={!!minDeposit && amount < minDeposit || !selectedWalletId}
+                  className="flex-1 bg-[#D4B139] hover:bg-[#c7a42f] text-black py-3 rounded-lg font-medium"
+                >
+                  Continue <FiArrowRight className="inline ml-2" />
+                </CustomButton>
+              </div>
             </div>
           </>
-        ) : step === 2 ? (
+        ) : step === 3 ? (
           <div className="space-y-6">
             <h2 className="text-xl font-semibold text-white mb-4">Confirm Fixed Deposit</h2>
             
@@ -325,36 +381,6 @@ const FixedDepositModal: React.FC<FixedDepositModalProps> = ({ isOpen, onClose }
                 <span className="text-white/80 text-sm">Calculated by server</span>
               </div>
             </div>
-
-            {/* Wallet Selection */}
-            {ngnWallet && (
-              <div>
-                <label className="block text-sm font-medium text-white/70 mb-2">
-                  Select Wallet
-                </label>
-                <div className="rounded-lg border border-white/10 bg-transparent divide-y divide-white/10">
-                  {wallets.filter(w => w.currency?.toUpperCase() === "NGN").map((w) => (
-                    <label key={w.id} className="flex items-center justify-between py-3 px-3 cursor-pointer">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-white grid place-items-center">
-                          <span className="text-black font-bold">{w.currency?.slice(0,1) || 'N'}</span>
-                        </div>
-                        <div className="flex flex-col">
-                          <p className="text-white text-sm font-medium">{w.bankName || w.currency}</p>
-                          <p className="text-white/60 text-xs">₦{Number(w.balance || 0).toLocaleString()}</p>
-                        </div>
-                      </div>
-                      <input 
-                        type="radio" 
-                        checked={selectedWalletId === w.id} 
-                        onChange={() => setSelectedWalletId(w.id)} 
-                        className="w-4 h-4 accent-[#D4B139]" 
-                      />
-                    </label>
-                  ))}
-                </div>
-              </div>
-            )}
 
             {/* PIN Input */}
             <div>

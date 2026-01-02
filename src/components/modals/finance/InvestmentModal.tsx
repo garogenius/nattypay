@@ -29,6 +29,8 @@ const InvestmentModal: React.FC<InvestmentModalProps> = ({ isOpen, onClose }) =>
   const [transactionResult, setTransactionResult] = useState<any>(null);
   const [showInsufficientBalanceModal, setShowInsufficientBalanceModal] = useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const wallets = user?.wallet || [];
+  const [selectedWalletId, setSelectedWalletId] = useState<string | null>(wallets.length > 0 ? wallets[0].id : null);
 
   // Get NGN wallet balance
   const ngnWallet = user?.wallet?.find((w) => w.currency?.toUpperCase() === "NGN");
@@ -80,6 +82,14 @@ const InvestmentModal: React.FC<InvestmentModalProps> = ({ isOpen, onClose }) =>
       description: `Your investment of ₦${amount.toLocaleString()} has been created successfully.`,
     });
   };
+
+  useEffect(() => {
+    // Set default wallet if none selected
+    if (!selectedWalletId && wallets.length > 0) {
+      setSelectedWalletId(wallets[0].id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wallets.length]);
 
   const { mutate: createInvestment, isPending: creating } = useCreateInvestment(
     onCreateError,
@@ -161,7 +171,13 @@ const InvestmentModal: React.FC<InvestmentModalProps> = ({ isOpen, onClose }) =>
     setStep(1);
     setAmount(MINIMUM_AMOUNT);
     setAgreementReference("");
+    setLegalDocumentUrl("");
+    setLegalDocumentFile(null);
     setTransactionResult(null);
+    setSelectedWalletId(wallets.length > 0 ? wallets[0].id : null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
     onClose();
   };
 
@@ -248,6 +264,52 @@ const InvestmentModal: React.FC<InvestmentModalProps> = ({ isOpen, onClose }) =>
                 </div>
               </div>
 
+              {/* Wallet Selection */}
+              <div>
+                <label className="block text-sm font-medium text-white/70 mb-2">
+                  Select Wallet
+                </label>
+                <div className="rounded-lg border border-white/10 bg-transparent divide-y divide-white/10">
+                  <div className="flex items-center justify-between py-3 px-3">
+                    <span className="text-white/80 text-sm">Available Balance (₦{Number(wallets?.[0]?.balance || 0).toLocaleString()})</span>
+                    <span className="w-4 h-4 rounded-full border-2 border-[#D4B139] inline-block" />
+                  </div>
+                  {wallets.map((w) => (
+                    <label key={w.id} className="flex items-center justify-between py-3 px-3 cursor-pointer">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-white grid place-items-center">
+                          <span className="text-black font-bold">{w.currency?.slice(0,1) || 'N'}</span>
+                        </div>
+                        <div className="flex flex-col">
+                          <p className="text-white text-sm font-medium">{w.bankName || w.currency}</p>
+                          <p className="text-white/60 text-xs">{w.accountNumber || '0000000000'} <span className="ml-2 inline-flex text-[10px] px-1.5 py-0.5 rounded bg-white/10">Account</span></p>
+                        </div>
+                      </div>
+                      <input 
+                        type="radio" 
+                        checked={selectedWalletId === w.id} 
+                        onChange={() => setSelectedWalletId(w.id)} 
+                        className="w-4 h-4 accent-[#D4B139]" 
+                      />
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <CustomButton
+                onClick={handleNext}
+                disabled={amount < MINIMUM_AMOUNT || !selectedWalletId}
+                className="w-full bg-[#D4B139] hover:bg-[#c7a42f] text-black py-3 rounded-lg font-medium"
+              >
+                Continue
+              </CustomButton>
+            </div>
+          </>
+        ) : step === 2 ? (
+          <>
+            <h2 className="text-xl font-semibold text-white mb-6">Create Investment</h2>
+            
+            <div className="space-y-6">
               <div>
                 <label className="block text-sm font-medium text-white/70 mb-2">
                   Agreement Reference (Optional)
@@ -321,16 +383,55 @@ const InvestmentModal: React.FC<InvestmentModalProps> = ({ isOpen, onClose }) =>
                 </p>
               </div>
 
-              <CustomButton
-                onClick={handleNext}
-                disabled={amount < MINIMUM_AMOUNT}
-                className="w-full bg-[#D4B139] hover:bg-[#c7a42f] text-black py-3 rounded-lg font-medium"
-              >
-                Continue
-              </CustomButton>
+              <div className="bg-bg-500 dark:bg-bg-900 p-4 rounded-lg">
+                <div className="flex justify-between mb-2">
+                  <span className="text-white/70">Principal Amount:</span>
+                  <span className="text-white font-medium">{formatCurrency(amount)}</span>
+                </div>
+                <div className="flex justify-between mb-2">
+                  <span className="text-white/70">ROI Rate:</span>
+                  <span className="text-[#D4B139]">{ROI_PERCENTAGE}% per annum</span>
+                </div>
+                <div className="flex justify-between mb-2">
+                  <span className="text-white/70">Lock Period:</span>
+                  <span className="text-white">{LOCK_PERIOD_MONTHS} months</span>
+                </div>
+                <div className="flex justify-between mb-2">
+                  <span className="text-white/70">Expected Interest:</span>
+                  <span className="text-[#D4B139] font-medium">+{formatCurrency(interestAmount)}</span>
+                </div>
+                <div className="h-px bg-white/10 my-3" />
+                <div className="flex justify-between mb-2">
+                  <span className="text-white/70">Maturity Date:</span>
+                  <span className="text-white">
+                    {new Date(new Date().setMonth(new Date().getMonth() + LOCK_PERIOD_MONTHS)).toLocaleDateString('en-GB')}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-white/70">Expected Return:</span>
+                  <span className="text-white font-medium">{formatCurrency(expectedReturn)}</span>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <CustomButton
+                  onClick={() => setStep(1)}
+                  className="flex-1 bg-transparent border border-white/10 text-white hover:bg-white/5 py-3 rounded-lg"
+                >
+                  Back
+                </CustomButton>
+                <CustomButton
+                  onClick={handleSubmit}
+                  disabled={creating}
+                  isLoading={creating}
+                  className="flex-1 bg-[#D4B139] hover:bg-[#c7a42f] text-black py-3 rounded-lg font-medium"
+                >
+                  Create Investment
+                </CustomButton>
+              </div>
             </div>
           </>
-        ) : step === 2 ? (
+        ) : (
           <div className="space-y-6">
             <h2 className="text-xl font-semibold text-white mb-4">Confirm Investment</h2>
             
