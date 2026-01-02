@@ -108,10 +108,20 @@ const FinancePlanViewModal: React.FC<FinancePlanViewModalProps> = ({ isOpen, onC
   };
 
   const onPayoutSuccess = (data: unknown) => {
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/5abb3048-c47c-471e-9437-af292579c9d4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'FinancePlanViewModal.tsx:110',message:'onPayoutSuccess called',data:{displayPlanIsNull:displayPlan===null,displayPlanType:displayPlan?.type},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
     const totalPayout = (data as { data?: { data?: { totalPayout?: number } } })?.data?.data?.totalPayout;
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/5abb3048-c47c-471e-9437-af292579c9d4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'FinancePlanViewModal.tsx:112',message:'Before fallbackAmount calculation',data:{totalPayout,displayPlanIsNull:displayPlan===null,displayPlanAmount:displayPlan?.amount,displayPlanEarned:displayPlan?.earned},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
+    const fallbackAmount = displayPlan ? (displayPlan.amount + displayPlan.earned) : 0;
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/5abb3048-c47c-471e-9437-af292579c9d4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'FinancePlanViewModal.tsx:113',message:'After fallbackAmount calculation',data:{fallbackAmount,totalPayout,calculatedAmount:totalPayout??fallbackAmount},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+    // #endregion
     SuccessToast({
       title: "Payout Successful!",
-      description: `₦${Number(totalPayout ?? (displayPlan.amount + displayPlan.earned)).toLocaleString()} has been paid to your wallet.`,
+      description: `₦${Number(totalPayout ?? fallbackAmount).toLocaleString()} has been paid to your wallet.`,
     });
     setShowPayoutStep(false);
     setWalletPin("");
@@ -185,6 +195,10 @@ const FinancePlanViewModal: React.FC<FinancePlanViewModalProps> = ({ isOpen, onC
   }, [isOpen]);
 
   if (!isOpen || !plan) return null;
+
+  // After early return, plan is guaranteed to be non-null, so displayPlan is also non-null
+  // (it's either a constructed object or plan itself)
+  if (!displayPlan) return null;
 
   const formatCurrency = (value: number): string => {
     return new Intl.NumberFormat("en-NG", {
