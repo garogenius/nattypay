@@ -53,6 +53,9 @@ const SavingsPlanViewModal: React.FC<SavingsPlanViewModalProps> = ({ isOpen, onC
   const actualPlan: SavingsPlan | EasyLifePlan | null = savingsPlanData || easyLifePlanData || passedPlan || null;
   const planId = plan?.planId || savingsPlanData?.id || easyLifePlanData?.id || passedPlan?.id;
 
+  // Type narrowing: currentAmount, interestEarned, and durationMonths only exist on SavingsPlan
+  const isSavingsPlan = actualPlan && 'durationMonths' in actualPlan;
+
   if (!isOpen || !plan) return null;
 
   // Format date helper
@@ -147,11 +150,11 @@ const SavingsPlanViewModal: React.FC<SavingsPlanViewModalProps> = ({ isOpen, onC
             <div className="grid grid-cols-2 gap-3 mb-3">
               <div className="flex flex-col gap-0.5">
                 <span className="text-white/50 text-[10px]">Total Deposited</span>
-                <span className="text-white text-xs font-medium">₦{(actualPlan?.totalDeposited ?? actualPlan?.currentAmount ?? plan?.amount ?? 0).toLocaleString()}</span>
+                <span className="text-white text-xs font-medium">₦{(actualPlan?.totalDeposited ?? (isSavingsPlan ? (actualPlan as SavingsPlan).currentAmount : undefined) ?? plan?.amount ?? 0).toLocaleString()}</span>
               </div>
               <div className="flex flex-col gap-0.5 text-right">
                 <span className="text-white/50 text-[10px]">Interest Earned</span>
-                <span className="text-emerald-400 text-xs font-medium">+₦{(actualPlan?.totalInterestAccrued ?? actualPlan?.interestEarned ?? plan?.earned ?? 0).toLocaleString()}</span>
+                <span className="text-emerald-400 text-xs font-medium">+₦{(actualPlan?.totalInterestAccrued ?? (isSavingsPlan ? (actualPlan as SavingsPlan).interestEarned : undefined) ?? plan?.earned ?? 0).toLocaleString()}</span>
               </div>
             </div>
 
@@ -166,13 +169,13 @@ const SavingsPlanViewModal: React.FC<SavingsPlanViewModalProps> = ({ isOpen, onC
                   <div 
                     className="bg-[#D4B139] h-1.5 rounded-full transition-all"
                     style={{ 
-                      width: `${Math.min(100, ((actualPlan?.totalDeposited ?? actualPlan?.currentAmount ?? 0) / actualPlan.goalAmount) * 100)}%` 
+                      width: `${Math.min(100, ((actualPlan?.totalDeposited ?? (isSavingsPlan ? (actualPlan as SavingsPlan).currentAmount : undefined) ?? 0) / actualPlan.goalAmount) * 100)}%` 
                     }}
                   />
                 </div>
                 <div className="flex items-center justify-between text-[9px] text-white/40">
-                  <span>₦{(actualPlan?.totalDeposited ?? actualPlan?.currentAmount ?? 0).toLocaleString()} saved</span>
-                  <span>{Math.round(((actualPlan?.totalDeposited ?? actualPlan?.currentAmount ?? 0) / actualPlan.goalAmount) * 100)}%</span>
+                  <span>₦{(actualPlan?.totalDeposited ?? (isSavingsPlan ? (actualPlan as SavingsPlan).currentAmount : undefined) ?? 0).toLocaleString()} saved</span>
+                  <span>{Math.round(((actualPlan?.totalDeposited ?? (isSavingsPlan ? (actualPlan as SavingsPlan).currentAmount : undefined) ?? 0) / actualPlan.goalAmount) * 100)}%</span>
                 </div>
               </div>
             )}
@@ -185,7 +188,7 @@ const SavingsPlanViewModal: React.FC<SavingsPlanViewModalProps> = ({ isOpen, onC
               </div>
               <div className="flex flex-col gap-0.5">
                 <span className="text-white/50 text-[10px]">Duration</span>
-                <span className="text-white text-[11px]">{actualPlan?.durationMonths || actualPlan?.duration || "N/A"} {actualPlan?.durationMonths ? "Months" : ""}</span>
+                <span className="text-white text-[11px]">{(isSavingsPlan ? (actualPlan as SavingsPlan).durationMonths : undefined) || (isSavingsPlan ? (actualPlan as SavingsPlan).duration : undefined) || "N/A"} {isSavingsPlan && (actualPlan as SavingsPlan).durationMonths ? "Months" : ""}</span>
               </div>
               <div className="flex flex-col gap-0.5">
                 <span className="text-white/50 text-[10px]">Start Date</span>
@@ -235,10 +238,10 @@ const SavingsPlanViewModal: React.FC<SavingsPlanViewModalProps> = ({ isOpen, onC
                     : "N/A"}
                 </span>
               </div>
-              {actualPlan?.minMonthlyDeposit && (
+              {isSavingsPlan && (actualPlan as SavingsPlan).minMonthlyDeposit && (
                 <div className="flex flex-col gap-0.5">
                   <span className="text-white/50 text-[10px]">Min Monthly Deposit</span>
-                  <span className="text-white text-[11px]">₦{actualPlan.minMonthlyDeposit.toLocaleString()}</span>
+                  <span className="text-white text-[11px]">₦{(actualPlan as SavingsPlan).minMonthlyDeposit!.toLocaleString()}</span>
                 </div>
               )}
               {actualPlan?.lastDepositDate && (
@@ -262,9 +265,9 @@ const SavingsPlanViewModal: React.FC<SavingsPlanViewModalProps> = ({ isOpen, onC
                     {actualPlan.autoDebitEnabled ? "Enabled" : "Disabled"}
                   </span>
                 </div>
-                {actualPlan.autoDebitEnabled && actualPlan.autoDebitChargeDay && (
+                {actualPlan.autoDebitEnabled && isSavingsPlan && (actualPlan as SavingsPlan).autoDebitChargeDay && (
                   <div className="text-white/60 text-[10px]">
-                    Charges on day {actualPlan.autoDebitChargeDay} of each month
+                    Charges on day {(actualPlan as SavingsPlan).autoDebitChargeDay} of each month
                   </div>
                 )}
               </div>
