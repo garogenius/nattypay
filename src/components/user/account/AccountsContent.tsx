@@ -546,7 +546,7 @@ const AccountsContent: React.FC = () => {
               <div className="w-8 h-8 border-2 border-[#D4B139] border-t-transparent rounded-full animate-spin"></div>
             </div>
           ) : ((selectedCurrency === "NGN" && activeWallet) || (selectedCurrency !== "NGN" && currencyAccount)) ? (
-            <>
+            <React.Fragment>
               {/* Copy All Account Details Button */}
               <div className="mb-4">
                 <CustomButton
@@ -718,7 +718,7 @@ const AccountsContent: React.FC = () => {
                   </div>
                 </div>
               )}
-            </>
+            </React.Fragment>
           ) : null}
         </div>
 
