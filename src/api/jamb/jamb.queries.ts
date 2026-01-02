@@ -42,7 +42,28 @@ export const useGetJambBillInfo = (payload: IGetJambBillInfo) => {
     enabled: !!payload.billerCode,
   });
 
-  const billInfo: any = data?.data?.data;
+  // Extract products from nested response structure
+  // Response structure: data.data.data.products
+  const responseData = data?.data?.data?.data || data?.data?.data || {};
+  const products = responseData?.products || [];
+  
+  // Map products to items format expected by component
+  const items = products.map((product: any) => ({
+    itemName: product.billPaymentProductName,
+    name: product.billPaymentProductName,
+    itemCode: product.billPaymentProductId,
+    item_code: product.billPaymentProductId,
+    amount: product.isAmountFixed ? product.amount : undefined,
+    isAmountFixed: product.isAmountFixed,
+    currency: product.currency,
+    metadata: product.metadata,
+  }));
+
+  const billInfo: any = {
+    ...responseData,
+    items,
+    products,
+  };
 
   return { isLoading, isError, billInfo };
 };

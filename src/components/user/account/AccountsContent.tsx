@@ -17,7 +17,7 @@ import CardPreview from "@/components/user/cards/CardPreview";
 import ShowCardDetailsModal from "@/components/modals/cards/ShowCardDetailsModal";
 import ChangePinModal from "@/components/modals/cards/ChangePinModal";
 import ConfirmActionModal from "@/components/modals/cards/ConfirmActionModal";
-import { useGetCurrencyAccounts, useCreateCurrencyAccount, useGetCards, useCreateCard } from "@/api/currency/currency.queries";
+import { useGetCurrencyAccounts, useGetCurrencyAccountByCurrency, useCreateCurrencyAccount, useGetCards, useCreateCard } from "@/api/currency/currency.queries";
 import { ICurrencyAccount, IVirtualCard } from "@/api/currency/currency.types";
 import ErrorToast from "@/components/toast/ErrorToast";
 import SuccessToast from "@/components/toast/SuccessToast";
@@ -54,6 +54,11 @@ const AccountsContent: React.FC = () => {
   const [showProfileInfoModal, setShowProfileInfoModal] = useState(false);
   const [missingInfo, setMissingInfo] = useState<"phone" | "email" | "both">("both");
   
+  // Fetch specific currency account details when currency is selected
+  const { account: fetchedCurrencyAccount, isPending: fetchingAccountDetails } = useGetCurrencyAccountByCurrency(
+    selectedCurrency !== "NGN" ? selectedCurrency : ""
+  );
+  
   // Filter cards for selected currency (including NGN)
   const currencyCards = useMemo(() => {
     return cards.filter((card: IVirtualCard) => 
@@ -62,13 +67,19 @@ const AccountsContent: React.FC = () => {
     );
   }, [cards, selectedCurrency]);
 
-  // Find currency account for selected currency
+  // Use fetched account details if available, otherwise fall back to finding from list
   const currencyAccount = useMemo(() => {
     if (selectedCurrency === "NGN") {
       // NGN uses wallet
       return null;
     }
-    // Find account by currency (case-insensitive comparison)
+    
+    // Prioritize fetched account details (more complete)
+    if (fetchedCurrencyAccount) {
+      return fetchedCurrencyAccount;
+    }
+    
+    // Fallback to finding from list
     if (!Array.isArray(currencyAccounts) || currencyAccounts.length === 0) {
       return null;
     }
@@ -79,7 +90,7 @@ const AccountsContent: React.FC = () => {
       return accCurrency === selected;
     });
     return found || null;
-  }, [currencyAccounts, selectedCurrency]);
+  }, [fetchedCurrencyAccount, currencyAccounts, selectedCurrency]);
 
   // Memoize account status for each currency to avoid recalculating
   const currencyAccountStatus = useMemo(() => {
@@ -96,20 +107,22 @@ const AccountsContent: React.FC = () => {
         const walletCurrency = String(w?.currency || "").toUpperCase().trim();
         return walletCurrency === k.toUpperCase();
       });
-      const hasCurrencyAccount = !isNGN && Array.isArray(currencyAccounts) && currencyAccounts.length > 0 && currencyAccounts.some((acc: ICurrencyAccount) => {
+      
+      // Check if account exists in list
+      const hasCurrencyAccountInList = !isNGN && Array.isArray(currencyAccounts) && currencyAccounts.length > 0 && currencyAccounts.some((acc: ICurrencyAccount) => {
         if (!acc || !acc.currency) return false;
         const accCurrency = String(acc.currency).toUpperCase().trim();
         const targetCurrency = String(k).toUpperCase().trim();
-        const matches = accCurrency === targetCurrency;
-        if (process.env.NODE_ENV === 'development' && k === 'USD') {
-          console.log(`Checking USD account:`, { accCurrency, targetCurrency, matches, acc });
-        }
-        return matches;
+        return accCurrency === targetCurrency;
       });
-      status[k] = hasWallet || hasCurrencyAccount;
+      
+      // Check if fetched account exists (for the currently selected currency)
+      const hasFetchedAccount = !isNGN && k === selectedCurrency && fetchedCurrencyAccount && fetchedCurrencyAccount.currency;
+      
+      status[k] = hasWallet || hasCurrencyAccountInList || hasFetchedAccount;
     });
     return status;
-  }, [currencyAccounts, user?.wallet, currencies]);
+  }, [currencyAccounts, user?.wallet, currencies, selectedCurrency, fetchedCurrencyAccount]);
 
   // Fallback to wallet for NGN, or use currency account for others
   const activeWallet = useMemo(() => {
@@ -121,18 +134,18 @@ const AccountsContent: React.FC = () => {
 
   const bankName = selectedCurrency === "NGN" 
     ? (activeWallet?.bankName || "NattyPay")
-    : (currencyAccount?.bankName || "NattyPay");
+    : (currencyAccount?.bankName || currencyAccount?.bank_name || "NattyPay");
   const displayName = (user?.accountType === "BUSINESS" || user?.isBusiness) && user?.businessName
     ? user.businessName
     : user?.fullname || "-";
   
   const accountName = selectedCurrency === "NGN"
     ? (activeWallet?.accountName || displayName)
-    : (currencyAccount?.label || displayName);
+    : (currencyAccount?.label || currencyAccount?.accountName || currencyAccount?.account_name || displayName);
   const cardHolderOnly = (accountName || "").split("/").pop()?.trim() || accountName;
   const accountNumber = selectedCurrency === "NGN"
     ? (activeWallet?.accountNumber || "-")
-    : (currencyAccount?.accountNumber || "-");
+    : (currencyAccount?.accountNumber || currencyAccount?.account_number || "-");
   const balance = selectedCurrency === "NGN"
     ? (activeWallet?.balance || 0)
     : (currencyAccount?.balance || 0);
@@ -229,7 +242,7 @@ const AccountsContent: React.FC = () => {
     });
     setShowCreateAccount(false);
     setAccountLabel("");
-    // Refetch accounts to update the UI immediately
+    // Refetch accounts to update the UI immediately and update badges
     // The mutation already invalidates the query, but we explicitly refetch to ensure UI updates
     try {
       const result = await refetchAccounts();
@@ -457,7 +470,17 @@ const AccountsContent: React.FC = () => {
           <h3 className="text-white font-semibold mb-4">Account Details</h3>
           
           {/* Show Create Account if account doesn't exist for non-NGN currencies */}
-          {selectedCurrency !== "NGN" && !currencyAccount && !accountsLoading ? (
+          {/* For NGN, check if wallet exists; for others, check if currency account exists */}
+          {selectedCurrency === "NGN" && !activeWallet ? (
+            <div className="flex flex-col items-center justify-center py-12 gap-4">
+              <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center">
+                <FiPlus className="text-2xl text-white/40" />
+              </div>
+              <p className="text-white/60 text-sm text-center">
+                NGN account (wallet) not found. Please contact support.
+              </p>
+            </div>
+          ) : selectedCurrency !== "NGN" && !currencyAccount && !accountsLoading && !fetchingAccountDetails ? (
             <div className="flex flex-col items-center justify-center py-12 gap-4">
               <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center">
                 <FiPlus className="text-2xl text-white/40" />
@@ -518,11 +541,11 @@ const AccountsContent: React.FC = () => {
                 </div>
               )}
             </div>
-          ) : accountsLoading ? (
+          ) : (selectedCurrency === "NGN" ? false : (accountsLoading || fetchingAccountDetails)) ? (
             <div className="flex items-center justify-center py-12">
               <div className="w-8 h-8 border-2 border-[#D4B139] border-t-transparent rounded-full animate-spin"></div>
             </div>
-          ) : (
+          ) : (selectedCurrency === "NGN" && activeWallet) || (selectedCurrency !== "NGN" && currencyAccount) ? (
             <>
               {/* Copy All Account Details Button */}
               <div className="mb-4">

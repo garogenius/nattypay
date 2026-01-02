@@ -8,7 +8,7 @@ import { LuTicket } from "react-icons/lu";
 import { TfiList } from "react-icons/tfi";
 import { CiCreditCard1 } from "react-icons/ci";
 import { GiSettingsKnobs } from "react-icons/gi";
-import { FiLogOut, FiHelpCircle } from "react-icons/fi";
+import { FiLogOut, FiHelpCircle, FiBell } from "react-icons/fi";
 import { BENEFICIARY_TYPE, BeneficiaryProps, NETWORK } from "./types";
 
 export const statusStyles = {
@@ -184,6 +184,12 @@ export const SidebarData = [
         icon: RxDashboard,
       },
       {
+        id: 104,
+        title: "Accounts",
+        path: "/user/account",
+        icon: IoWalletOutline,
+      },
+      {
         id: 100,
         title: "Payment",
         path: "/user/payments",
@@ -197,7 +203,7 @@ export const SidebarData = [
       },
       {
         id: 102,
-        title: "Finance",
+        title: "Investment",
         path: "/user/finance",
         icon: FaChartLine,
       },
@@ -208,16 +214,16 @@ export const SidebarData = [
         icon: CiCreditCard1,
       },
       {
-        id: 104,
-        title: "Accounts",
-        path: "/user/account",
-        icon: IoWalletOutline,
-      },
-      {
         id: 105,
         title: "Transactions",
         path: "/user/transactions",
         icon: TfiList,
+      },
+      {
+        id: 107,
+        title: "Notifications",
+        path: "/user/notifications",
+        icon: FiBell,
       },
       {
         id: 106,

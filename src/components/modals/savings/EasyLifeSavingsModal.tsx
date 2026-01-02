@@ -9,6 +9,7 @@ import { useCreateEasyLifePlan } from "@/api/easylife-savings/easylife-savings.q
 import type { EasyLifeContributionFrequency } from "@/api/easylife-savings/easylife-savings.types";
 import ErrorToast from "@/components/toast/ErrorToast";
 import SuccessToast from "@/components/toast/SuccessToast";
+import ValidationErrorModal from "@/components/modals/ValidationErrorModal";
 
 type FundingMode = "manual" | "auto";
 
@@ -33,6 +34,8 @@ const EasyLifeSavingsModal: React.FC<EasyLifeSavingsModalProps> = ({ isOpen, onC
   const [topUpAmount, setTopUpAmount] = React.useState("");
   const [selectedWalletIndex, setSelectedWalletIndex] = React.useState(0);
   const [earlyWithdrawalEnabled, setEarlyWithdrawalEnabled] = React.useState(false);
+  const [showValidationModal, setShowValidationModal] = React.useState(false);
+  const [validationError, setValidationError] = React.useState<{ title: string; descriptions: string[] } | null>(null);
 
   const onError = (error: unknown) => {
     const errorMessage = (error as { response?: { data?: { message?: unknown } } })?.response?.data
@@ -74,55 +77,64 @@ const EasyLifeSavingsModal: React.FC<EasyLifeSavingsModalProps> = ({ isOpen, onC
   const handleCreate = () => {
     // Validation
     if (!name.trim()) {
-      ErrorToast({
+      setValidationError({
         title: "Validation Error",
         descriptions: ["Plan name is required"],
       });
+      setShowValidationModal(true);
       return;
     }
 
-    const goalAmount = Number(amount);
-    if (!goalAmount || goalAmount < 50000) {
-      ErrorToast({
+    // Parse amount by removing commas and other non-numeric characters except decimal point
+    const cleanAmount = amount.replace(/[^0-9.]/g, "");
+    const goalAmount = parseFloat(cleanAmount);
+    
+    if (!goalAmount || isNaN(goalAmount) || goalAmount < 50000) {
+      setValidationError({
         title: "Validation Error",
         descriptions: ["Minimum goal amount for EasyLife is ₦50,000"],
       });
+      setShowValidationModal(true);
       return;
     }
 
     const selectedWallet = wallets[selectedWalletIndex];
     if (!selectedWallet) {
-      ErrorToast({
+      setValidationError({
         title: "Validation Error",
         descriptions: ["Please select a wallet"],
       });
+      setShowValidationModal(true);
       return;
     }
 
     if (!startDate || !endDate) {
-      ErrorToast({
+      setValidationError({
         title: "Validation Error",
         descriptions: ["Start date and end date are required"],
       });
+      setShowValidationModal(true);
       return;
     }
 
     const start = new Date(startDate);
     const end = new Date(endDate);
     if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end <= start) {
-      ErrorToast({
+      setValidationError({
         title: "Validation Error",
         descriptions: ["Please select valid start and end dates"],
       });
+      setShowValidationModal(true);
       return;
     }
 
     const durationDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
     if (durationDays < 20) {
-      ErrorToast({
+      setValidationError({
         title: "Validation Error",
         descriptions: ["EasyLife duration must be at least 20 days"],
       });
+      setShowValidationModal(true);
       return;
     }
 
@@ -145,6 +157,11 @@ const EasyLifeSavingsModal: React.FC<EasyLifeSavingsModalProps> = ({ isOpen, onC
     };
 
     createPlan(payload);
+  };
+
+  const handleCloseValidationModal = () => {
+    setShowValidationModal(false);
+    setValidationError(null);
   };
 
   if (!isOpen) return null;
@@ -327,6 +344,15 @@ const EasyLifeSavingsModal: React.FC<EasyLifeSavingsModalProps> = ({ isOpen, onC
           )}
         </div>
       </div>
+
+      {validationError && (
+        <ValidationErrorModal
+          isOpen={showValidationModal}
+          onClose={handleCloseValidationModal}
+          title={validationError.title}
+          descriptions={validationError.descriptions}
+        />
+      )}
     </div>
   );
 };

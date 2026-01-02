@@ -42,6 +42,7 @@ export const useCreateCurrencyAccount = (
     onError,
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["currency-accounts"] });
+      queryClient.invalidateQueries({ queryKey: ["currency-account"] });
       queryClient.invalidateQueries({ queryKey: ["user"] });
       onSuccess(data);
     },
@@ -86,7 +87,28 @@ export const useGetCurrencyAccountByCurrency = (currency: string) => {
     enabled: !!currency && currency !== "NGN",
   });
 
-  const account: any = data?.data?.data;
+  // Handle different possible response structures
+  let account: any = null;
+  if (data?.data) {
+    // Try data.data.data first (most common nested structure)
+    if (data.data.data && typeof data.data.data === "object" && !Array.isArray(data.data.data)) {
+      account = data.data.data;
+    }
+    // Try data.data if it's an object (direct account object)
+    else if (typeof data.data === "object" && !Array.isArray(data.data) && data.data.currency) {
+      account = data.data;
+    }
+  }
+
+  // Normalize field names to handle both camelCase and snake_case
+  if (account) {
+    account = {
+      ...account,
+      accountNumber: account.accountNumber || account.account_number,
+      bankName: account.bankName || account.bank_name,
+      accountName: account.accountName || account.account_name || account.label,
+    };
+  }
 
   return { account, isPending, isError };
 };

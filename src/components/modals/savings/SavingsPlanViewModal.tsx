@@ -112,12 +112,7 @@ const SavingsPlanViewModal: React.FC<SavingsPlanViewModalProps> = ({ isOpen, onC
           )}
         </div>
 
-        {isPending ? (
-          <div className="px-4 pb-3 flex-1 flex items-center justify-center">
-            <div className="w-6 h-6 border-2 border-[#D4B139] border-t-transparent rounded-full animate-spin"></div>
-          </div>
-        ) : (
-          <div className="px-4 pb-3 flex-1 overflow-y-auto">
+        <div className="px-4 pb-3 flex-1 overflow-y-auto">
             {/* Plan Type & Status */}
             <div className="flex items-center gap-2 mb-3">
               <span className={`text-[10px] px-2 py-0.5 rounded-full ${
@@ -313,7 +308,6 @@ const SavingsPlanViewModal: React.FC<SavingsPlanViewModalProps> = ({ isOpen, onC
               )}
             </div>
           </div>
-        )}
 
         {/* Actions */}
         {plan.type !== "fixed" && (

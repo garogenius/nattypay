@@ -170,15 +170,15 @@ const WaecModal: React.FC<WaecModalProps> = ({ isOpen, onClose }) => {
           {step === "form" && (
             <div className="flex flex-col gap-4">
               {/* Biller */}
-              <div className="flex flex-col gap-2" ref={billerRef}>
+              <div className="flex flex-col gap-2 relative" ref={billerRef}>
                 <label className="text-white/70 text-sm">Select Biller</label>
                 <div onClick={() => setBillerOpen(!billerOpen)} className="w-full bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-3 px-4 text-white text-sm outline-none cursor-pointer flex items-center justify-between">
                   <span className={selectedBiller ? "text-white" : "text-white/50"}>{selectedBiller?.name || "Select WAEC biller"}</span>
                   <IoChevronDown className={`w-4 h-4 text-white/70 transition-transform ${billerOpen ? 'rotate-180' : ''}`} />
                 </div>
                 {billerOpen && (
-                  <div className="relative">
-                    <div className="absolute top-1 left-0 right-0 bg-bg-600 dark:bg-bg-2100 border border-border-800 dark:border-border-700 rounded-lg shadow-lg z-50 overflow-hidden max-h-60 overflow-y-auto">
+                  <div className="absolute top-full left-0 right-0 mt-1 z-[100]">
+                    <div className="bg-bg-600 dark:bg-bg-2100 border border-border-800 dark:border-border-700 rounded-lg shadow-lg overflow-hidden max-h-60 overflow-y-auto">
                       {plansLoading ? (
                         <div className="flex items-center justify-center py-4">
                           <SpinnerLoader width={20} height={20} color="#D4B139" />
@@ -192,7 +192,9 @@ const WaecModal: React.FC<WaecModalProps> = ({ isOpen, onClose }) => {
                             onClick={() => {
                               setSelectedBiller({ name: b.name || b.billerName, billerCode: b.billerCode });
                               setSelectedItem(null);
+                              setAmount("");
                               setBillerOpen(false);
+                              setItemOpen(false);
                             }}
                             className="w-full text-left px-4 py-3 text-white/80 hover:bg-white/5 text-sm"
                           >
@@ -207,15 +209,15 @@ const WaecModal: React.FC<WaecModalProps> = ({ isOpen, onClose }) => {
 
               {/* Item */}
               {selectedBiller && (
-                <div className="flex flex-col gap-2" ref={itemRef}>
+                <div className="flex flex-col gap-2 relative" ref={itemRef}>
                   <label className="text-white/70 text-sm">Select Item</label>
                   <div onClick={() => selectedBiller && setItemOpen(!itemOpen)} className={`w-full bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-3 px-4 text-white text-sm outline-none cursor-pointer flex items-center justify-between ${!selectedBiller ? 'opacity-60 pointer-events-none' : ''}`}>
                     <span className={selectedItem ? "text-white" : "text-white/50"}>{selectedItem?.name || (selectedBiller ? 'Select item' : 'Select biller first')}</span>
                     <IoChevronDown className={`w-4 h-4 text-white/70 transition-transform ${itemOpen ? 'rotate-180' : ''}`} />
                   </div>
                   {itemOpen && (
-                    <div className="relative">
-                      <div className="absolute top-1 left-0 right-0 bg-bg-600 dark:bg-bg-1100 border border-border-800 dark:border-border-700 rounded-lg shadow-lg z-50 overflow-hidden max-h-60 overflow-y-auto">
+                    <div className="absolute top-full left-0 right-0 mt-1 z-[100]">
+                      <div className="bg-bg-600 dark:bg-bg-1100 border border-border-800 dark:border-border-700 rounded-lg shadow-lg overflow-hidden max-h-60 overflow-y-auto">
                         {billInfoLoading ? (
                           <div className="flex items-center justify-center py-4">
                             <SpinnerLoader width={20} height={20} color="#D4B139" />

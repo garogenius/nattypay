@@ -36,19 +36,20 @@ const CableTvModal: React.FC<CableTvModalProps> = ({ isOpen, onClose }) => {
   const providerRef = useRef<HTMLDivElement>(null);
   useOnClickOutside(providerRef, () => setProviderOpen(false));
 
-  // Fetch cable plans - enabled when smartcard number is entered (matching bills/cable page)
-  const { cablePlans, isPending: plansLoading, isError: plansError } = useGetCablePlans({
+  // Fetch cable plans - enabled when smartcard number is entered (matching bills/cable page exactly)
+  const { cablePlans, isPending: isCablePlanPending, isError: isCablePlanError } = useGetCablePlans({
     currency: "NGN",
     isEnabled: isOpen && !!smartcard && smartcard.length >= 10 && smartcard.length < 15,
   });
 
-  // Fetch variations when provider is selected
-  const { variations, isLoading: variationsLoading } = useGetCableVariations({
+  const isCablePlanLoading = isCablePlanPending && !isCablePlanError;
+
+  // Fetch variations when provider is selected (matching bills/cable page exactly)
+  const { variations, isLoading: cableVariationsPending, isError: cableVariationsError } = useGetCableVariations({
     billerCode: selectedProvider?.billerCode || "",
   });
 
-  // Use variations directly from API (matching bills/cable page structure)
-  // Variations already have: biller_name, validity_period, item_code, biller_code, amount, payAmount
+  const cableVariationsLoading = cableVariationsPending && !cableVariationsError;
 
   const handleClose = () => {
     setStep("form");
@@ -103,11 +104,11 @@ const CableTvModal: React.FC<CableTvModalProps> = ({ isOpen, onClose }) => {
       variations &&
       variations.length > 0
     ) {
-    verifySmartcard({
+      verifySmartcard({
         itemCode: variations[0].item_code,
-      billerCode: selectedProvider.billerCode,
-      billerNumber: smartcard,
-    });
+        billerCode: selectedProvider.billerCode,
+        billerNumber: smartcard,
+      });
     }
   }, [
     smartcard,
@@ -186,7 +187,7 @@ const CableTvModal: React.FC<CableTvModalProps> = ({ isOpen, onClose }) => {
                     maxLength={15} 
                     onChange={(e)=> setSmartcard(e.target.value.replace(/\D/g, ""))} 
                   />
-                  {(verifying || variationsLoading) && (
+                  {(verifying || cableVariationsLoading) && (
                     <div className="absolute right-3 top-1/2 -translate-y-1/2">
                       <SpinnerLoader width={20} height={20} color="#D4B139" />
                     </div>
@@ -195,7 +196,7 @@ const CableTvModal: React.FC<CableTvModalProps> = ({ isOpen, onClose }) => {
               </div>
 
               {/* Provider - Only enabled when smartcard is valid (matching bills/cable page) */}
-              <div className="flex flex-col gap-2" ref={providerRef}>
+              <div className="flex flex-col gap-2 relative" ref={providerRef}>
                 <label className="text-white/70 text-sm">Provider</label>
                 <div 
                   onClick={() => {
@@ -219,29 +220,29 @@ const CableTvModal: React.FC<CableTvModalProps> = ({ isOpen, onClose }) => {
                   <IoChevronDown className={`w-4 h-4 text-white/70 transition-transform ${providerOpen ? 'rotate-180' : ''}`} />
                 </div>
                 {providerOpen && smartcard && smartcard.length >= 10 && smartcard.length < 15 && (
-                  <div className="relative">
-                    <div className="absolute top-1 left-0 right-0 bg-bg-600 dark:bg-bg-1100 border border-border-800 dark:border-border-700 rounded-lg shadow-lg z-50 overflow-hidden max-h-60 overflow-y-auto">
-                      {plansLoading ? (
+                  <div className="absolute top-full left-0 right-0 mt-1 z-[100]">
+                    <div className="bg-bg-600 dark:bg-bg-1100 border border-border-800 dark:border-border-700 rounded-lg shadow-lg overflow-hidden max-h-60 overflow-y-auto">
+                      {isCablePlanLoading ? (
                         <div className="flex items-center justify-center py-4">
                           <SpinnerLoader width={20} height={20} color="#D4B139" />
                         </div>
                       ) : !cablePlans || cablePlans.length === 0 ? (
                         <div className="px-4 py-3 text-white/50 text-sm text-center">
-                          {plansLoading ? "Loading providers..." : "No providers available"}
+                          {isCablePlanLoading ? "Loading providers..." : "No providers available"}
                         </div>
                       ) : (
                         cablePlans.map((p: any) => (
-                        <button
+                          <button
                             key={p.billerCode || p.id}
-                          onClick={() => {
+                            onClick={() => {
                               setSelectedProvider({ name: p.shortName || p.planName || p.name, billerCode: p.billerCode });
-                            setSelectedPlan(null);
-                            setProviderOpen(false);
-                          }}
-                          className="w-full text-left px-4 py-3 text-white/80 hover:bg-white/5 text-sm"
-                        >
+                              setSelectedPlan(null);
+                              setProviderOpen(false);
+                            }}
+                            className="w-full text-left px-4 py-3 text-white/80 hover:bg-white/5 text-sm"
+                          >
                             {p.shortName || p.planName || p.name}
-                        </button>
+                          </button>
                         ))
                       )}
                     </div>
@@ -250,7 +251,12 @@ const CableTvModal: React.FC<CableTvModalProps> = ({ isOpen, onClose }) => {
               </div>
 
               {/* Verification Status - Matching bills/cable page exactly */}
-              {!verifying && !variationsLoading && (
+              {verifying || cableVariationsLoading ? (
+                <div className="flex items-center gap-2 p-2 text-white/70 text-sm">
+                  <SpinnerLoader width={20} height={20} color="#D4B139" />
+                  <p>Fetching customer and plans...</p>
+                </div>
+              ) : (
                 <>
                   {cablePlans &&
                   verificationMessage &&
@@ -263,7 +269,7 @@ const CableTvModal: React.FC<CableTvModalProps> = ({ isOpen, onClose }) => {
                   smartcard.length < 15 ? (
                     <div className="flex flex-col">
                       <p className="text-[#D4B139] text-sm">{verificationMessage}</p>
-              </div>
+                    </div>
                   ) : verificationError ? (
                     <p className="flex self-start text-red-500 font-semibold text-sm">
                       {verificationError}
@@ -284,23 +290,23 @@ const CableTvModal: React.FC<CableTvModalProps> = ({ isOpen, onClose }) => {
               smartcard.length < 15 && (
                 <div className="flex flex-col gap-4">
                   <h2 className="text-white/70 text-sm font-medium">Select Plan</h2>
-                        {variationsLoading ? (
-                          <div className="flex items-center justify-center py-4">
-                            <SpinnerLoader width={20} height={20} color="#D4B139" />
-                          </div>
+                  {verifying || cableVariationsLoading ? (
+                    <div className="flex items-center justify-center py-4">
+                      <SpinnerLoader width={20} height={20} color="#D4B139" />
+                    </div>
                   ) : variations && variations.length > 0 ? (
                     <div className="grid grid-cols-2 gap-3 max-h-60 overflow-y-auto">
                       {variations.map((item: any, index: number) => (
-                          <button
+                        <button
                           key={item.item_code || index}
-                            onClick={() => {
+                          onClick={() => {
                             setSelectedPlan({
                               name: String(item.biller_name || item.short_name || item.name || item.item_name),
                               amount: Number(item.amount) || 0,
                               payAmount: typeof item.payAmount === 'number' ? item.payAmount : Number(item.amount) || 0,
                               itemCode: item.item_code || item.itemCode,
                             });
-                            }}
+                          }}
                           className={`flex flex-col items-center justify-center gap-1 p-3 text-center border rounded-lg transition-colors ${
                             selectedPlan?.itemCode === (item.item_code || item.itemCode)
                               ? "bg-[#D4B139] text-black border-[#D4B139]"
@@ -321,7 +327,7 @@ const CableTvModal: React.FC<CableTvModalProps> = ({ isOpen, onClose }) => {
                               Fee: ₦{item.payAmount - item.amount}
                             </p>
                           )}
-                          </button>
+                        </button>
                       ))}
                     </div>
                   ) : (

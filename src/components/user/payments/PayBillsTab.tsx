@@ -138,6 +138,11 @@ const Card: React.FC<BillItem & {
 }) => {
   const navigate = useNavigate();
   const onClick = () => {
+    // Hide action for School button only (not the entire section)
+    if (name === "School") {
+      return;
+    }
+    
     if (itemOnClick) {
       itemOnClick();
     } else if (name === "Airtime" && onAirtimeClick) {
@@ -156,8 +161,6 @@ const Card: React.FC<BillItem & {
       onTransportClick();
     } else if (name === "Education" && onEducationClick) {
       onEducationClick();
-    } else if (name === "School" && onSchoolClick) {
-      onSchoolClick();
     } else if (name === "WAEC" && onWaecClick) {
       onWaecClick();
     } else if (name === "JAMB" && onJambClick) {
@@ -177,11 +180,18 @@ const Card: React.FC<BillItem & {
       toast.error("Unavailable at the moment", { duration: 2500 });
     }
   };
+  const isSchoolCard = name === "School";
+  
   return (
     <button
       onClick={onClick}
       type="button"
-      className="cursor-pointer w-full flex px-2 py-3 sm:px-4 sm:py-5 flex-col gap-1.5 sm:gap-2.5 justify-center items-center bg-bg-600 dark:bg-bg-1100 rounded-lg sm:rounded-xl border border-border-600 hover:bg-white/5 transition-colors"
+      disabled={isSchoolCard}
+      className={`w-full flex px-2 py-3 sm:px-4 sm:py-5 flex-col gap-1.5 sm:gap-2.5 justify-center items-center bg-bg-600 dark:bg-bg-1100 rounded-lg sm:rounded-xl border border-border-600 transition-colors ${
+        isSchoolCard 
+          ? "cursor-not-allowed opacity-50" 
+          : "cursor-pointer hover:bg-white/5"
+      }`}
     >
       <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-full p-2 sm:p-3 flex justify-center items-center bg-bg-2700 dark:bg-bg-1200">
         <Icon className="text-[#D4B139] text-sm sm:text-xl" />
