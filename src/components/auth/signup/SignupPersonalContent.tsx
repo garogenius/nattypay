@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { useRegister } from "@/api/auth/auth.queries";
+import { IRegister } from "@/api/auth/auth.types";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import AuthInput from "../AuthInput";
@@ -164,8 +165,14 @@ const SignupPersonalContent = () => {
   const registerLoading = registerPending && !registerError;
 
   const onSubmit = async (data: RegisterFormData) => {
-    // Exclude confirmPassword from API request
-    const { confirmPassword, ...registerData } = data;
+    // Exclude confirmPassword, countryCode, and referralCode from API request
+    // Map countryCode to currency and add accountType
+    const { confirmPassword, countryCode, referralCode, ...restData } = data;
+    const registerData: IRegister = {
+      ...restData,
+      currency: countryCode,
+      accountType: "PERSONAL",
+    };
     signup(registerData);
   };
 
