@@ -2,7 +2,6 @@
 
 "use client";
 
-import { motion } from "framer-motion";
 import Image from "next/image";
 import CustomButton from "@/components/shared/Button";
 import ErrorToast from "@/components/toast/ErrorToast";
@@ -10,10 +9,10 @@ import SuccessToast from "@/components/toast/SuccessToast";
 import useNavigate from "@/hooks/useNavigate";
 import { useEffect, useState } from "react";
 import OtpInput from "react-otp-input";
-import images from "../../../public/images";
+import images from "../../../../public/images";
 import useAuthEmailStore from "@/store/authEmail.store";
 import useTimerStore from "@/store/timer.store";
-import SpinnerLoader from "../Loader/SpinnerLoader";
+import SpinnerLoader from "@/components/Loader/SpinnerLoader";
 import icons from "../../../../public/icons";
 import { useVerifyPhoneNumber, useValidatePhoneNumber } from "@/api/user/user.queries";
 
@@ -21,23 +20,41 @@ const PreRegisterVerifyPhoneContent = () => {
   const navigate = useNavigate();
   const { authPhoneNumber, authEmail } = useAuthEmailStore();
   const [token, setToken] = useState("");
-  const { timer, setTimer } = useTimerStore();
 
   const isValid = token.length === 4;
 
-  useEffect(() => {
-    setTimer(120);
-  }, [setTimer]);
+  const timerStore = useTimerStore();
+  const resendTimer = timerStore.resendTimer;
+  const decrementTimer = timerStore.decrementTimer;
+  const expireAt = timerStore.expireAt;
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      if (timer > 0) {
-        setTimer(timer - 1);
-      }
-    }, 1000);
+    useTimerStore.getState().setTimer(120);
+  }, []);
 
-    return () => clearInterval(interval);
-  }, [timer, setTimer]);
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+
+    if (resendTimer > 0) {
+      interval = setInterval(() => {
+        if (decrementTimer) decrementTimer();
+      }, 1000);
+    } else {
+      // When timer reaches 0, clear the interval
+      if (interval) clearInterval(interval);
+      timerStore.clearTimer(); // Clear state to prevent reset
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [resendTimer, decrementTimer, timerStore]);
+
+  useEffect(() => {
+    if (expireAt && Date.now() >= expireAt) {
+      timerStore.clearTimer();
+    }
+  }, [expireAt, timerStore]);
 
   const onVerificationSuccess = () => {
     SuccessToast({
@@ -67,7 +84,7 @@ const PreRegisterVerifyPhoneContent = () => {
   } = useVerifyPhoneNumber(onVerificationError, onVerificationSuccess);
 
   const onResendSuccess = (data: any) => {
-    setTimer(120);
+    useTimerStore.getState().setTimer(120);
     SuccessToast({
       title: "Sent Successfully!",
       description: data?.data?.message || "Verification code resent",
@@ -103,7 +120,7 @@ const PreRegisterVerifyPhoneContent = () => {
   };
 
   const handleResendClick = async () => {
-    if (authEmail && authPhoneNumber && timer === 0) {
+    if (authEmail && authPhoneNumber && resendTimer === 0) {
       resendCode({
         email: authEmail,
         phoneNumber: authPhoneNumber,
@@ -168,9 +185,9 @@ const PreRegisterVerifyPhoneContent = () => {
               </CustomButton>
 
               <div className="text-center">
-                {timer > 0 ? (
+                {resendTimer > 0 ? (
                   <p className="text-sm text-gray-600">
-                    Resend code in <span className="font-medium text-[#D4B139]">{Math.floor(timer / 60)}:{(timer % 60).toString().padStart(2, "0")}</span>
+                    Resend code in <span className="font-medium text-[#D4B139]">{Math.floor(resendTimer / 60)}:{(resendTimer % 60).toString().padStart(2, "0")}</span>
                   </p>
                 ) : (
                   <button
