@@ -239,8 +239,12 @@ const TransferProcess = ({ onStepChange, compact = false, initialType, onBackFir
 
   const watchedAccountNumber = watch("accountNumber");
   const watchedBankCode = watch("bankCode");
-  const watchedAmount = watch("amount") ? Number(watch("amount").replace(/,/g, '')) : 0;
-  // const watchedAmount = Number(watch("amount"));
+  const watchedAmountValue = watch("amount");
+  const watchedAmount = watchedAmountValue && typeof watchedAmountValue === "string" 
+    ? Number(watchedAmountValue.replace(/,/g, '')) 
+    : typeof watchedAmountValue === "number" 
+      ? watchedAmountValue 
+      : 0;
   const watchedDescription = watch("description");
   const watchedSessionId = watch("sessionId");
 
