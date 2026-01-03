@@ -178,7 +178,7 @@ const WaecModal: React.FC<WaecModalProps> = ({ isOpen, onClose }) => {
                 </div>
                 {billerOpen && (
                   <div className="absolute top-full left-0 right-0 mt-1 z-[100]">
-                    <div className="bg-bg-600 dark:bg-bg-2100 border border-border-800 dark:border-border-700 rounded-lg shadow-lg overflow-hidden max-h-60 overflow-y-auto">
+                    <div className="bg-[#1a1d29] dark:bg-[#1a1d29] border border-border-800 dark:border-border-700 rounded-lg shadow-lg overflow-hidden max-h-60 overflow-y-auto">
                       {plansLoading ? (
                         <div className="flex items-center justify-center py-4">
                           <SpinnerLoader width={20} height={20} color="#D4B139" />
@@ -217,7 +217,7 @@ const WaecModal: React.FC<WaecModalProps> = ({ isOpen, onClose }) => {
                   </div>
                   {itemOpen && (
                     <div className="absolute top-full left-0 right-0 mt-1 z-[100]">
-                      <div className="bg-bg-600 dark:bg-bg-1100 border border-border-800 dark:border-border-700 rounded-lg shadow-lg overflow-hidden max-h-60 overflow-y-auto">
+                      <div className="bg-[#1a1d29] dark:bg-[#1a1d29] border border-border-800 dark:border-border-700 rounded-lg shadow-lg overflow-hidden max-h-60 overflow-y-auto">
                         {billInfoLoading ? (
                           <div className="flex items-center justify-center py-4">
                             <SpinnerLoader width={20} height={20} color="#D4B139" />

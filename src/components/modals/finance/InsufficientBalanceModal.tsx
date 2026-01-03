@@ -51,7 +51,7 @@ const InsufficientBalanceModal: React.FC<InsufficientBalanceModalProps> = ({
         <div className="text-center mb-4">
           <h2 className="text-xl font-semibold text-white mb-2">Insufficient Wallet Balance</h2>
           <p className="text-white/70 text-sm">
-            You don't have enough funds in your wallet to complete this investment.
+            You don't have enough funds in your wallet to complete this transaction.
           </p>
         </div>
 
@@ -94,7 +94,7 @@ const InsufficientBalanceModal: React.FC<InsufficientBalanceModalProps> = ({
             <div className="flex-1">
               <p className="text-white text-sm font-medium mb-1">Fund Your Account</p>
               <p className="text-white/70 text-xs leading-relaxed">
-                Please fund your account with sufficient balance before applying for investment. 
+                Please fund your account with sufficient balance to complete this transaction. 
                 You can add funds through bank transfer, card payment, or other available payment methods.
               </p>
             </div>

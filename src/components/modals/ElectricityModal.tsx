@@ -107,11 +107,11 @@ const ElectricityModal: React.FC<ElectricityModalProps> = ({ isOpen, onClose }) 
       variations &&
       variations.length > 0
     ) {
-      verifyMeter({
+    verifyMeter({
         itemCode: variations[0].item_code,
-        billerCode: selectedDisco.billerCode,
-        billerNumber: meterNumber,
-      });
+      billerCode: selectedDisco.billerCode,
+      billerNumber: meterNumber,
+    });
     }
   }, [
     meterNumber,
@@ -240,18 +240,18 @@ const ElectricityModal: React.FC<ElectricityModalProps> = ({ isOpen, onClose }) 
                         </div>
                       ) : (
                         electricityPlans.map((d: any) => (
-                          <button
+                        <button
                             key={d.billerCode || d.id}
-                            onClick={() => {
+                          onClick={() => {
                               setSelectedDisco({ name: d.shortName || d.planName || d.name, billerCode: d.billerCode });
-                              setSelectedPlan(null);
+                            setSelectedPlan(null);
                               setAmount("");
-                              setDiscoOpen(false);
-                            }}
-                            className="w-full text-left px-4 py-3 text-white/80 hover:bg-white/5 text-sm"
-                          >
+                            setDiscoOpen(false);
+                          }}
+                          className="w-full text-left px-4 py-3 text-white/80 hover:bg-white/5 text-sm"
+                        >
                             {d.shortName || d.planName || d.name}
-                          </button>
+                        </button>
                         ))
                       )}
                     </div>
@@ -315,13 +315,13 @@ const ElectricityModal: React.FC<ElectricityModalProps> = ({ isOpen, onClose }) 
                       <div className="bg-bg-600 dark:bg-bg-1100 border border-border-800 dark:border-border-700 rounded-lg shadow-lg overflow-hidden max-h-60 overflow-y-auto">
                         {electricityVariationsLoading ? (
                           <div className="flex items-center justify-center py-4">
-                            <SpinnerLoader width={20} height={20} color="#D4B139" />
-                          </div>
+                          <SpinnerLoader width={20} height={20} color="#D4B139" />
+                        </div>
                         ) : variations && variations.length > 0 ? (
                           variations.map((item: any, index: number) => (
-                            <button
+                          <button
                               key={item.item_code || index}
-                              onClick={() => {
+                            onClick={() => {
                                 setSelectedPlan({
                                   name: item.short_name || item.name || item.item_name,
                                   amount: Number(item.amount) || 0,
@@ -329,13 +329,13 @@ const ElectricityModal: React.FC<ElectricityModalProps> = ({ isOpen, onClose }) 
                                   itemCode: item.item_code || item.itemCode,
                                 });
                                 setAmount(String(item.payAmount || item.amount));
-                                setPlanOpen(false);
-                              }}
-                              className="w-full text-left px-4 py-3 text-white hover:bg-white/5 text-sm flex items-center justify-between"
-                            >
+                              setPlanOpen(false);
+                            }}
+                            className="w-full text-left px-4 py-3 text-white hover:bg-white/5 text-sm flex items-center justify-between"
+                          >
                               <span>{item.short_name || item.name || item.item_name}</span>
                               <span className="text-[#D4B139] font-medium">₦{Number(item.payAmount || item.amount).toLocaleString()}</span>
-                            </button>
+                          </button>
                           ))
                         ) : (
                           <div className="px-4 py-3 text-white/50 text-sm">No plans available</div>
@@ -378,18 +378,18 @@ const ElectricityModal: React.FC<ElectricityModalProps> = ({ isOpen, onClose }) 
               meterNumber &&
               meterNumber.length >= 10 &&
               (selectedPlan || (amount && Number(amount) >= 500)) && (
-                <CustomButton
-                  type="button"
+              <CustomButton
+                type="button"
                   disabled={!selectedPlan && (!amount || Number(amount) < 500)}
-                  className="w-full bg-[#D4B139] hover:bg-[#D4B139]/90 text-black font-medium py-3 rounded-lg transition-colors mt-2"
+                className="w-full bg-[#D4B139] hover:bg-[#D4B139]/90 text-black font-medium py-3 rounded-lg transition-colors mt-2"
                   onClick={() => {
                     if (selectedPlan || (amount && Number(amount) >= 500)) {
                       setStep("confirm");
                     }
                   }}
-                >
+              >
                   Next
-                </CustomButton>
+              </CustomButton>
               )}
             </div>
           )}

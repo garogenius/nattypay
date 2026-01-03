@@ -431,58 +431,7 @@ const InvestmentModal: React.FC<InvestmentModalProps> = ({ isOpen, onClose }) =>
               </div>
             </div>
           </>
-        ) : (
-          <div className="space-y-6">
-            <h2 className="text-xl font-semibold text-white mb-4">Confirm Investment</h2>
-            
-            <div className="bg-bg-500 dark:bg-bg-900 p-4 rounded-lg">
-              <div className="flex justify-between mb-2">
-                <span className="text-white/70">Principal Amount:</span>
-                <span className="text-white font-medium">{formatCurrency(amount)}</span>
-              </div>
-              <div className="flex justify-between mb-2">
-                <span className="text-white/70">ROI Rate:</span>
-                <span className="text-[#D4B139]">{ROI_PERCENTAGE}% per annum</span>
-              </div>
-              <div className="flex justify-between mb-2">
-                <span className="text-white/70">Lock Period:</span>
-                <span className="text-white">{LOCK_PERIOD_MONTHS} months</span>
-              </div>
-              <div className="flex justify-between mb-2">
-                <span className="text-white/70">Expected Interest:</span>
-                <span className="text-[#D4B139] font-medium">+{formatCurrency(interestAmount)}</span>
-              </div>
-              <div className="h-px bg-white/10 my-3" />
-              <div className="flex justify-between mb-2">
-                <span className="text-white/70">Maturity Date:</span>
-                <span className="text-white">
-                  {new Date(new Date().setMonth(new Date().getMonth() + LOCK_PERIOD_MONTHS)).toLocaleDateString('en-GB')}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-white/70">Expected Return:</span>
-                <span className="text-white font-medium">{formatCurrency(expectedReturn)}</span>
-              </div>
-            </div>
-
-            <div className="flex gap-3">
-              <CustomButton
-                onClick={() => setStep(1)}
-                className="flex-1 bg-transparent border border-white/10 text-white hover:bg-white/5 py-3 rounded-lg"
-              >
-                Back
-              </CustomButton>
-              <CustomButton
-                onClick={handleSubmit}
-                disabled={creating}
-                isLoading={creating}
-                className="flex-1 bg-[#D4B139] hover:bg-[#c7a42f] text-black py-3 rounded-lg font-medium"
-              >
-                Create Investment
-              </CustomButton>
-            </div>
-          </div>
-        ) : (
+        ) : step === 3 ? (
           <div className="text-center">
             <div className="w-16 h-16 bg-[#D4B139]/10 rounded-full flex items-center justify-center mx-auto mb-4">
               <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#D4B139" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -544,7 +493,7 @@ const InvestmentModal: React.FC<InvestmentModalProps> = ({ isOpen, onClose }) =>
               </CustomButton>
             </div>
           </div>
-        )}
+        ) : null}
       </div>
     </div>
     </>

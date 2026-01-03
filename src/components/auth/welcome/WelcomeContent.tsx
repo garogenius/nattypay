@@ -18,7 +18,7 @@ const WelcomeContent = () => {
       {/* Left Panel - Yellow/Gold Background */}
       <div className="hidden lg:flex lg:w-[40%] bg-[#D4B139] relative items-center justify-center">
         <div className="w-full h-full flex flex-col items-center justify-center px-8 py-12">
-          {/* Illustration - Transfers illustration */}
+          {/* Illustration - Welcome illustration */}
           <div className="w-full max-w-md mb-8 flex items-center justify-center">
             <div className="w-64 h-64 bg-white/20 rounded-full flex items-center justify-center">
               <svg
@@ -31,27 +31,29 @@ const WelcomeContent = () => {
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
-                  d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
                 />
               </svg>
             </div>
           </div>
-          <h1 className="text-4xl font-bold text-white mb-4">Transfers</h1>
+          <h1 className="text-4xl font-bold text-white mb-4">Welcome</h1>
           <p className="text-lg text-white/90 text-center max-w-md">
-            Send and receive money locally or globally with ease and speed.
+            Join thousands of users enjoying seamless banking and financial services with NattyPay.
           </p>
         </div>
       </div>
 
       {/* Right Panel - White Background */}
-      <div className="w-full lg:w-[60%] bg-white flex flex-col items-center justify-center px-6 sm:px-8 py-12">
-        <div className="w-full max-w-md space-y-8">
+      <div className="w-full lg:w-[60%] bg-white flex flex-col items-center justify-center px-6 sm:px-8 py-12 overflow-x-hidden">
+        <div className="w-full max-w-md space-y-8 overflow-x-hidden">
           {/* Logo - NattyPay Logo */}
           <div className="flex justify-center mb-8">
             <Image
-              src={images.logo2}
+              src={images.singleLogo}
               alt="NattyPay Logo"
-              className="w-24 h-12"
+              width={120}
+              height={60}
+              className="w-24 sm:w-28 md:w-32 h-auto object-contain"
               priority
             />
           </div>
@@ -81,15 +83,15 @@ const WelcomeContent = () => {
           </div>
 
           {/* Footer */}
-          <div className="text-center text-xs text-gray-500 mt-8">
-            <p className="flex items-center justify-center gap-2 flex-wrap">
-              <span>Licenced by</span>
+          <div className="text-center text-xs text-gray-500 mt-8 px-2">
+            <p className="flex items-center justify-center gap-1.5 sm:gap-2 flex-wrap">
+              <span>Licenced by CBN</span>
               <Image
                 src={images.cbnLogo}
                 alt="CBN Logo"
                 width={40}
                 height={20}
-                className="h-5 w-auto object-contain"
+                className="h-4 sm:h-5 w-auto object-contain"
               />
               <span>Deposits Insured by</span>
               <span className="text-blue-600 underline">NDIC</span>

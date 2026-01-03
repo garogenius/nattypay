@@ -277,178 +277,178 @@ const FinancePlanViewModal: React.FC<FinancePlanViewModalProps> = ({ isOpen, onC
         </div>
 
         <div className="space-y-6">
-          {/* Summary Card */}
-          <div className="bg-bg-500 dark:bg-bg-900 p-4 rounded-xl">
-            <div className="flex justify-between items-center mb-4">
-              <span className="text-white/70">Total Value</span>
-              <span className="text-white font-medium text-lg">{formatCurrency(displayPlan.amount + displayPlan.earned)}</span>
-            </div>
-            
-            <div className="h-px bg-white/10 my-3" />
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-white/60 text-xs mb-1">Capital Amount</p>
-                <p className="text-white font-medium">{formatCurrency(displayPlan.amount)}</p>
-              </div>
-              <div>
-                <p className="text-white/60 text-xs mb-1">Interest Amount</p>
-                <p className="text-emerald-400 font-medium">+{formatCurrency(displayPlan.earned)}</p>
-              </div>
-              <div>
-                <p className="text-white/60 text-xs mb-1">Expected Return</p>
-                <p className="text-white font-medium">
-                  {investment?.expectedReturn 
-                    ? formatCurrency(investment.expectedReturn)
-                    : formatCurrency(displayPlan.amount + displayPlan.earned)
-                  }
-                </p>
-              </div>
-              <div>
-                <p className="text-white/60 text-xs mb-1">Interest Rate</p>
-                <p className="text-white font-medium">{displayPlan.interestRate}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Details */}
-          <div className="space-y-4">
-            <h3 className="text-white font-medium">
-              {displayPlan.type === "investment" ? "Investment Details" : "Fixed Deposit Details"}
-            </h3>
-            
-            <div className="space-y-3">
-              {displayPlan.investmentId && (
-                <div className="flex justify-between">
-                  <span className="text-white/60 text-sm">Investment ID</span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-white text-sm">{displayPlan.investmentId.slice(-12).toUpperCase()}</span>
-                    <button 
-                      onClick={() => copyToClipboard(displayPlan.investmentId || "")}
-                      className="text-white/50 hover:text-[#D4B139] transition-colors"
-                    >
-                      <FiCopy className="text-sm" />
-                    </button>
+              {/* Summary Card */}
+              <div className="bg-bg-500 dark:bg-bg-900 p-4 rounded-xl">
+                <div className="flex justify-between items-center mb-4">
+                  <span className="text-white/70">Total Value</span>
+                  <span className="text-white font-medium text-lg">{formatCurrency(displayPlan.amount + displayPlan.earned)}</span>
+                </div>
+                
+                <div className="h-px bg-white/10 my-3" />
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-white/60 text-xs mb-1">Capital Amount</p>
+                    <p className="text-white font-medium">{formatCurrency(displayPlan.amount)}</p>
+                  </div>
+                  <div>
+                    <p className="text-white/60 text-xs mb-1">Interest Amount</p>
+                    <p className="text-emerald-400 font-medium">+{formatCurrency(displayPlan.earned)}</p>
+                  </div>
+                  <div>
+                    <p className="text-white/60 text-xs mb-1">Expected Return</p>
+                    <p className="text-white font-medium">
+                      {investment?.expectedReturn 
+                        ? formatCurrency(investment.expectedReturn)
+                        : formatCurrency(displayPlan.amount + displayPlan.earned)
+                      }
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-white/60 text-xs mb-1">Interest Rate</p>
+                    <p className="text-white font-medium">{displayPlan.interestRate}</p>
                   </div>
                 </div>
-              )}
-              
-              {displayPlan.agreementReference && (
-                <div className="flex justify-between">
-                  <span className="text-white/60 text-sm">Agreement Reference</span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-white text-sm">{displayPlan.agreementReference}</span>
-                    <button 
-                      onClick={() => copyToClipboard(displayPlan.agreementReference || "")}
-                      className="text-white/50 hover:text-[#D4B139] transition-colors"
-                    >
-                      <FiCopy className="text-sm" />
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {displayPlan.transactionReference && (
-                <div className="flex justify-between">
-                  <span className="text-white/60 text-sm">Transaction Reference</span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-white text-sm">{displayPlan.transactionReference}</span>
-                    <button 
-                      onClick={() => copyToClipboard(displayPlan.transactionReference || "")}
-                      className="text-white/50 hover:text-[#D4B139] transition-colors"
-                    >
-                      <FiCopy className="text-sm" />
-                    </button>
-                  </div>
-                </div>
-              )}
-              
-              <div className="flex justify-between">
-                <span className="text-white/60 text-sm">Start Date</span>
-                <span className="text-white text-sm">{displayPlan.startDate}</span>
-              </div>
-              
-              <div className="flex justify-between">
-                <span className="text-white/60 text-sm">Maturity Date</span>
-                <span className="text-white text-sm">{displayPlan.endDate}</span>
               </div>
 
-              {displayPlan.fixedDepositId && (
-                <div className="flex justify-between">
-                  <span className="text-white/60 text-sm">Fixed Deposit ID</span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-white text-sm">{displayPlan.fixedDepositId.slice(-12).toUpperCase()}</span>
-                    <button 
-                      onClick={() => copyToClipboard(displayPlan.fixedDepositId || "")}
-                      className="text-white/50 hover:text-[#D4B139] transition-colors"
-                    >
-                      <FiCopy className="text-sm" />
-                    </button>
+              {/* Details */}
+              <div className="space-y-4">
+                <h3 className="text-white font-medium">
+                  {displayPlan.type === "investment" ? "Investment Details" : "Fixed Deposit Details"}
+                </h3>
+                
+                <div className="space-y-3">
+                  {displayPlan.investmentId && (
+                    <div className="flex justify-between">
+                      <span className="text-white/60 text-sm">Investment ID</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-white text-sm">{displayPlan.investmentId.slice(-12).toUpperCase()}</span>
+                        <button 
+                          onClick={() => copyToClipboard(displayPlan.investmentId || "")}
+                          className="text-white/50 hover:text-[#D4B139] transition-colors"
+                        >
+                          <FiCopy className="text-sm" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {displayPlan.agreementReference && (
+                    <div className="flex justify-between">
+                      <span className="text-white/60 text-sm">Agreement Reference</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-white text-sm">{displayPlan.agreementReference}</span>
+                        <button 
+                          onClick={() => copyToClipboard(displayPlan.agreementReference || "")}
+                          className="text-white/50 hover:text-[#D4B139] transition-colors"
+                        >
+                          <FiCopy className="text-sm" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {displayPlan.transactionReference && (
+                    <div className="flex justify-between">
+                      <span className="text-white/60 text-sm">Transaction Reference</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-white text-sm">{displayPlan.transactionReference}</span>
+                        <button 
+                          onClick={() => copyToClipboard(displayPlan.transactionReference || "")}
+                          className="text-white/50 hover:text-[#D4B139] transition-colors"
+                        >
+                          <FiCopy className="text-sm" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="flex justify-between">
+                    <span className="text-white/60 text-sm">Start Date</span>
+                    <span className="text-white text-sm">{displayPlan.startDate}</span>
                   </div>
-                </div>
-              )}
+                  
+                  <div className="flex justify-between">
+                    <span className="text-white/60 text-sm">Maturity Date</span>
+                    <span className="text-white text-sm">{displayPlan.endDate}</span>
+                  </div>
 
-              {investment?.legalDocumentUrl && (
-                <div className="flex justify-between">
-                  <span className="text-white/60 text-sm">Agreement Document</span>
-                  <a
-                    href={investment.legalDocumentUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[#D4B139] hover:underline text-sm flex items-center gap-1"
-                  >
-                    View Document
-                    <FiExternalLink className="text-xs" />
-                  </a>
-                </div>
-              )}
+                  {displayPlan.fixedDepositId && (
+                    <div className="flex justify-between">
+                      <span className="text-white/60 text-sm">Fixed Deposit ID</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-white text-sm">{displayPlan.fixedDepositId.slice(-12).toUpperCase()}</span>
+                        <button 
+                          onClick={() => copyToClipboard(displayPlan.fixedDepositId || "")}
+                          className="text-white/50 hover:text-[#D4B139] transition-colors"
+                        >
+                          <FiCopy className="text-sm" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
 
-              {investment?.expectedReturn && (
-                <div className="flex justify-between">
-                  <span className="text-white/60 text-sm">Expected Return</span>
-                  <span className="text-white text-sm">{formatCurrency(investment.expectedReturn)}</span>
-                </div>
-              )}
+                  {investment?.legalDocumentUrl && (
+                    <div className="flex justify-between">
+                      <span className="text-white/60 text-sm">Agreement Document</span>
+                      <a
+                        href={investment.legalDocumentUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[#D4B139] hover:underline text-sm flex items-center gap-1"
+                      >
+                        View Document
+                        <FiExternalLink className="text-xs" />
+                      </a>
+                    </div>
+                  )}
+
+                  {investment?.expectedReturn && (
+                    <div className="flex justify-between">
+                      <span className="text-white/60 text-sm">Expected Return</span>
+                      <span className="text-white text-sm">{formatCurrency(investment.expectedReturn)}</span>
+                    </div>
+                  )}
 
 
-              {fixedDeposit?.durationMonths && (
-                <div className="flex justify-between">
-                  <span className="text-white/60 text-sm">Duration</span>
-                  <span className="text-white text-sm">{fixedDeposit.durationMonths} {fixedDeposit.durationMonths === 1 ? 'month' : 'months'}</span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Timeline */}
-          <div className="space-y-4">
-            <h3 className="text-white font-medium">Timeline</h3>
-            <div className="space-y-3">
-              <div className="flex items-start gap-3">
-                <div className="w-2 h-2 rounded-full bg-[#D4B139] mt-1.5"></div>
-                <div className="flex-1">
-                  <p className="text-white text-sm font-medium">
-                    {displayPlan.type === "investment" ? "Investment Started" : "Fixed Deposit Started"}
-                  </p>
-                  <p className="text-white/60 text-xs">{displayPlan.startDate}</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className={`w-2 h-2 rounded-full mt-1.5 ${isMatured ? 'bg-emerald-400' : 'bg-white/30'}`}></div>
-                <div className="flex-1">
-                  <p className="text-white text-sm font-medium">Maturity Date</p>
-                  <p className="text-white/60 text-xs">{displayPlan.endDate}</p>
-                  {isMatured && displayPlan.status === "PAID_OUT" && (
-                    <p className="text-emerald-400 text-xs mt-1">✓ Paid Out</p>
+                  {fixedDeposit?.durationMonths && (
+                    <div className="flex justify-between">
+                      <span className="text-white/60 text-sm">Duration</span>
+                      <span className="text-white text-sm">{fixedDeposit.durationMonths} {fixedDeposit.durationMonths === 1 ? 'month' : 'months'}</span>
+                    </div>
                   )}
                 </div>
               </div>
-            </div>
-          </div>
 
-          {/* Actions */}
-          <div className="pt-2">
-            {showEarlyWithdrawStep ? (
+              {/* Timeline */}
+              <div className="space-y-4">
+                <h3 className="text-white font-medium">Timeline</h3>
+                <div className="space-y-3">
+                  <div className="flex items-start gap-3">
+                    <div className="w-2 h-2 rounded-full bg-[#D4B139] mt-1.5"></div>
+                    <div className="flex-1">
+                      <p className="text-white text-sm font-medium">
+                        {displayPlan.type === "investment" ? "Investment Started" : "Fixed Deposit Started"}
+                      </p>
+                      <p className="text-white/60 text-xs">{displayPlan.startDate}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className={`w-2 h-2 rounded-full mt-1.5 ${isMatured ? 'bg-emerald-400' : 'bg-white/30'}`}></div>
+                    <div className="flex-1">
+                      <p className="text-white text-sm font-medium">Maturity Date</p>
+                      <p className="text-white/60 text-xs">{displayPlan.endDate}</p>
+                      {isMatured && displayPlan.status === "PAID_OUT" && (
+                        <p className="text-emerald-400 text-xs mt-1">✓ Paid Out</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="pt-2">
+                {showEarlyWithdrawStep ? (
                   <div className="space-y-4">
                     <div className="bg-bg-500 dark:bg-bg-900 p-4 rounded-lg">
                       <h4 className="text-white font-medium mb-2">Early Withdrawal</h4>

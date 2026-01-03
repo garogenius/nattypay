@@ -353,13 +353,24 @@ const extractCosePublicKey = (attestation: AuthenticatorAttestationResponse): Ar
   }
 
   try {
+    // Extract the COSE key bytes from authData
+    // This function validates that we're extracting a complete CBOR-encoded map
     const coseKeyBytes = extractCoseKeyFromAuthData(authData);
+    
     // Create a new ArrayBuffer (not SharedArrayBuffer) and copy the data
+    // This ensures we have a clean, independent buffer for the COSE key
     const buffer = new ArrayBuffer(coseKeyBytes.byteLength);
     new Uint8Array(buffer).set(coseKeyBytes);
+    
+    // Note: Full validation of COSE key structure happens in convertCoseToPem()
+    // where we decode and validate all required fields (kty, alg, crv, x, y)
+    
     return buffer;
   } catch (error: any) {
-    throw new Error(`Failed to extract COSE key from authData: ${error.message}`);
+    throw new Error(
+      `Failed to extract COSE key from authData: ${error.message}. ` +
+      `This usually indicates the attestationObject or authData is malformed.`
+    );
   }
 };
 
@@ -382,29 +393,147 @@ const convertCoseToPem = (coseKeyBuffer: ArrayBuffer): string => {
   }
 
   // Decode CBOR to get COSE key object
+  // CRITICAL: Do NOT JSON-stringify or cast buffers before decoding
   let coseKey: any;
   try {
     coseKey = cborDecodeFirst(coseKeyBuffer);
   } catch (error: any) {
-    throw new Error(`Failed to decode COSE key CBOR: ${error.message}`);
+    throw new Error(
+      `Failed to decode COSE key CBOR: ${error.message}. ` +
+      `Buffer length: ${coseKeyBuffer.byteLength} bytes`
+    );
   }
 
-  // Validate that we got an object
-  if (!coseKey || typeof coseKey !== "object" || Array.isArray(coseKey)) {
-    throw new Error(`Invalid COSE key structure: expected object, got ${Array.isArray(coseKey) ? "array" : typeof coseKey}`);
+  // Debug: Log what we got (in development only)
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[WebAuthn] COSE key decoded:', {
+      type: typeof coseKey,
+      isArray: Array.isArray(coseKey),
+      isMap: coseKey instanceof Map,
+      keys: coseKey instanceof Map ? Array.from(coseKey.keys()) : Object.keys(coseKey || {}),
+      bufferLength: coseKeyBuffer.byteLength
+    });
   }
 
-  // Try multiple ways to access COSE key fields
-  // COSE uses integer keys: 1 (kty), 3 (alg), -1 (crv), -2 (x), -3 (y)
-  // CBOR decoder may store them as strings or numbers
-  const kty = coseKey[1] ?? coseKey["1"] ?? coseKey[String(1)];
-  const alg = coseKey[3] ?? coseKey["3"] ?? coseKey[String(3)];
-  const crv = coseKey[-1] ?? coseKey["-1"] ?? coseKey[String(-1)];
-  const x = coseKey[-2] ?? coseKey["-2"] ?? coseKey[String(-2)];
-  const y = coseKey[-3] ?? coseKey["-3"] ?? coseKey[String(-3)];
+  // Handle Map objects (some CBOR decoders return Maps)
+  if (coseKey instanceof Map) {
+    const mapObj: any = {};
+    coseKey.forEach((value, key) => {
+      // Store with both numeric and string keys for compatibility
+      if (typeof key === "number") {
+        mapObj[key] = value;
+        mapObj[String(key)] = value;
+        // For negative keys, also store as explicit negative string
+        if (key < 0) {
+          mapObj[String(key)] = value;
+        }
+      } else {
+        mapObj[String(key)] = value;
+      }
+    });
+    coseKey = mapObj;
+  }
 
-  // Enhanced debugging: Check all possible key formats
-  if (kty === undefined) {
+  // CRITICAL: Validate that we got an object (COSE keys MUST be maps/objects)
+  if (coseKey === null || coseKey === undefined) {
+    throw new Error(
+      `Invalid COSE key structure: decoded value is null or undefined. ` +
+      `Buffer length: ${coseKeyBuffer.byteLength} bytes. ` +
+      `This indicates the credentialPublicKey is missing or corrupted.`
+    );
+  }
+
+  if (typeof coseKey === "number") {
+    throw new Error(
+      `Invalid COSE key structure: CBOR decoder returned a number (${coseKey}) instead of a map. ` +
+      `This usually means the buffer contains a single integer, not a COSE key map. ` +
+      `Buffer length: ${coseKeyBuffer.byteLength} bytes. ` +
+      `The credentialPublicKey must be a CBOR-encoded map, not a primitive value.`
+    );
+  }
+
+  if (typeof coseKey === "string") {
+    throw new Error(
+      `Invalid COSE key structure: CBOR decoder returned a string instead of a map. ` +
+      `Buffer length: ${coseKeyBuffer.byteLength} bytes. ` +
+      `The credentialPublicKey must be a CBOR-encoded map, not a string.`
+    );
+  }
+
+  if (Array.isArray(coseKey)) {
+    throw new Error(
+      `Invalid COSE key structure: CBOR decoder returned an array instead of a map. ` +
+      `Buffer length: ${coseKeyBuffer.byteLength} bytes. ` +
+      `The credentialPublicKey must be a CBOR-encoded map (object), not an array.`
+    );
+  }
+
+  if (typeof coseKey !== "object") {
+    const actualType = typeof coseKey;
+    const actualValue = String(coseKey).substring(0, 100);
+    throw new Error(
+      `Invalid COSE key structure: expected object (map), got ${actualType}. ` +
+      `Value: ${actualValue}. ` +
+      `Buffer length: ${coseKeyBuffer.byteLength} bytes. ` +
+      `The credentialPublicKey must be a CBOR-encoded map with COSE key fields.`
+    );
+  }
+
+  // Validate that the object has at least some keys (empty objects are invalid)
+  const keys = Object.keys(coseKey);
+  if (keys.length === 0) {
+    throw new Error(
+      `Invalid COSE key structure: decoded map is empty (no key-value pairs). ` +
+      `Buffer length: ${coseKeyBuffer.byteLength} bytes. ` +
+      `A valid COSE key must contain at least kty (key type) and other required fields.`
+    );
+  }
+
+  // Helper function to safely get COSE key field (handles numeric and string keys)
+  // COSE uses integer keys that may be stored as numbers or strings in the decoded object
+  const getCoseField = (key: number): any => {
+    // Try numeric key first (most common case)
+    if (key in coseKey && coseKey[key] !== undefined) {
+      return coseKey[key];
+    }
+    // Try string representation (e.g., "1", "-1")
+    const strKey = String(key);
+    if (strKey in coseKey && coseKey[strKey] !== undefined) {
+      return coseKey[strKey];
+    }
+    // For negative keys, also try with explicit negative string format
+    if (key < 0) {
+      // Already tried String(key) above, but try again for clarity
+      const negKey = String(key);
+      if (negKey in coseKey && coseKey[negKey] !== undefined) {
+        return coseKey[negKey];
+      }
+    }
+    return undefined;
+  };
+
+  // Extract COSE key fields
+  // Required COSE fields for ES256 (P-256):
+  //   1 (kty): Key type (must be 2 for EC2)
+  //   3 (alg): Algorithm (must be -7 for ES256)
+  //  -1 (crv): Curve (must be 1 for P-256)
+  //  -2 (x): X coordinate (32 bytes for P-256)
+  //  -3 (y): Y coordinate (32 bytes for P-256)
+  const kty = getCoseField(1);
+  const alg = getCoseField(3);
+  const crv = getCoseField(-1);
+  const x = getCoseField(-2);
+  const y = getCoseField(-3);
+
+  // Validate required COSE fields are present
+  const missingFields: string[] = [];
+  if (kty === undefined) missingFields.push("kty (1)");
+  if (alg === undefined) missingFields.push("alg (3)");
+  if (crv === undefined) missingFields.push("crv (-1)");
+  if (x === undefined) missingFields.push("x (-2)");
+  if (y === undefined) missingFields.push("y (-3)");
+
+  if (missingFields.length > 0) {
     const allKeys = Object.keys(coseKey);
     const allEntries = Object.entries(coseKey).map(([k, v]) => {
       if (v instanceof Uint8Array) {
@@ -422,12 +551,13 @@ const convertCoseToPem = (coseKeyBuffer: ArrayBuffer): string => {
     }
     
     throw new Error(
-      `Unsupported key type: undefined. Expected EC2 (2). ` +
+      `Invalid COSE key: missing required fields: ${missingFields.join(", ")}. ` +
+      `A valid COSE key for ES256 (P-256) must contain: kty (1), alg (3), crv (-1), x (-2), y (-3). ` +
       `Found keys: ${allKeys.length > 0 ? allKeys.join(", ") : "none"}. ` +
       `Numeric keys: ${numericKeys.length > 0 ? numericKeys.join(", ") : "none"}. ` +
       `Key values: ${allEntries || "none"}. ` +
-      `COSE key type: ${typeof coseKey}. ` +
-      `Buffer length: ${coseKeyBuffer.byteLength} bytes`
+      `Buffer length: ${coseKeyBuffer.byteLength} bytes. ` +
+      `This indicates the credentialPublicKey is incomplete or malformed.`
     );
   }
   
@@ -440,16 +570,21 @@ const convertCoseToPem = (coseKeyBuffer: ArrayBuffer): string => {
     );
   }
   
-  // Validate algorithm (alg = -7 means ES256)
-  if (alg !== undefined && alg !== -7) {
-    console.warn(`Warning: Expected ES256 (alg: -7), but got alg: ${alg}. Continuing anyway.`);
+  // Validate algorithm (alg = -7 means ES256 - ECDSA with SHA-256)
+  if (alg !== -7) {
+    throw new Error(
+      `Unsupported algorithm: ${alg}. Expected ES256 (-7). ` +
+      `Key type: ${kty}, Curve: ${crv}. ` +
+      `Only ES256 (ECDSA with SHA-256) is supported for P-256 curve.`
+    );
   }
   
-  // Validate curve (crv = 1 means P-256)
-  if (crv === undefined || crv !== 1) {
+  // Validate curve (crv = 1 means P-256 - NIST P-256)
+  if (crv !== 1) {
     throw new Error(
       `Unsupported curve: ${crv}. Expected P-256 (1). ` +
-      `Key type: ${kty}, Algorithm: ${alg}`
+      `Key type: ${kty}, Algorithm: ${alg}. ` +
+      `Only P-256 (NIST P-256) curve is supported.`
     );
   }
   
@@ -590,33 +725,75 @@ const extractCoseKeyFromAuthData = (authData: Uint8Array): Uint8Array => {
     );
   }
 
-  // Decode the COSE key CBOR to validate and determine its length
-  let nextOffset: number;
+  // Decode the COSE key CBOR to validate it's a map and determine its exact length
+  let coseKeyStart = offset;
+  let coseKeyEnd: number;
+  let decodedCoseKey: any;
+  
   try {
     const decoded = cborDecodeAny(authData, offset);
-    nextOffset = decoded.nextOffset;
+    coseKeyEnd = decoded.nextOffset;
+    decodedCoseKey = decoded.value;
     
-    if (nextOffset <= offset) {
-      throw new Error(`Invalid CBOR decoding: nextOffset (${nextOffset}) <= offset (${offset})`);
+    // CRITICAL: Validate that we decoded a map (COSE keys MUST be maps)
+    if (typeof decodedCoseKey !== "object" || decodedCoseKey === null || Array.isArray(decodedCoseKey)) {
+      const actualType = decodedCoseKey === null ? "null" : Array.isArray(decodedCoseKey) ? "array" : typeof decodedCoseKey;
+      throw new Error(
+        `Invalid COSE key structure: expected map (object), got ${actualType}. ` +
+        `This indicates the credentialPublicKey is not properly formatted. ` +
+        `Offset: ${offset}, Decoded value type: ${actualType}`
+      );
     }
     
-    if (nextOffset > authData.byteLength) {
+    // Validate it's actually a map (has key-value pairs, not just an empty object)
+    const keys = Object.keys(decodedCoseKey);
+    if (keys.length === 0) {
       throw new Error(
-        `CBOR decoding out of bounds: nextOffset (${nextOffset}) > length (${authData.byteLength})`
+        `Invalid COSE key: decoded map is empty. ` +
+        `This indicates the credentialPublicKey is malformed.`
+      );
+    }
+    
+    if (coseKeyEnd <= coseKeyStart) {
+      throw new Error(`Invalid CBOR decoding: nextOffset (${coseKeyEnd}) <= start offset (${coseKeyStart})`);
+    }
+    
+    if (coseKeyEnd > authData.byteLength) {
+      throw new Error(
+        `CBOR decoding out of bounds: nextOffset (${coseKeyEnd}) > authData length (${authData.byteLength})`
       );
     }
   } catch (error: any) {
     throw new Error(
-      `Failed to decode COSE key CBOR at offset ${offset}: ${error.message}. ` +
-      `Remaining bytes: ${authData.byteLength - offset}`
+      `Failed to decode COSE key CBOR from authData: ${error.message}. ` +
+      `Start offset: ${offset}, Remaining bytes: ${authData.byteLength - offset}, ` +
+      `AuthData total length: ${authData.byteLength}`
     );
   }
 
-  // Extract the COSE key bytes
-  const coseKeyBytes = authData.slice(offset, nextOffset);
+  // Extract the complete COSE key bytes (the full CBOR-encoded map)
+  const coseKeyBytes = authData.slice(coseKeyStart, coseKeyEnd);
   
   if (coseKeyBytes.length === 0) {
-    throw new Error(`Extracted COSE key is empty (offset: ${offset}, nextOffset: ${nextOffset})`);
+    throw new Error(
+      `Extracted COSE key is empty. ` +
+      `Start: ${coseKeyStart}, End: ${coseKeyEnd}, Length: ${coseKeyEnd - coseKeyStart}`
+    );
+  }
+
+  // Double-check: decode again to ensure we extracted the complete map
+  try {
+    const verifyDecode = cborDecodeFirst(coseKeyBytes.buffer);
+    if (typeof verifyDecode !== "object" || verifyDecode === null || Array.isArray(verifyDecode)) {
+      throw new Error(
+        `Extracted COSE key bytes do not decode to a map: got ${Array.isArray(verifyDecode) ? "array" : typeof verifyDecode}`
+      );
+    }
+  } catch (verifyError: any) {
+    throw new Error(
+      `Failed to verify extracted COSE key: ${verifyError.message}. ` +
+      `Extracted bytes length: ${coseKeyBytes.length}`
+    );
   }
 
   return coseKeyBytes;

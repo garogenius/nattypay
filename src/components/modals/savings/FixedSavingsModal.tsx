@@ -8,6 +8,8 @@ import CustomSelect from "@/components/CustomSelect";
 import { useCreateSavingsPlan } from "@/api/savings/savings.queries";
 import ErrorToast from "@/components/toast/ErrorToast";
 import SuccessToast from "@/components/toast/SuccessToast";
+import InsufficientBalanceModal from "@/components/modals/finance/InsufficientBalanceModal";
+import { isInsufficientBalanceError, extractBalanceInfo } from "@/utils/errorUtils";
 
 type FundingMode = "manual" | "auto";
 
@@ -31,8 +33,26 @@ const FixedSavingsModal: React.FC<FixedSavingsModalProps> = ({ isOpen, onClose }
   const [frequency, setFrequency] = React.useState<Frequency>("Monthly");
   const [topUpAmount, setTopUpAmount] = React.useState("");
   const [selectedWalletIndex, setSelectedWalletIndex] = React.useState(0);
+  const [showInsufficientBalanceModal, setShowInsufficientBalanceModal] = React.useState(false);
+  const [balanceInfo, setBalanceInfo] = React.useState<{ requiredAmount?: number; currentBalance?: number }>({});
 
   const onError = (error: any) => {
+    // Check if it's an insufficient balance error
+    if (isInsufficientBalanceError(error)) {
+      const info = extractBalanceInfo(error);
+      // If we don't have balance info from error, use the wallet balance
+      if (!info.currentBalance && wallets[selectedWalletIndex]) {
+        info.currentBalance = wallets[selectedWalletIndex].balance || 0;
+      }
+      // If we don't have required amount, use the goal amount
+      if (!info.requiredAmount && amount) {
+        info.requiredAmount = Number(amount);
+      }
+      setBalanceInfo(info);
+      setShowInsufficientBalanceModal(true);
+      return;
+    }
+
     const errorMessage = error?.response?.data?.message;
     const descriptions = Array.isArray(errorMessage)
       ? errorMessage
@@ -85,19 +105,18 @@ const FixedSavingsModal: React.FC<FixedSavingsModalProps> = ({ isOpen, onClose }
       return;
     }
 
-    // NATTY_AUTO_SAVE requires minimum ₦100,000
-    if (Number(amount) < 100000) {
-      ErrorToast({
-        title: "Validation Error",
-        descriptions: ["NATTY_AUTO_SAVE requires a minimum of ₦100,000"],
-      });
-      return;
-    }
-
     if (mode === "manual" && (!startDate || !endDate)) {
       ErrorToast({
         title: "Validation Error",
         descriptions: ["Start date and end date are required for manual plans"],
+      });
+      return;
+    }
+
+    if (!topUpAmount || Number(topUpAmount) <= 0) {
+      ErrorToast({
+        title: "Validation Error",
+        descriptions: ["Please enter a valid top-up amount"],
       });
       return;
     }
@@ -111,31 +130,24 @@ const FixedSavingsModal: React.FC<FixedSavingsModalProps> = ({ isOpen, onClose }
       return;
     }
 
-    // Calculate duration in months
-    let durationMonths: number = 6; // Default to 6 months for NATTY_AUTO_SAVE
+    // Calculate duration in days
+    let duration: number | undefined;
     if (startDate && endDate) {
       const start = new Date(startDate);
       const end = new Date(endDate);
-      const years = (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
-      durationMonths = Math.max(1, Math.min(60, Math.round(years * 12)));
-    }
-
-    // NATTY_AUTO_SAVE must be 6, 12, or 18 months
-    if (![6, 12, 18].includes(durationMonths)) {
-      // Round to nearest valid duration
-      if (durationMonths < 6) durationMonths = 6;
-      else if (durationMonths <= 9) durationMonths = 12;
-      else if (durationMonths <= 15) durationMonths = 12;
-      else durationMonths = 18;
+      duration = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
     }
 
     const payload = {
-      type: "NATTY_AUTO_SAVE" as const,
       name: name.trim(),
-      description: `Fixed savings plan for ${name.trim()}`,
-      goalAmount: Number(amount),
-      currency: selectedWallet.currency || "NGN",
-      durationMonths,
+      planType: "NATTY_AUTO_SAVE" as const,
+      duration,
+      startDate: startDate || undefined,
+      endDate: endDate || undefined,
+      frequency: mode === "auto" ? frequency : undefined,
+      topUpAmount: Number(topUpAmount),
+      walletId: selectedWallet.id,
+      isAutoSave: mode === "auto",
     };
 
     createPlan(payload);
@@ -301,6 +313,14 @@ const FixedSavingsModal: React.FC<FixedSavingsModalProps> = ({ isOpen, onClose }
           )}
         </div>
       </div>
+
+      {/* Insufficient Balance Modal */}
+      <InsufficientBalanceModal
+        isOpen={showInsufficientBalanceModal}
+        onClose={() => setShowInsufficientBalanceModal(false)}
+        requiredAmount={balanceInfo.requiredAmount}
+        currentBalance={balanceInfo.currentBalance}
+      />
     </div>
   );
 };

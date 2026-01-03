@@ -86,7 +86,6 @@ const Navbar = () => {
           <div className="hidden md:flex justify-between items-center w-[95%] lg:w-[90%]">
             <div className="flex items-center gap-6">
               <div className="bg-transparent flex items-center gap-2">
-                <span className="text-text-200 dark:text-text-400 font-medium text-sm">CBN</span>
                 <Image
                   onClick={() => navigate("/")}
                   src={images.logo2}
@@ -162,7 +161,6 @@ const Navbar = () => {
           {/* Mobile Navigation */}
           <div className="md:hidden flex justify-between items-center w-[95%]">
             <div className="flex items-center gap-2">
-              <span className="text-text-200 dark:text-text-400 font-medium text-sm">CBN</span>
               <Image
                 onClick={() => navigate("/")}
                 src={images.logo2}

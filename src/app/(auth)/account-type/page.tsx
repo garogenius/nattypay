@@ -10,7 +10,7 @@ const AccountTypePage = () => {
       {/* Left Panel - Yellow/Gold Background */}
       <div className="hidden lg:flex lg:w-[40%] bg-[#D4B139] relative items-center justify-center">
         <div className="w-full h-full flex flex-col items-center justify-center px-8 py-12">
-          {/* Illustration */}
+          {/* Illustration - Account Type Selection */}
           <div className="w-full max-w-md mb-8 flex items-center justify-center">
             <div className="w-64 h-64 bg-white/20 rounded-full flex items-center justify-center">
               <svg
@@ -23,14 +23,14 @@ const AccountTypePage = () => {
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
-                  d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
                 />
               </svg>
             </div>
           </div>
-          <h1 className="text-4xl font-bold text-white mb-4">Savings</h1>
+          <h1 className="text-4xl font-bold text-white mb-4">Choose Account Type</h1>
           <p className="text-lg text-white/90 text-center max-w-md">
-            Set targets for your savings and get high interests when you meet your targets
+            Select the account type that best fits your needs - personal or business. Get started with the right account for you.
           </p>
         </div>
       </div>
@@ -41,11 +41,11 @@ const AccountTypePage = () => {
           {/* Logo - NattyPay Logo */}
           <div className="flex justify-center mb-8">
             <Image
-              src={images.logo2}
+              src={images.singleLogo}
               alt="NattyPay Logo"
-              width={150}
+              width={120}
               height={60}
-              className="h-12 w-auto"
+              className="w-24 sm:w-28 md:w-32 h-auto object-contain"
               priority
             />
           </div>
@@ -72,7 +72,7 @@ const AccountTypePage = () => {
           {/* Footer */}
           <div className="text-center text-xs text-gray-500 mt-8">
             <p className="flex items-center justify-center gap-2 flex-wrap">
-              <span>Licenced by</span>
+              <span>Licenced by CBN</span>
               <Image
                 src={images.cbnLogo}
                 alt="CBN Logo"

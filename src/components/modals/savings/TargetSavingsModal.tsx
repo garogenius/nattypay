@@ -8,6 +8,8 @@ import CustomSelect from "@/components/CustomSelect";
 import { useCreateSavingsPlan } from "@/api/savings/savings.queries";
 import ErrorToast from "@/components/toast/ErrorToast";
 import SuccessToast from "@/components/toast/SuccessToast";
+import InsufficientBalanceModal from "@/components/modals/finance/InsufficientBalanceModal";
+import { isInsufficientBalanceError, extractBalanceInfo } from "@/utils/errorUtils";
 
 type FundingMode = "manual" | "auto";
 
@@ -31,8 +33,26 @@ const TargetSavingsModal: React.FC<TargetSavingsModalProps> = ({ isOpen, onClose
   const [frequency, setFrequency] = React.useState<Frequency>("Monthly");
   const [topUpAmount, setTopUpAmount] = React.useState("");
   const [selectedWalletIndex, setSelectedWalletIndex] = React.useState(0);
+  const [showInsufficientBalanceModal, setShowInsufficientBalanceModal] = React.useState(false);
+  const [balanceInfo, setBalanceInfo] = React.useState<{ requiredAmount?: number; currentBalance?: number }>({});
 
   const onError = (error: any) => {
+    // Check if it's an insufficient balance error
+    if (isInsufficientBalanceError(error)) {
+      const info = extractBalanceInfo(error);
+      // If we don't have balance info from error, use the wallet balance
+      if (!info.currentBalance && wallets[selectedWalletIndex]) {
+        info.currentBalance = wallets[selectedWalletIndex].balance || 0;
+      }
+      // If we don't have required amount, use the goal amount
+      if (!info.requiredAmount && amount) {
+        info.requiredAmount = Number(amount);
+      }
+      setBalanceInfo(info);
+      setShowInsufficientBalanceModal(true);
+      return;
+    }
+
     const errorMessage = error?.response?.data?.message;
     const descriptions = Array.isArray(errorMessage)
       ? errorMessage
@@ -111,7 +131,7 @@ const TargetSavingsModal: React.FC<TargetSavingsModalProps> = ({ isOpen, onClose
     }
 
     // Calculate duration in months
-    let durationMonths: number = 12; // Default to 12 months
+    let durationMonths: number = mode === "auto" ? 6 : 12; // Default to 6 months for auto, 12 for manual
     if (startDate && endDate) {
       const start = new Date(startDate);
       const end = new Date(endDate);
@@ -119,8 +139,30 @@ const TargetSavingsModal: React.FC<TargetSavingsModalProps> = ({ isOpen, onClose
       durationMonths = Math.max(1, Math.min(60, Math.round(years * 12)));
     }
 
+    // NATTY_AUTO_SAVE must be 6, 12, or 18 months
+    if (mode === "auto" && ![6, 12, 18].includes(durationMonths)) {
+      // Round to nearest valid duration
+      if (durationMonths < 6) durationMonths = 6;
+      else if (durationMonths <= 9) durationMonths = 6;
+      else if (durationMonths <= 15) durationMonths = 12;
+      else durationMonths = 18;
+    }
+
+    // Determine plan type based on mode
+    // NATTY_AUTO_SAVE for auto mode, FLEX_SAVE for manual mode
+    const planType = mode === "auto" ? "NATTY_AUTO_SAVE" : "FLEX_SAVE";
+
+    // NATTY_AUTO_SAVE requires minimum ₦100,000
+    if (planType === "NATTY_AUTO_SAVE" && Number(amount) < 100000) {
+      ErrorToast({
+        title: "Validation Error",
+        descriptions: ["NATTY_AUTO_SAVE requires a minimum goal amount of ₦100,000"],
+      });
+      return;
+    }
+
     const payload = {
-      type: "FLEX_SAVE" as const,
+      type: planType as "FLEX_SAVE" | "NATTY_AUTO_SAVE",
       name: name.trim(),
       description: `Target savings plan for ${name.trim()}`,
       goalAmount: Number(amount),
@@ -294,6 +336,14 @@ const TargetSavingsModal: React.FC<TargetSavingsModalProps> = ({ isOpen, onClose
           )}
         </div>
       </div>
+
+      {/* Insufficient Balance Modal */}
+      <InsufficientBalanceModal
+        isOpen={showInsufficientBalanceModal}
+        onClose={() => setShowInsufficientBalanceModal(false)}
+        requiredAmount={balanceInfo.requiredAmount}
+        currentBalance={balanceInfo.currentBalance}
+      />
     </div>
   );
 };

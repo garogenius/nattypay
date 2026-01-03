@@ -161,18 +161,36 @@ const AirtimeModal: React.FC<AirtimeModalProps> = ({ isOpen, onClose }) => {
     // Format phone number to local format: ensure 11 digits with leading 0
     // e.g., 07043742886 -> 07043742886 (keep as is)
     // e.g., 7043742886 -> 07043742886 (add leading 0)
-    const cleaned = formData.phone.replace(/\D/g, "");
+    // e.g., 2347043742886 -> 07043742886 (remove country code, add leading 0)
+    // e.g., +2347043742886 -> 07043742886 (remove + and country code, add leading 0)
+    let cleaned = formData.phone.replace(/\D/g, "");
     let phoneForPayment = cleaned;
     
-    // If phone is 10 digits (without leading 0), add leading 0
-    if (cleaned.length === 10) {
+    // Remove country code if present (234 or +234)
+    if (cleaned.startsWith("234") && (cleaned.length === 13 || cleaned.length === 14)) {
+      // Remove 234 prefix and add leading 0
+      const withoutCountryCode = cleaned.slice(3);
+      phoneForPayment = `0${withoutCountryCode}`;
+    } else if (cleaned.length === 10) {
+      // If phone is 10 digits (without leading 0), add leading 0
       phoneForPayment = `0${cleaned}`;
     } else if (cleaned.length === 11 && !cleaned.startsWith("0")) {
-      // If 11 digits but doesn't start with 0, ensure it does
+      // If 11 digits but doesn't start with 0, replace first digit with 0
       phoneForPayment = `0${cleaned.slice(1)}`;
     } else if (cleaned.length === 11 && cleaned.startsWith("0")) {
       // Already in correct format (11 digits with leading 0)
       phoneForPayment = cleaned;
+    } else if (cleaned.length > 11) {
+      // If longer than 11, might have country code - extract last 10 digits and add 0
+      const last10 = cleaned.slice(-10);
+      phoneForPayment = `0${last10}`;
+    }
+    
+    // Ensure final format is exactly 11 digits starting with 0
+    if (phoneForPayment.length !== 11 || !phoneForPayment.startsWith("0")) {
+      // Fallback: take last 10 digits and add leading 0
+      const last10 = cleaned.slice(-10);
+      phoneForPayment = `0${last10}`;
     }
     
     PayForAirtime({

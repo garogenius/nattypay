@@ -46,7 +46,7 @@ export default function RootLayout({
                     fontSize: 15,
                     fontWeight: 400,
                   },
-                  duration: 100,
+                  duration: 10000,
                 }}
               />
               <NextTopLoader color="#D4B139" showSpinner={false} />

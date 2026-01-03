@@ -9,6 +9,7 @@ import { useVerifyWalletPin } from "@/api/user/user.queries";
 import ErrorToast from "@/components/toast/ErrorToast";
 import SuccessToast from "@/components/toast/SuccessToast";
 import CustomButton from "@/components/shared/Button";
+import InsufficientBalanceModal from "@/components/modals/finance/InsufficientBalanceModal";
 import type { FixedDepositPlan, FixedDepositPlanType } from "@/api/fixed-deposits/fixed-deposits.types";
 
 interface FixedDepositModalProps {
@@ -31,6 +32,7 @@ const FixedDepositModal: React.FC<FixedDepositModalProps> = ({ isOpen, onClose }
   const [walletPin, setWalletPin] = useState("");
   const [transactionResult, setTransactionResult] = useState<unknown>(null);
   const [selectedWalletId, setSelectedWalletId] = useState<string | null>(ngnWallet?.id || null);
+  const [showInsufficientBalanceModal, setShowInsufficientBalanceModal] = useState(false);
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseFloat(e.target.value.replace(/[^0-9.]/g, '')) || 0;
@@ -132,10 +134,7 @@ const FixedDepositModal: React.FC<FixedDepositModalProps> = ({ isOpen, onClose }
     }
 
     if (Number(amount) > Number(selectedWallet.balance || 0)) {
-      ErrorToast({
-        title: "Insufficient Balance",
-        descriptions: ["You don't have enough NGN balance to create this fixed deposit"],
-      });
+      setShowInsufficientBalanceModal(true);
       return;
     }
 
@@ -192,10 +191,10 @@ const FixedDepositModal: React.FC<FixedDepositModalProps> = ({ isOpen, onClose }
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-x-hidden">
       <div className="absolute inset-0 bg-black/80" onClick={onClose} />
       
-      <div className="relative w-full max-w-md bg-bg-600 dark:bg-bg-1100 border border-border-800 dark:border-border-700 rounded-2xl p-6 z-10">
+      <div className="relative w-full max-w-md bg-bg-600 dark:bg-bg-1100 border border-border-800 dark:border-border-700 rounded-2xl p-4 sm:p-6 z-10 overflow-x-hidden">
         <button 
           onClick={onClose} 
           className="absolute top-4 right-4 p-1.5 hover:bg-white/10 rounded-full transition-colors"
@@ -260,7 +259,7 @@ const FixedDepositModal: React.FC<FixedDepositModalProps> = ({ isOpen, onClose }
             
             <div className="space-y-6">
               <div>
-                <label className="block text-sm font-medium text-white/70 mb-2">
+                <label className="block text-sm font-medium text-white/70 mb-2 break-words">
                   Amount to Deposit {minDeposit ? `(Minimum ₦${Number(minDeposit).toLocaleString()})` : ""}
                 </label>
                 <div className="relative">
@@ -272,12 +271,12 @@ const FixedDepositModal: React.FC<FixedDepositModalProps> = ({ isOpen, onClose }
                     className="w-full bg-bg-500 dark:bg-bg-1000 border border-border-700 dark:border-border-600 rounded-lg py-3 pl-8 pr-4 text-white focus:outline-none focus:ring-2 focus:ring-[#D4B139] focus:border-transparent"
                   />
                 </div>
-                <div className="flex items-center justify-between mt-2">
+                <div className="flex items-center justify-between mt-2 gap-1.5 sm:gap-2 flex-wrap">
                   {[50000, 100000, 200000, 500000].map((value) => (
                     <button
                       key={value}
                       onClick={() => setAmount(value)}
-                      className={`px-3 py-1 text-xs rounded-full ${
+                      className={`px-2 sm:px-3 py-1 text-[10px] sm:text-xs rounded-full whitespace-nowrap ${
                         amount === value
                           ? 'bg-[#D4B139] text-black'
                           : 'bg-bg-500 dark:bg-bg-900 text-white/70 hover:bg-white/10'
@@ -466,6 +465,14 @@ const FixedDepositModal: React.FC<FixedDepositModalProps> = ({ isOpen, onClose }
           </div>
         )}
       </div>
+
+      {/* Insufficient Balance Modal */}
+      <InsufficientBalanceModal
+        isOpen={showInsufficientBalanceModal}
+        onClose={() => setShowInsufficientBalanceModal(false)}
+        requiredAmount={amount}
+        currentBalance={selectedWalletId ? wallets.find(w => w.id === selectedWalletId)?.balance : ngnWallet?.balance}
+      />
     </div>
   );
 };

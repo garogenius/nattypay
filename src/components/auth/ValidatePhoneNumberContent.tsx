@@ -295,7 +295,7 @@ const ValidatePhoneNumberContent = () => {
             <div className="text-center text-xs text-gray-500 mt-8">
               <p>
                 <span className="flex items-center justify-center gap-2 flex-wrap">
-                  <span>Licenced by</span>
+                  <span>Licenced by CBN</span>
                   <Image
                     src={images.cbnLogo}
                     alt="CBN Logo"
@@ -303,7 +303,6 @@ const ValidatePhoneNumberContent = () => {
                     height={20}
                     className="h-5 w-auto object-contain"
                   />
-                  <span className="inline-block w-3 h-3 bg-green-500 rounded-full"></span>
                   <span>Deposits Insured by</span>
                 <span className="text-blue-600 underline">NDIC</span>
                 </span>

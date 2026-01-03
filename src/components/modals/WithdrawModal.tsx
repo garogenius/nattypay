@@ -11,6 +11,8 @@ import { formatNumberWithCommas } from "@/utils/utilityFunctions";
 import SearchableDropdown from "@/components/shared/SearchableDropdown";
 import { FiCheckCircle } from "react-icons/fi";
 import PinInputWithFingerprint from "@/components/shared/PinInputWithFingerprint";
+import InsufficientBalanceModal from "@/components/modals/finance/InsufficientBalanceModal";
+import { isInsufficientBalanceError, extractBalanceInfo } from "@/utils/errorUtils";
 
 interface WithdrawModalProps {
   isOpen: boolean;
@@ -31,6 +33,8 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose }) => {
   const [sessionId, setSessionId] = useState("");
   const [amount, setAmount] = useState<string>("");
   const [pin, setPin] = useState("");
+  const [showInsufficientBalanceModal, setShowInsufficientBalanceModal] = useState(false);
+  const [balanceInfo, setBalanceInfo] = useState<{ requiredAmount?: number; currentBalance?: number }>({});
 
   const canNextAccount = useMemo(() => {
     const n = Number(amount.replace(/,/g, "")) || 0;
@@ -222,7 +226,27 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose }) => {
                   type="button"
                   disabled={!pin || !(Number(amount.replace(/,/g,""))>0)}
                   className="w-full bg-[#D4B139] hover:bg-[#c7a42f] text-black py-3.5 rounded-xl"
-                  onClick={onClose}
+                  onClick={() => {
+                    // TODO: Implement withdraw API call here
+                    // When implementing, add error handling like this:
+                    // const onError = (error: any) => {
+                    //   if (isInsufficientBalanceError(error)) {
+                    //     const info = extractBalanceInfo(error);
+                    //     const ngnWallet = user?.wallet?.find((w) => w.currency?.toLowerCase() === 'ngn');
+                    //     if (!info.currentBalance && ngnWallet) {
+                    //       info.currentBalance = ngnWallet.balance || 0;
+                    //     }
+                    //     if (!info.requiredAmount) {
+                    //       info.requiredAmount = Number(amount.replace(/,/g, ""));
+                    //     }
+                    //     setBalanceInfo(info);
+                    //     setShowInsufficientBalanceModal(true);
+                    //     return;
+                    //   }
+                    //   // Handle other errors
+                    // };
+                    onClose();
+                  }}
                 >
                   Pay
                 </CustomButton>
@@ -231,6 +255,17 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ isOpen, onClose }) => {
           )}
         </div>
       </div>
+      
+      {/* Insufficient Balance Modal */}
+      <InsufficientBalanceModal
+        isOpen={showInsufficientBalanceModal}
+        onClose={() => {
+          setShowInsufficientBalanceModal(false);
+          setStep(0);
+        }}
+        requiredAmount={balanceInfo.requiredAmount}
+        currentBalance={balanceInfo.currentBalance}
+      />
     </div>
   );
 };

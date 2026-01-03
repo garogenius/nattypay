@@ -55,9 +55,23 @@ const AccountsContent: React.FC = () => {
   const [missingInfo, setMissingInfo] = useState<"phone" | "email" | "both">("both");
   
   // Fetch specific currency account details when currency is selected
-  const { account: fetchedCurrencyAccount, isPending: fetchingAccountDetails } = useGetCurrencyAccountByCurrency(
+  const { account: fetchedCurrencyAccount, isPending: fetchingAccountDetails, isNotFound: accountNotFound } = useGetCurrencyAccountByCurrency(
     selectedCurrency !== "NGN" ? selectedCurrency : ""
   );
+
+  // Debug: Log query states
+  if (process.env.NODE_ENV === 'development' && selectedCurrency !== "NGN") {
+    console.log('Currency Account Query States:', {
+      selectedCurrency,
+      fetchingAccountDetails,
+      accountNotFound,
+      fetchedCurrencyAccount: fetchedCurrencyAccount ? {
+        accountNumber: fetchedCurrencyAccount.accountNumber,
+        accountName: fetchedCurrencyAccount.accountName,
+        bankName: fetchedCurrencyAccount.bankName,
+      } : null,
+    });
+  }
   
   // Filter cards for selected currency (including NGN)
   const currencyCards = useMemo(() => {
@@ -74,8 +88,23 @@ const AccountsContent: React.FC = () => {
       return null;
     }
     
-    // Prioritize fetched account details (more complete)
+    // If account was not found (404), return null
+    if (accountNotFound) {
+      return null;
+    }
+    
+    // Prioritize fetched account details (already normalized by query hook)
     if (fetchedCurrencyAccount) {
+      // Debug log in development
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Fetched Currency Account:', {
+          currency: selectedCurrency,
+          account: fetchedCurrencyAccount,
+          accountNumber: fetchedCurrencyAccount.accountNumber,
+          bankName: fetchedCurrencyAccount.bankName,
+          accountName: fetchedCurrencyAccount.accountName,
+        });
+      }
       return fetchedCurrencyAccount;
     }
     
@@ -89,10 +118,12 @@ const AccountsContent: React.FC = () => {
       const selected = String(selectedCurrency).toUpperCase().trim();
       return accCurrency === selected;
     });
+    
     return found || null;
-  }, [fetchedCurrencyAccount, currencyAccounts, selectedCurrency]);
+  }, [fetchedCurrencyAccount, currencyAccounts, selectedCurrency, accountNotFound]);
 
   // Memoize account status for each currency to avoid recalculating
+  // Use currencyAccounts from API to determine which currencies have accounts
   const currencyAccountStatus = useMemo(() => {
     const status: Record<string, boolean> = {};
     
@@ -108,7 +139,8 @@ const AccountsContent: React.FC = () => {
         return walletCurrency === k.toUpperCase();
       });
       
-      // Check if account exists in list
+      // Check if account exists in the fetched accounts list from API
+      // This is the primary source of truth from GET /api/v1/currency/accounts
       const hasCurrencyAccountInList = !isNGN && Array.isArray(currencyAccounts) && currencyAccounts.length > 0 && currencyAccounts.some((acc: ICurrencyAccount) => {
         if (!acc || !acc.currency) return false;
         const accCurrency = String(acc.currency).toUpperCase().trim();
@@ -116,13 +148,14 @@ const AccountsContent: React.FC = () => {
         return accCurrency === targetCurrency;
       });
       
-      // Check if fetched account exists (for the currently selected currency)
-      const hasFetchedAccount = !isNGN && k === selectedCurrency && fetchedCurrencyAccount && fetchedCurrencyAccount.currency;
+      // Don't use fetchedCurrencyAccount for status check if it's a 404
+      // Only use it if it's actually a valid account
+      const hasFetchedAccount = !isNGN && k === selectedCurrency && fetchedCurrencyAccount && fetchedCurrencyAccount.currency && !accountNotFound;
       
       status[k] = hasWallet || hasCurrencyAccountInList || hasFetchedAccount;
     });
     return status;
-  }, [currencyAccounts, user?.wallet, currencies, selectedCurrency, fetchedCurrencyAccount]);
+  }, [currencyAccounts, user?.wallet, currencies, selectedCurrency, fetchedCurrencyAccount, accountNotFound]);
 
   // Fallback to wallet for NGN, or use currency account for others
   const activeWallet = useMemo(() => {
@@ -132,23 +165,83 @@ const AccountsContent: React.FC = () => {
     return null;
   }, [user?.wallet, selectedCurrency]);
 
+  // Get the account to use - prioritize fetched account (most up-to-date)
+  const accountToUse = selectedCurrency === "NGN" 
+    ? null 
+    : (fetchedCurrencyAccount || currencyAccount);
+  
+  // Debug: Log which account is being used
+  if (process.env.NODE_ENV === 'development' && selectedCurrency !== "NGN") {
+    console.log('Account Selection:', {
+      selectedCurrency,
+      hasFetchedAccount: !!fetchedCurrencyAccount,
+      hasCurrencyAccount: !!currencyAccount,
+      accountNotFound,
+      usingFetchedAccount: !!fetchedCurrencyAccount,
+      fetchedCurrencyAccount: fetchedCurrencyAccount ? {
+        accountNumber: fetchedCurrencyAccount.accountNumber,
+        accountName: fetchedCurrencyAccount.accountName,
+        bankName: fetchedCurrencyAccount.bankName,
+        currency: fetchedCurrencyAccount.currency,
+        balance: fetchedCurrencyAccount.balance,
+        fullObject: fetchedCurrencyAccount,
+      } : null,
+      currencyAccount: currencyAccount ? {
+        accountNumber: currencyAccount.accountNumber,
+        accountName: currencyAccount.accountName,
+        bankName: currencyAccount.bankName,
+        currency: currencyAccount.currency,
+        balance: currencyAccount.balance,
+      } : null,
+      accountToUse: accountToUse ? {
+        accountNumber: accountToUse.accountNumber,
+        accountName: accountToUse.accountName,
+        bankName: accountToUse.bankName,
+        currency: accountToUse.currency,
+        balance: accountToUse.balance,
+        fullObject: accountToUse,
+      } : null,
+    });
+  }
+  
+  // For NGN, use wallet data; for others, use currency account data (already normalized by query hook)
+  // Use nullish coalescing (??) to preserve empty strings from API, only fallback when null/undefined
   const bankName = selectedCurrency === "NGN" 
-    ? (activeWallet?.bankName || "NattyPay")
-    : (currencyAccount?.bankName || currencyAccount?.bank_name || "NattyPay");
+    ? (activeWallet?.bankName ?? "NattyPay")
+    : (accountToUse?.bankName ?? "NattyPay");
+  
   const displayName = (user?.accountType === "BUSINESS" || user?.isBusiness) && user?.businessName
     ? user.businessName
     : user?.fullname || "-";
   
+  // For non-NGN currencies, use accountName from API (already normalized in query hook)
+  // Preserve exact API values - only use fallback when value is null/undefined
   const accountName = selectedCurrency === "NGN"
-    ? (activeWallet?.accountName || displayName)
-    : (currencyAccount?.label || currencyAccount?.accountName || currencyAccount?.account_name || displayName);
+    ? (activeWallet?.accountName ?? displayName)
+    : (accountToUse?.accountName ?? displayName);
+  
   const cardHolderOnly = (accountName || "").split("/").pop()?.trim() || accountName;
+  
+  // Use normalized accountNumber from query hook - preserve exact API values
   const accountNumber = selectedCurrency === "NGN"
-    ? (activeWallet?.accountNumber || "-")
-    : (currencyAccount?.accountNumber || currencyAccount?.account_number || "-");
+    ? (activeWallet?.accountNumber ?? "-")
+    : (accountToUse?.accountNumber ?? "-");
+  
+  // Debug: Log final values being displayed
+  if (process.env.NODE_ENV === 'development' && selectedCurrency !== "NGN") {
+    console.log('Final Display Values:', {
+      bankName,
+      accountName,
+      accountNumber,
+      accountToUseBankName: accountToUse?.bankName,
+      accountToUseAccountName: accountToUse?.accountName,
+      accountToUseAccountNumber: accountToUse?.accountNumber,
+    });
+  }
+  
   const balance = selectedCurrency === "NGN"
     ? (activeWallet?.balance || 0)
-    : (currencyAccount?.balance || 0);
+    : (accountToUse?.balance || 0);
   const tier = user?.tierLevel ? `Tier ${user.tierLevel === "one" ? "1" : user.tierLevel === "two" ? "2" : user.tierLevel === "three" ? "3" : "1"}` : "Tier 1";
 
   const onCreateAccountError = (error: any) => {
@@ -392,82 +485,81 @@ const AccountsContent: React.FC = () => {
   return (
     <div className="flex flex-col gap-6 pb-10">
       {/* Header + Currency Switcher */}
-      <div className="w-full flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-        <div className="w-full">
+      <div className="w-full flex flex-col gap-3">
+        <div className="w-full flex flex-row items-center justify-between gap-3">
           <h1 className="text-white text-2xl font-semibold">Accounts</h1>
-          <p className="text-white/60 text-sm mt-1">Manage your account settings, limits, and verification</p>
-        </div>
-        <div className="relative self-start sm:self-auto" ref={menuRef}>
-          <button
-            type="button"
-            onClick={() => setMenuOpen(v => !v)}
-            className="inline-flex items-center gap-2 rounded-lg bg-[#D4B139] text-black text-xs sm:text-sm font-semibold px-3 py-1.5 uppercase whitespace-nowrap"
-          >
-            <NextImage 
-              src={getCurrencyIconByString(selectedCurrency.toLowerCase()) || ""} 
-              alt="flag" 
-              width={16} 
-              height={16} 
-              className="w-4 h-4" 
-            />
-            <span>{selectedCurrency} Account</span>
-            <FiChevronDown className="text-black/80" />
-          </button>
-          {menuOpen && (
-            <div className="absolute right-0 mt-2 w-64 rounded-xl bg-bg-600 dark:bg-bg-2200 border border-border-800 dark:border-border-700 shadow-2xl p-2 text-white z-50">
-              {currencies.map((k) => {
-                const hasAccount = currencyAccountStatus[k] || false;
-                const isAvailable = availableCurrencies.includes(k as "NGN" | "USD");
-                
-                return (
-                  <button
-                    key={k}
-                    onClick={() => { 
-                      if (isAvailable) {
+          <div className="relative" ref={menuRef}>
+            <button
+              type="button"
+              onClick={() => setMenuOpen(v => !v)}
+              className="inline-flex items-center gap-2 rounded-lg bg-[#D4B139] text-black text-xs sm:text-sm font-semibold px-3 py-1.5 uppercase whitespace-nowrap"
+            >
+              <NextImage 
+                src={getCurrencyIconByString(selectedCurrency.toLowerCase()) || ""} 
+                alt="flag" 
+                width={16} 
+                height={16} 
+                className="w-4 h-4" 
+              />
+              <span>{selectedCurrency} Account</span>
+              <FiChevronDown className="text-black/80" />
+            </button>
+            {menuOpen && (
+              <div className="absolute right-0 mt-2 w-64 rounded-xl bg-bg-600 dark:bg-bg-2200 border border-border-800 dark:border-border-700 shadow-2xl p-2 text-white z-50">
+                {currencies.map((k) => {
+                  const hasAccount = currencyAccountStatus[k] || false;
+                  const canCreate = availableCurrencies.includes(k as "NGN" | "USD");
+                  
+                  return (
+                    <button
+                      key={k}
+                      onClick={() => { 
                         setSelectedCurrency(k); 
                         setMenuOpen(false);
-                      }
-                    }}
-                    disabled={!isAvailable}
-                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg ${
-                      isAvailable 
-                        ? `hover:bg-white/5 ${selectedCurrency === k ? "bg-white/10" : ""} cursor-pointer` 
-                        : "opacity-50 cursor-not-allowed"
-                    }`}
-                  >
-                    <NextImage 
-                      src={getCurrencyIconByString(k.toLowerCase()) || ""} 
-                      alt="flag" 
-                      width={18} 
-                      height={18} 
-                      className="w-5 h-5" 
-                    />
-                    <span className="text-sm flex-1 text-white">{k} Account</span>
-                    {!isAvailable ? (
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-500/10 text-gray-400 border border-gray-500/20">
-                        Unavailable
-                      </span>
-                    ) : hasAccount ? (
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                        View
-                      </span>
-                    ) : (
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-500/10 text-green-400 border border-green-500/20">
-                        Setup
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          )}
+                      }}
+                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5 ${selectedCurrency === k ? "bg-white/10" : ""} cursor-pointer`}
+                    >
+                      <NextImage 
+                        src={getCurrencyIconByString(k.toLowerCase()) || ""} 
+                        alt="flag" 
+                        width={18} 
+                        height={18} 
+                        className="w-5 h-5" 
+                      />
+                      <span className="text-sm flex-1 text-white">{k} Account</span>
+                      {hasAccount ? (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                          View
+                        </span>
+                      ) : (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-yellow-500/10 text-yellow-400 border border-yellow-500/20">
+                          Not Setup
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
+        <p className="text-white/60 text-sm">Manage your account settings, limits, and verification</p>
       </div>
 
       {/* Account details */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="w-full bg-bg-600 dark:bg-bg-1100 border border-white/10 rounded-2xl p-4 sm:p-5">
           <h3 className="text-white font-semibold mb-4">Account Details</h3>
+           {/* Debug: Log empty state condition */}
+           {process.env.NODE_ENV === 'development' && selectedCurrency !== "NGN" && console.log('Empty State Condition Check:', {
+             selectedCurrency,
+             accountNotFound,
+             currencyAccount: !!currencyAccount,
+             fetchedCurrencyAccount: !!fetchedCurrencyAccount,
+             accountsLoading,
+             fetchingAccountDetails,
+             conditionResult: accountNotFound || (!currencyAccount && !fetchedCurrencyAccount && !accountsLoading && !fetchingAccountDetails),
+           })}
           
           {/* Show Create Account if account doesn't exist for non-NGN currencies */}
           {/* For NGN, check if wallet exists; for others, check if currency account exists */}
@@ -480,14 +572,17 @@ const AccountsContent: React.FC = () => {
                 NGN account (wallet) not found. Please contact support.
               </p>
             </div>
-          ) : selectedCurrency !== "NGN" && !currencyAccount && !accountsLoading && !fetchingAccountDetails ? (
+          ) : selectedCurrency !== "NGN" && (accountNotFound || (!currencyAccount && !fetchedCurrencyAccount && !accountsLoading && !fetchingAccountDetails)) ? (
             <div className="flex flex-col items-center justify-center py-12 gap-4">
-              <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center">
+              <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center border border-white/10">
                 <FiPlus className="text-2xl text-white/40" />
               </div>
               {availableCurrencies.includes(selectedCurrency as "NGN" | "USD") ? (
                 <>
                   <p className="text-white/60 text-sm text-center">
+                    No {selectedCurrency} account found
+                  </p>
+                  <p className="text-white/40 text-xs text-center">
                     You don't have a {selectedCurrency} account yet
                   </p>
                   {!showCreateAccount ? (
@@ -532,11 +627,12 @@ const AccountsContent: React.FC = () => {
                 </>
               ) : (
                 <div className="text-center">
-                  <p className="text-white/60 text-sm mb-2">
-                    {selectedCurrency} account creation is not available
+                  <p className="text-white/80 text-sm font-medium mb-1">No {selectedCurrency} Account</p>
+                  <p className="text-white/60 text-xs">
+                    No {selectedCurrency} account found for this currency
                   </p>
-                  <p className="text-white/40 text-xs">
-                    Only NGN and USD accounts can be created at this time
+                  <p className="text-white/40 text-xs mt-2">
+                    {selectedCurrency} account creation is not available at this time
                   </p>
                 </div>
               )}
@@ -545,7 +641,7 @@ const AccountsContent: React.FC = () => {
             <div className="flex items-center justify-center py-12">
               <div className="w-8 h-8 border-2 border-[#D4B139] border-t-transparent rounded-full animate-spin"></div>
             </div>
-          ) : ((selectedCurrency === "NGN" && activeWallet) || (selectedCurrency !== "NGN" && currencyAccount)) ? (
+          ) : ((selectedCurrency === "NGN" && activeWallet) || (selectedCurrency !== "NGN" && !accountNotFound && (currencyAccount || fetchedCurrencyAccount))) ? (
             <React.Fragment>
               {/* Copy All Account Details Button */}
               <div className="mb-4">

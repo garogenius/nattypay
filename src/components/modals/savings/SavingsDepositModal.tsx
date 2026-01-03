@@ -117,10 +117,12 @@ const SavingsDepositModal: React.FC<SavingsDepositModalProps> = ({
     }
 
     if (Number(amount) > Number(selectedWallet.balance)) {
-      ErrorToast({
-        title: "Insufficient Balance",
-        descriptions: ["You don't have enough balance in the selected wallet"],
+      // Show insufficient balance modal instead of toast
+      setBalanceInfo({
+        requiredAmount: Number(amount),
+        currentBalance: Number(selectedWallet.balance),
       });
+      setShowInsufficientBalanceModal(true);
       return;
     }
 

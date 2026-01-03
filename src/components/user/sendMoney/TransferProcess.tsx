@@ -3,6 +3,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { IoWalletOutline } from "react-icons/io5";
 import { RiBankLine } from "react-icons/ri";
 import { useForm } from "react-hook-form";
@@ -46,6 +47,8 @@ import { createRoot } from "react-dom/client";
 import usePaymentSettingsStore from "@/store/paymentSettings.store";
 import { verifyPinWithBiometric, isFingerprintPaymentAvailable } from "@/services/fingerprintPayment.service";
 import { RiFingerprintLine } from "react-icons/ri";
+import InsufficientBalanceModal from "@/components/modals/finance/InsufficientBalanceModal";
+import { isInsufficientBalanceError, extractBalanceInfo } from "@/utils/errorUtils";
 
 
 
@@ -192,6 +195,11 @@ const TransferProcess = ({ onStepChange, compact = false, initialType, onBackFir
   const [activeTab, setActiveTab] = useState<'recent' | 'saved'>( 'recent');
   const [isVerifyingBiometric, setIsVerifyingBiometric] = useState(false);
   const [isFingerprintAvailable, setIsFingerprintAvailable] = useState(false);
+  const [paymentSuccess, setPaymentSuccess] = useState<boolean | null>(null);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number; width: number } | null>(null);
+  const [showInsufficientBalanceModal, setShowInsufficientBalanceModal] = useState(false);
+  const [balanceInfo, setBalanceInfo] = useState<{ requiredAmount?: number; currentBalance?: number }>({});
 
   const { banks } = useGetAllBanks();
 
@@ -287,25 +295,40 @@ const TransferProcess = ({ onStepChange, compact = false, initialType, onBackFir
   }, [watchedAccountNumber, watchedBankCode, selectedType, verifyAccount]);
 
   const onError = async (error: any) => {
+    // Check if it's an insufficient balance error
+    if (isInsufficientBalanceError(error)) {
+      const info = extractBalanceInfo(error);
+      // If we don't have balance info from error, use the wallet balance
+      if (!info.currentBalance && ngnWallet) {
+        info.currentBalance = ngnWallet.balance || 0;
+      }
+      // If we don't have required amount, use the transfer amount + fee
+      if (!info.requiredAmount) {
+        const totalAmount = watchedAmount + (fee || 0);
+        info.requiredAmount = totalAmount;
+      }
+      setBalanceInfo(info);
+      setShowInsufficientBalanceModal(true);
+      // Don't navigate to error screen, just show the insufficient balance modal
+      return;
+    }
+
     const errorMessage = error?.response?.data?.message;
     const descriptions = Array.isArray(errorMessage)
       ? errorMessage
       : [errorMessage];
 
-    ErrorToast({
-      title: "Error during transfer",
-      descriptions,
-    });
+    setPaymentSuccess(false);
+    setPaymentError(descriptions[0] || "Payment failed. Please try again.");
+    goTo(4); // Navigate to result screen to show failure
   };
 
   const onSuccess = ({transaction}:any) => {
     console.log('Transaction Data:', transaction);
     setTransaction(transaction);
-    SuccessToast({
-      title: "Transfer successful",
-      description: "Your transfer was successful",
-    });
-    goTo(4);
+    setPaymentSuccess(true);
+    setPaymentError(null);
+    goTo(4); // Navigate to result screen to show success
   };
 
   const ReceiptTemplate = ({ transaction }: { transaction: TransactionResponse }) => {
@@ -512,6 +535,7 @@ const handleShare = async (transaction: TransactionResponse) => {
       // Verify PIN using biometric
       const result = await verifyPinWithBiometric();
       
+      goTo(4); // Navigate to loading screen
       // Use biometric verification result as PIN
       // Backend should accept "BIOMETRIC_VERIFIED" as equivalent to PIN
       initiateTransfer({
@@ -536,6 +560,7 @@ const handleShare = async (transaction: TransactionResponse) => {
 
   const handleTransfer = () => {
     if (pin && pin.length === 4 && bankData) {
+      goTo(4); // Navigate to loading screen
       initiateTransfer({
         accountName: bankData?.accountName,
         accountNumber: watchedAccountNumber,
@@ -560,9 +585,38 @@ const handleShare = async (transaction: TransactionResponse) => {
   };
 
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const bankSelectRef = useRef<HTMLDivElement>(null);
+  
   useOnClickOutside(dropdownRef, () => {
     setBankState(false);
   });
+
+  // Calculate dropdown position when it opens and update on scroll/resize
+  useEffect(() => {
+    const updatePosition = () => {
+      if (bankState && bankSelectRef.current) {
+        const rect = bankSelectRef.current.getBoundingClientRect();
+        setDropdownPosition({
+          top: rect.bottom + window.scrollY + 10,
+          left: rect.left + window.scrollX,
+          width: rect.width,
+        });
+      } else {
+        setDropdownPosition(null);
+      }
+    };
+
+    if (bankState) {
+      updatePosition();
+      window.addEventListener('scroll', updatePosition, true);
+      window.addEventListener('resize', updatePosition);
+    }
+
+    return () => {
+      window.removeEventListener('scroll', updatePosition, true);
+      window.removeEventListener('resize', updatePosition);
+    };
+  }, [bankState]);
 
   const handleBeneficiarySelect = (beneficiary: BeneficiaryProps) => {
     console.log(beneficiary);
@@ -712,15 +766,9 @@ const handleShare = async (transaction: TransactionResponse) => {
               {selectedType === "bank" &&
                 watchedAccountNumber.length === 10 && (
                   <div
-                    ref={dropdownRef}
+                    ref={bankSelectRef}
                     className="relative w-full flex flex-col gap-1"
                   >
-                    {/* <label
-                htmlFor="currencyCode"
-                className="text-base text-text-800 mb-1 flex items-start w-full"
-              >
-                Choose a currency{" "}
-              </label> */}
                     <div
                       onClick={() => {
                         setBankState(!bankState);
@@ -763,8 +811,16 @@ const handleShare = async (transaction: TransactionResponse) => {
                         {errors.bankCode.message}
                       </p>
                     )}
-                    {bankState && (
-                      <div className="absolute top-full my-2.5 px-1 py-2 overflow-y-auto h-fit max-h-60 w-full bg-bg-600 border dark:bg-bg-1100 border-gray-300 dark:border-border-600 rounded-md shadow-md z-10 no-scrollbar">
+                    {bankState && dropdownPosition && typeof window !== 'undefined' && createPortal(
+                      <div
+                        ref={dropdownRef}
+                        className="fixed px-1 py-2 overflow-y-auto h-fit max-h-60 bg-bg-600 border dark:bg-bg-1100 border-gray-300 dark:border-border-600 rounded-md shadow-md z-[1000000] no-scrollbar"
+                        style={{
+                          top: `${dropdownPosition.top}px`,
+                          left: `${dropdownPosition.left}px`,
+                          width: `${dropdownPosition.width}px`,
+                        }}
+                      >
                         <SearchableDropdown
                           items={banks}
                           searchKey="name"
@@ -786,7 +842,8 @@ const handleShare = async (transaction: TransactionResponse) => {
                           isOpen={bankState}
                           onClose={() => setBankState(false)}
                         />
-                      </div>
+                      </div>,
+                      document.body
                     )}
                     {/* Verified name below bank dropdown for Other Banks */}
                     {selectedType === "bank" && bankData ? (
@@ -810,22 +867,19 @@ const handleShare = async (transaction: TransactionResponse) => {
                     <>
                       {bankData ? (
                         <div className="w-full flex flex-col gap-6">
-
-                          {!compact && (
-                            <div className="w-full grid grid-cols-2 gap-4 mt-4">
-                              <CustomButton type="button" className="w-full border border-primary text-white py-3.5" onClick={() => onBackFirstStep && onBackFirstStep()}>
-                                Back
-                              </CustomButton>
-                              <CustomButton
-                                type="button"
-                                disabled={!bankData || (selectedType === "bank" && !watchedBankCode)}
-                                onClick={() => goTo(1)}
-                                className="w-full border-2 border-primary text-white text-base 2xs:text-lg max-2xs:px-6 py-3.5"
-                              >
-                                Next
-                              </CustomButton>
-                            </div>
-                          )}
+                          <div className="w-full grid grid-cols-2 gap-4 mt-4">
+                            <CustomButton type="button" className="w-full bg-transparent border border-[#F2C94C] text-white py-3.5 rounded-xl" onClick={() => onBackFirstStep && onBackFirstStep()}>
+                              Back
+                            </CustomButton>
+                            <CustomButton
+                              type="button"
+                              disabled={!bankData || (selectedType === "bank" && !watchedBankCode)}
+                              onClick={() => goTo(1)}
+                              className="w-full border-2 border-primary text-white text-base 2xs:text-lg max-2xs:px-6 py-3.5"
+                            >
+                              Next
+                            </CustomButton>
+                          </div>
                         </div>
                       ) : (
                         <>
@@ -852,7 +906,7 @@ const handleShare = async (transaction: TransactionResponse) => {
               )}
             </motion.form>
 
-            {compact && beneficiaries?.length > 0 && (
+            {compact && beneficiaries && beneficiaries.length > 0 && (
               <div className="w-full mt-2 flex flex-col gap-3">
                 <div className="w-full flex items-center justify-start gap-6">
                   <button
@@ -891,20 +945,6 @@ const handleShare = async (transaction: TransactionResponse) => {
                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-4 h-4 text-white/60"><path fill="currentColor" d="M9.29 6.71a1 1 0 0 0 0 1.41L13.17 12l-3.88 3.88a1 1 0 1 0 1.42 1.41l4.59-4.58a1 1 0 0 0 0-1.41L10.71 6.7a1 1 0 0 0-1.42.01Z"/></svg>
                     </button>
                   ))}
-                </div>
-                {/* Footer buttons below the list */}
-                <div className="w-full grid grid-cols-2 gap-4 mt-4">
-                  <CustomButton type="button" className="w-full border border-primary text-white py-3.5" onClick={() => onBackFirstStep && onBackFirstStep()}>
-                    Back
-                  </CustomButton>
-                  <CustomButton
-                    type="button"
-                    disabled={!bankData || (selectedType === 'bank' && !watchedBankCode)}
-                    onClick={() => goTo(1)}
-                    className="w-full border-2 border-primary text-white text-base 2xs:text-lg max-2xs:px-6 py-3.5"
-                  >
-                    Next
-                  </CustomButton>
                 </div>
               </div>
             )}
@@ -982,7 +1022,7 @@ const handleShare = async (transaction: TransactionResponse) => {
             </div>
 
             <div className="w-full flex gap-4 mt-4">
-              <CustomButton type="button" className="w-full border border-[#F2C94C] text-white py-3.5 rounded-xl" onClick={() => goTo(0)}>
+              <CustomButton type="button" className="w-full bg-transparent border border-[#F2C94C] text-white py-3.5 rounded-xl" onClick={() => goTo(0)}>
                 Back
               </CustomButton>
               <CustomButton type="button" disabled={!isValid} className="w-full bg-[#D4B139] hover:bg-[#c7a42f] text-black py-3.5 rounded-xl" onClick={() => goTo(2)}>
@@ -1113,7 +1153,7 @@ const handleShare = async (transaction: TransactionResponse) => {
                 </div>
 
                 <div className="w-full grid grid-cols-2 gap-4 mt-2">
-                  <CustomButton type="button" className="w-full border border-[#F2C94C] text-white py-3.5 rounded-xl" onClick={() => goTo(1)}>
+                  <CustomButton type="button" className="w-full bg-transparent border border-[#F2C94C] text-white py-3.5 rounded-xl" onClick={() => goTo(1)}>
                     Back
                   </CustomButton>
                   <CustomButton
@@ -1213,8 +1253,65 @@ const handleShare = async (transaction: TransactionResponse) => {
           </div>
         )}
 
-        {screen === 4 && (
-          <div className="w-full dark:max-xs:px-4 xs:px-6 md:px-8 lg:px-10 2xl:px-12 py-8 flex flex-col gap-6 bg-bg-400 dark:bg-black dark:max-xs:bg-bg-1100 rounded-2xl">
+        {screen === 4 && transferLoading && (
+          <div className="w-full dark:max-xs:px-4 xs:px-6 md:px-8 lg:px-10 2xl:px-12 py-12 flex flex-col gap-6 items-center justify-center bg-bg-400 dark:bg-black dark:max-xs:bg-bg-1100 rounded-2xl min-h-[300px]">
+            <SpinnerLoader width={60} height={60} color="#D4B139" />
+            <div className="flex flex-col items-center gap-2">
+              <h3 className="text-xl font-semibold text-text-200 dark:text-text-400">Processing Payment</h3>
+              <p className="text-sm text-text-800/80 text-center">Please wait while we process your transaction...</p>
+            </div>
+          </div>
+        )}
+
+        {screen === 4 && !transferLoading && paymentSuccess === false && (
+          <div className="w-full dark:max-xs:px-4 xs:px-6 md:px-8 lg:px-10 2xl:px-12 py-8 flex flex-col gap-6 bg-transparent rounded-2xl">
+            <div className="flex flex-col items-center gap-4">
+              <div className="w-16 h-16 rounded-full flex items-center justify-center bg-red-500/20">
+                <svg className="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </div>
+              <div className="text-center">
+                <h3 className="text-xl font-semibold text-red-400 mb-1">Payment Failed</h3>
+                <p className="text-white/70 text-sm mb-4">₦ {formatNumberWithCommas(String(watchedAmount))}</p>
+                {paymentError && (
+                  <div className="mt-3 rounded-lg bg-red-500/10 border border-red-500/20 p-3 max-w-md">
+                    <p className="text-red-400 text-sm">{paymentError}</p>
+                  </div>
+                )}
+              </div>
+              <div className="w-full grid grid-cols-2 gap-4 mt-4">
+                <CustomButton
+                  type="button"
+                  onClick={() => {
+                    setPaymentSuccess(null);
+                    setPaymentError(null);
+                    goTo(2);
+                  }}
+                  className="w-full bg-transparent border border-[#F2C94C] text-white py-3.5 rounded-xl"
+                >
+                  Try Again
+                </CustomButton>
+                <CustomButton
+                  type="button"
+                  onClick={() => {
+                    setBankData(null);
+                    setPaymentSuccess(null);
+                    setPaymentError(null);
+                    goTo(0);
+                    reset();
+                  }}
+                  className="w-full bg-[#D4B139] hover:bg-[#c7a42f] text-black py-3.5 rounded-xl"
+                >
+                  Close
+                </CustomButton>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {screen === 4 && !transferLoading && paymentSuccess === true && (
+          <div className="w-full dark:max-xs:px-4 xs:px-6 md:px-8 lg:px-10 2xl:px-12 py-8 flex flex-col gap-6 bg-transparent rounded-2xl">
             <div className="flex items-center justify-between mb-2">
               <div>
                 <h3 className="text-lg font-semibold text-text-200 dark:text-text-400">Transaction History</h3>
@@ -1224,6 +1321,8 @@ const handleShare = async (transaction: TransactionResponse) => {
                 type="button"
                 onClick={() => {
                   setBankData(null);
+                  setPaymentSuccess(null);
+                  setPaymentError(null);
                   goTo(0);
                   reset();
                 }}
@@ -1293,6 +1392,18 @@ const handleShare = async (transaction: TransactionResponse) => {
           </div>
         )}
       </div>
+      
+      {/* Insufficient Balance Modal */}
+      <InsufficientBalanceModal
+        isOpen={showInsufficientBalanceModal}
+        onClose={() => {
+          setShowInsufficientBalanceModal(false);
+          // Go back to the previous screen (amount screen)
+          goTo(1);
+        }}
+        requiredAmount={balanceInfo.requiredAmount}
+        currentBalance={balanceInfo.currentBalance}
+      />
     </div>
   );
 };

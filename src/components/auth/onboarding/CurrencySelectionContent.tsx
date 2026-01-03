@@ -285,7 +285,7 @@ const CurrencySelectionContent = () => {
             <div className="text-center text-xs text-gray-500 mt-8">
               <p>
                 <span className="flex items-center justify-center gap-2 flex-wrap">
-                  <span>Licenced by</span>
+                  <span>Licenced by CBN</span>
                   <Image
                     src={images.cbnLogo}
                     alt="CBN Logo"

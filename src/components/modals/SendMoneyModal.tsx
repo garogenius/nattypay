@@ -11,8 +11,16 @@ interface SendMoneyModalProps {
 
 const SendMoneyModal: React.FC<SendMoneyModalProps> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
-  const [step, setStep] = React.useState(0); // 0=select type, 1=account, 2=amount, 3=confirm, 4=PIN/Pay
+  const [step, setStep] = React.useState(0); // 0=select type, 1=account, 2=amount, 3=confirm, 4=PIN/Pay/Result
   const [type, setType] = React.useState<"nattypay" | "bank" | null>(null);
+  
+  // Prevent closing during payment (step 4 is loading/result screen)
+  const canClose = step !== 4;
+  const handleClose = () => {
+    if (canClose) {
+      onClose();
+    }
+  };
 
   return (
     <div
@@ -20,22 +28,24 @@ const SendMoneyModal: React.FC<SendMoneyModalProps> = ({ isOpen, onClose }) => {
       className="z-[999999] overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 flex justify-center items-center w-full md:inset-0 h-[100dvh]"
     >
       <div className="fixed inset-0 transition-opacity" aria-hidden="true">
-        <div className="absolute inset-0 bg-black/80 dark:bg-black/60" onClick={onClose}></div>
+        <div className="absolute inset-0 bg-black/80 dark:bg-black/60" onClick={handleClose}></div>
       </div>
-      <div className="relative mx-2.5 2xs:mx-4 bg-bg-600 dark:bg-bg-1100 border border-border-800 dark:border-border-700 px-0 py-4 w-full max-w-3xl max-h-[92vh] rounded-2xl overflow-hidden">
-        <button
-          onClick={onClose}
-          className="absolute top-3 right-3 p-2 cursor-pointer bg-bg-1400 rounded-full hover:bg-bg-1200 transition-colors"
-        >
-          <CgClose className="text-xl text-text-200 dark:text-text-400" />
-        </button>
+      <div className="relative mx-2.5 2xs:mx-4 bg-bg-600 dark:bg-bg-1100 border border-border-800 dark:border-border-700 px-0 py-4 w-full max-w-2xl max-h-[92vh] rounded-2xl overflow-hidden">
+        {canClose && (
+          <button
+            onClick={handleClose}
+            className="absolute top-3 right-3 p-2 cursor-pointer bg-bg-1400 rounded-full hover:bg-bg-1200 transition-colors z-10"
+          >
+            <CgClose className="text-xl text-text-200 dark:text-text-400" />
+          </button>
+        )}
 
         {/* Header with stepper */}
         <div className="px-5 sm:px-6 pt-1 pb-2">
           <h2 className="text-white text-base sm:text-lg font-semibold">Send Money</h2>
-          <div className="mt-3 flex items-center gap-4">
+          <div className="mt-3 flex items-center gap-2 w-full">
             {[0,1,2,3,4].map((i)=> (
-              <span key={i} className={`h-1 rounded-full ${i===step? 'bg-[#F2C94C] w-12' : 'bg-white/20 w-16'}`}/>
+              <span key={i} className={`h-1 rounded-full flex-1 ${i===step? 'bg-[#F2C94C]' : 'bg-white/20'}`}/>
             ))}
           </div>
         </div>

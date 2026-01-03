@@ -8,6 +8,8 @@ import { IVirtualCard } from "@/api/currency/currency.types";
 import useUserStore from "@/store/user.store";
 import ErrorToast from "@/components/toast/ErrorToast";
 import SuccessToast from "@/components/toast/SuccessToast";
+import InsufficientBalanceModal from "@/components/modals/finance/InsufficientBalanceModal";
+import { isInsufficientBalanceError, extractBalanceInfo } from "@/utils/errorUtils";
 
 interface FundCardModalProps {
   isOpen: boolean;
@@ -22,8 +24,29 @@ const FundCardModal: React.FC<FundCardModalProps> = ({ isOpen, onClose, card }) 
   const [walletPin, setWalletPin] = React.useState("");
   const [selectedWalletIndex, setSelectedWalletIndex] = React.useState(0);
   const [showPinStep, setShowPinStep] = React.useState(false);
+  const [showInsufficientBalanceModal, setShowInsufficientBalanceModal] = React.useState(false);
+  const [balanceInfo, setBalanceInfo] = React.useState<{ requiredAmount?: number; currentBalance?: number }>({});
 
   const onError = (error: any) => {
+    // Check if it's an insufficient balance error
+    if (isInsufficientBalanceError(error)) {
+      const info = extractBalanceInfo(error);
+      const selectedWallet = wallets[selectedWalletIndex];
+      // If we don't have balance info from error, use the wallet balance
+      if (!info.currentBalance && selectedWallet) {
+        info.currentBalance = selectedWallet.balance || 0;
+      }
+      // If we don't have required amount, use the amount being funded
+      if (!info.requiredAmount && amount) {
+        info.requiredAmount = Number(amount);
+      }
+      setBalanceInfo(info);
+      setShowInsufficientBalanceModal(true);
+      setShowPinStep(false);
+      setWalletPin("");
+      return;
+    }
+
     const errorMessage = error?.response?.data?.message;
     const descriptions = Array.isArray(errorMessage)
       ? errorMessage
@@ -79,10 +102,11 @@ const FundCardModal: React.FC<FundCardModalProps> = ({ isOpen, onClose, card }) 
     }
 
     if (Number(amount) > Number(selectedWallet.balance)) {
-      ErrorToast({
-        title: "Insufficient Balance",
-        descriptions: ["You don't have enough balance in the selected wallet"],
+      setBalanceInfo({
+        requiredAmount: Number(amount),
+        currentBalance: Number(selectedWallet.balance),
       });
+      setShowInsufficientBalanceModal(true);
       return;
     }
 
@@ -242,6 +266,14 @@ const FundCardModal: React.FC<FundCardModalProps> = ({ isOpen, onClose, card }) 
           </>
         )}
       </div>
+
+      {/* Insufficient Balance Modal */}
+      <InsufficientBalanceModal
+        isOpen={showInsufficientBalanceModal}
+        onClose={() => setShowInsufficientBalanceModal(false)}
+        requiredAmount={balanceInfo.requiredAmount}
+        currentBalance={balanceInfo.currentBalance}
+      />
     </div>
   );
 };

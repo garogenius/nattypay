@@ -10,6 +10,8 @@ import type { EasyLifeContributionFrequency } from "@/api/easylife-savings/easyl
 import ErrorToast from "@/components/toast/ErrorToast";
 import SuccessToast from "@/components/toast/SuccessToast";
 import ValidationErrorModal from "@/components/modals/ValidationErrorModal";
+import InsufficientBalanceModal from "@/components/modals/finance/InsufficientBalanceModal";
+import { isInsufficientBalanceError, extractBalanceInfo } from "@/utils/errorUtils";
 
 type FundingMode = "manual" | "auto";
 
@@ -36,10 +38,31 @@ const EasyLifeSavingsModal: React.FC<EasyLifeSavingsModalProps> = ({ isOpen, onC
   const [earlyWithdrawalEnabled, setEarlyWithdrawalEnabled] = React.useState(false);
   const [showValidationModal, setShowValidationModal] = React.useState(false);
   const [validationError, setValidationError] = React.useState<{ title: string; descriptions: string[] } | null>(null);
+  const [showInsufficientBalanceModal, setShowInsufficientBalanceModal] = React.useState(false);
+  const [balanceInfo, setBalanceInfo] = React.useState<{ requiredAmount?: number; currentBalance?: number }>({});
 
   const onError = (error: unknown) => {
-    const errorMessage = (error as { response?: { data?: { message?: unknown } } })?.response?.data
-      ?.message as unknown;
+    const errorObj = error as any;
+    
+    // Check if it's an insufficient balance error
+    if (isInsufficientBalanceError(errorObj)) {
+      const info = extractBalanceInfo(errorObj);
+      const selectedWallet = wallets[selectedWalletIndex];
+      // If we don't have balance info from error, use the wallet balance
+      if (!info.currentBalance && selectedWallet) {
+        info.currentBalance = selectedWallet.balance || 0;
+      }
+      // If we don't have required amount, use the goal amount
+      if (!info.requiredAmount && amount) {
+        const cleanAmount = amount.replace(/[^0-9.]/g, "");
+        info.requiredAmount = parseFloat(cleanAmount);
+      }
+      setBalanceInfo(info);
+      setShowInsufficientBalanceModal(true);
+      return;
+    }
+
+    const errorMessage = errorObj?.response?.data?.message;
     const descriptions = Array.isArray(errorMessage)
       ? (errorMessage as string[])
       : [typeof errorMessage === "string" ? errorMessage : "Failed to create savings plan"];
@@ -353,6 +376,14 @@ const EasyLifeSavingsModal: React.FC<EasyLifeSavingsModalProps> = ({ isOpen, onC
           descriptions={validationError.descriptions}
         />
       )}
+
+      {/* Insufficient Balance Modal */}
+      <InsufficientBalanceModal
+        isOpen={showInsufficientBalanceModal}
+        onClose={() => setShowInsufficientBalanceModal(false)}
+        requiredAmount={balanceInfo.requiredAmount}
+        currentBalance={balanceInfo.currentBalance}
+      />
     </div>
   );
 };

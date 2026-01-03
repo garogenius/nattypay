@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import Image from "next/image";
 import CustomButton from "@/components/shared/Button";
@@ -27,6 +27,7 @@ const TwoFactorAuthContent = () => {
   const { authEmail } = useAuthEmailStore();
   const [token, setToken] = useState("");
   const { setUser, setIsLoggedIn } = useUserStore();
+  const hasAutoVerifiedRef = useRef(false);
 
   const isValid = token.length === 6;
 
@@ -81,12 +82,19 @@ const TwoFactorAuthContent = () => {
       }
       
       // Step 3: All verifications complete - go to dashboard
-      const redirectPath =
-        sessionStorage.getItem("returnTo") || "/user/dashboard";
+      const returnTo = sessionStorage.getItem("returnTo");
+      // Only use returnTo if it's a valid user route (not home page)
+      const redirectPath = 
+        returnTo && returnTo !== "/" && returnTo.startsWith("/user")
+          ? returnTo
+          : "/user/dashboard";
+      // Clear returnTo from sessionStorage after using it
+      sessionStorage.removeItem("returnTo");
       navigate(redirectPath, "replace");
     }, 200);
     
     setToken("");
+    hasAutoVerifiedRef.current = false; // Reset ref after successful verification
   };
 
   const onVerificationError = (error: any) => {
@@ -100,6 +108,12 @@ const TwoFactorAuthContent = () => {
       title: "Verification Failed",
       descriptions,
     });
+    
+    // Clear the token to stop auto-verification from retrying
+    setToken("");
+    
+    // Reset the ref on error so user can retry
+    hasAutoVerifiedRef.current = false;
   };
 
   const {
@@ -156,6 +170,7 @@ const TwoFactorAuthContent = () => {
           title: "Email Required",
           descriptions: ["Email address is required for verification. Please try logging in again."],
         });
+        hasAutoVerifiedRef.current = false; // Reset ref on error
         return;
       }
       
@@ -229,11 +244,32 @@ const TwoFactorAuthContent = () => {
     setToken(data);
   };
 
+  const loadingStatus = verificationPending && !verificationError;
+
+  // Auto-verify when 6 digits are entered
+  useEffect(() => {
+    // Reset the ref when token changes (user is typing)
+    if (token.length < 6) {
+      hasAutoVerifiedRef.current = false;
+      return;
+    }
+
+    // Auto-verify when 6 digits are entered and not already verifying
+    if (token.length === 6 && !verificationPending && !loadingStatus && !hasAutoVerifiedRef.current) {
+      hasAutoVerifiedRef.current = true;
+      // Small delay to ensure token state is fully updated
+      const timeoutId = setTimeout(() => {
+        handleVerify();
+      }, 100);
+      
+      return () => clearTimeout(timeoutId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, verificationPending, loadingStatus]);
+
   // REMOVED: Auto-send 2FA code on mount
   // Code should only be sent when user clicks "Resend" button
   // The login API should send the code automatically, not this component
-
-  const loadingStatus = verificationPending && !verificationError;
   const resendLoadingStatus = resend2faCodePending && !resend2faCodeError;
 
   return (
@@ -349,7 +385,7 @@ const TwoFactorAuthContent = () => {
             <div className="text-center text-xs text-gray-500 mt-8">
               <p>
                 <span className="flex items-center justify-center gap-2 flex-wrap">
-                  <span>Licenced by</span>
+                  <span>Licenced by CBN</span>
                   <Image
                     src={images.cbnLogo}
                     alt="CBN Logo"
@@ -357,7 +393,6 @@ const TwoFactorAuthContent = () => {
                     height={20}
                     className="h-5 w-auto object-contain"
                   />
-                  <span className="inline-block w-3 h-3 bg-green-500 rounded-full"></span>
                   <span>Deposits Insured by</span>
                 <span className="text-blue-600 underline">NDIC</span>
                 </span>

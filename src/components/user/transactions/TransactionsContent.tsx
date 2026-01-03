@@ -53,19 +53,19 @@ const TransactionsContent = () => {
 
       {/* Section header + controls */}
       <div className="flex flex-col gap-3">
-        <div className="w-full flex items-start sm:items-center justify-between gap-2 sm:gap-3">
-          <div>
+        <div className="w-full flex flex-col gap-3">
+          <div className="w-full flex items-center justify-between gap-2 sm:gap-3">
             <h2 className="text-white text-sm sm:text-base md:text-lg font-semibold">Transaction History</h2>
-            <p className="text-white/60 text-xs sm:text-sm">View and manage all your transaction history</p>
+            <button
+              onClick={() => setOpenDownload(true)}
+              className="inline-flex items-center gap-1 sm:gap-2 bg-[#D4B139] hover:bg-[#c7a42f] text-black font-medium rounded-lg px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 md:py-2.5 text-xs sm:text-sm"
+            >
+              <FiDownload className="text-xs sm:text-sm" />
+              <span className="hidden xs:inline">Download Statement</span>
+              <span className="xs:hidden">Download</span>
+            </button>
           </div>
-          <button
-            onClick={() => setOpenDownload(true)}
-            className="inline-flex items-center gap-1 sm:gap-2 bg-[#D4B139] hover:bg-[#c7a42f] text-black font-medium rounded-lg px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 md:py-2.5 text-xs sm:text-sm"
-          >
-            <FiDownload className="text-xs sm:text-sm" />
-            <span className="hidden xs:inline">Download Statement</span>
-            <span className="xs:hidden">Download</span>
-          </button>
+          <p className="text-white/60 text-xs sm:text-sm">View and manage all your transaction history</p>
         </div>
         <div className="w-full flex items-center justify-between gap-2 sm:gap-3">
           <div className="w-[70%] xs:w-[60%] sm:w-[50%] md:w-[40%] 2xl:w-[30%] flex items-center gap-1 sm:gap-1.5 sm:gap-2 py-1.5 sm:py-2 md:py-2.5 px-2 sm:px-3 md:px-4 rounded-lg bg-white/5 border border-white/10">

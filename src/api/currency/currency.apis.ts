@@ -37,11 +37,54 @@ export const getCurrencyAccountByCurrencyRequest = async (
 
 // Virtual Cards APIs
 export const createCardRequest = async (formdata: ICreateCard) => {
-  return request({
-    url: "/currency/cards",
-    method: "post",
-    data: formdata,
-  });
+  // Debug: Log the request details
+  if (process.env.NODE_ENV === 'development') {
+    console.log('createCardRequest:', {
+      url: "/currency/cards",
+      method: "post",
+      data: formdata,
+      fullPayload: JSON.stringify(formdata),
+    });
+  }
+  
+  // Try the endpoint as documented: /api/v1/currency/cards
+  // If that doesn't work, the backend might expect a different path
+  try {
+    return await request({
+      url: "/currency/cards",
+      method: "post",
+      data: formdata,
+    });
+  } catch (error: any) {
+    // Enhanced error logging for debugging
+    if (process.env.NODE_ENV === 'development') {
+      // Log the most important information first
+      console.group('🔍 createCardRequest Error Details');
+      console.log('Status:', error?.response?.status);
+      console.log('Status Text:', error?.response?.statusText);
+      console.log('Response Data:', error?.response?.data);
+      console.log('Request URL:', error?.config?.baseURL + error?.config?.url);
+      console.log('Request Method:', error?.config?.method);
+      console.log('Request Payload:', formdata);
+      console.log('Error Message:', error?.message);
+      console.log('Error Code:', error?.code);
+      console.groupEnd();
+    }
+    
+    // Always log the response data for 400 errors to help debug
+    if (error?.response?.status === 400) {
+      const responseData = error.response.data;
+      console.warn('⚠️ 400 Bad Request - Server Response:', {
+        statusCode: responseData?.statusCode,
+        message: responseData?.message,
+        error: responseData?.error,
+        path: responseData?.path,
+        fullResponse: responseData,
+      });
+    }
+    
+    throw error;
+  }
 };
 
 export const getCardsRequest = async () => {

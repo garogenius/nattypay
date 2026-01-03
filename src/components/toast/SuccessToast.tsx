@@ -47,7 +47,7 @@ const SuccessToast = ({
         </div>
       </div>
     ),
-    { id: "success-toast", duration: 100 }
+    { id: "success-toast", duration: 10000 }
   );
 };
 

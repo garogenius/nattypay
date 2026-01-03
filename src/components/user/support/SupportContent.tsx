@@ -48,18 +48,18 @@ const SupportContent: React.FC = () => {
 
   return (
     <div className="flex flex-col gap-6 pb-10">
-      <div className="w-full flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-        <div className="w-full">
-          <h1 className="text-white text-2xl font-semibold">Support Center</h1>
-          <p className="text-white/60 text-sm mt-1">Get help, report issues, and find answers to your questions</p>
+      <div className="w-full flex flex-col gap-3">
+        <div className="w-full flex items-center justify-between gap-3 sm:gap-4">
+          <h1 className="text-white text-xl sm:text-2xl font-semibold">Support Center</h1>
+          <Link
+            href="/user/support/live-chat"
+            className="inline-flex items-center gap-2 rounded-lg bg-[#D4B139] hover:bg-[#c7a42f] text-black text-xs sm:text-sm font-semibold px-3 sm:px-4 py-2 h-9 sm:h-10 whitespace-nowrap shadow-sm focus:outline-none focus:ring-2 focus:ring-[#D4B139]/30"
+          >
+            <FiMessageCircle />
+            <span>Start Live Chat</span>
+          </Link>
         </div>
-        <Link
-          href="/user/support/live-chat"
-          className="inline-flex items-center gap-2 rounded-lg bg-[#D4B139] hover:bg-[#c7a42f] text-black text-xs sm:text-sm font-semibold px-3 sm:px-4 py-2 h-9 sm:h-10 self-start sm:self-auto whitespace-nowrap shadow-sm focus:outline-none focus:ring-2 focus:ring-[#D4B139]/30"
-        >
-          <FiMessageCircle />
-          <span>Start Live Chat</span>
-        </Link>
+        <p className="text-white/60 text-sm">Get help, report issues, and find answers to your questions</p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

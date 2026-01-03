@@ -85,13 +85,13 @@ client.interceptors.response.use(
         // This prevents clearing the token during BVN/NIN verification failures
         // which would cause unwanted redirects to login
         if (!isAuthPage) {
-          // Clear token and user state
-          Cookies.remove("accessToken");
-          
-          // Clear user store if available (will be handled by UserProtectionProvider)
-          // We just clear the token here, the provider will handle the rest
+        // Clear token and user state
+        Cookies.remove("accessToken");
+        
+        // Clear user store if available (will be handled by UserProtectionProvider)
+        // We just clear the token here, the provider will handle the rest
 
-          // Redirect to login if not already on an auth page
+        // Redirect to login if not already on an auth page
           const isRedirecting = sessionStorage.getItem("isRedirecting");
           if (!isRedirecting) {
             sessionStorage.setItem("isRedirecting", "true");

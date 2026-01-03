@@ -8,7 +8,8 @@ import ChangePinModal from "@/components/modals/cards/ChangePinModal";
 import ResetPinModal from "@/components/modals/cards/ResetPinModal";
 import SpendingLimitModal from "@/components/modals/cards/SpendingLimitModal";
 import ConfirmActionModal from "@/components/modals/cards/ConfirmActionModal";
-import { useGetCards, useCreateCard, useFreezeCard, useUnfreezeCard, useBlockCard, useCloseCard, useGetCurrencyAccounts } from "@/api/currency/currency.queries";
+import ValidationErrorModal from "@/components/modals/ValidationErrorModal";
+import { useGetCards, useCreateCard, useFreezeCard, useUnfreezeCard, useBlockCard, useCloseCard, useGetCurrencyAccounts, useGetCurrencyAccountByCurrency } from "@/api/currency/currency.queries";
 import { IVirtualCard } from "@/api/currency/currency.types";
 import ErrorToast from "@/components/toast/ErrorToast";
 import SuccessToast from "@/components/toast/SuccessToast";
@@ -35,8 +36,18 @@ const CardsContent: React.FC = () => {
   const [openCreateCard, setOpenCreateCard] = React.useState(false);
   const [selectedCard, setSelectedCard] = React.useState<IVirtualCard | null>(null);
   const [cardLabel, setCardLabel] = React.useState("");
+  const [initialBalance, setInitialBalance] = React.useState<string>("");
   const [selectedCurrency, setSelectedCurrency] = React.useState<"USD" | "EUR" | "GBP">("USD");
   const [currencyDropdownOpen, setCurrencyDropdownOpen] = React.useState(false);
+  const [errorModal, setErrorModal] = React.useState<{
+    isOpen: boolean;
+    title: string;
+    descriptions: string[];
+  }>({
+    isOpen: false,
+    title: "",
+    descriptions: [],
+  });
   const currencyDropdownRef = React.useRef<HTMLDivElement>(null);
   
   useOnClickOutside(currencyDropdownRef, () => setCurrencyDropdownOpen(false));
@@ -51,21 +62,161 @@ const CardsContent: React.FC = () => {
 
   // Fetch currency accounts to check for account availability
   const { accounts: currencyAccounts } = useGetCurrencyAccounts();
+  
+  // Also fetch the specific account for the selected currency to ensure we have the latest data
+  const { account: fetchedCurrencyAccount, isNotFound: accountNotFound } = useGetCurrencyAccountByCurrency(
+    selectedCurrency
+  );
+  
   // Only USD is available for account creation, but cards can be created for USD, EUR, GBP if account exists
   const availableAccountCurrencies: Array<"USD"> = ["USD"]; // Only USD can be created
   const supportedCardCurrencies: Array<"USD" | "EUR" | "GBP"> = ["USD", "EUR", "GBP"];
-  const hasCurrencyAccount = (currency: "USD" | "EUR" | "GBP") => 
-    Array.isArray(currencyAccounts) && currencyAccounts.some((acc: any) => acc && acc.currency && String(acc.currency).toUpperCase().trim() === currency.toUpperCase().trim());
+  
+  // Check if account exists and is active - check both the list and the fetched account
+  const hasCurrencyAccount = (currency: "USD" | "EUR" | "GBP") => {
+    // Check if account exists in the fetched accounts list
+    const accountInList = Array.isArray(currencyAccounts) 
+      ? currencyAccounts.find((acc: any) => {
+          if (!acc || !acc.currency) return false;
+          const accCurrency = String(acc.currency).toUpperCase().trim();
+          const targetCurrency = currency.toUpperCase().trim();
+          return accCurrency === targetCurrency;
+        })
+      : null;
+    
+    const hasInList = !!accountInList;
+    const accountStatusInList = accountInList?.status;
+    
+    // Also check if we have a fetched account for the selected currency
+    const hasFetched = currency === selectedCurrency && 
+      fetchedCurrencyAccount && 
+      fetchedCurrencyAccount.currency &&
+      String(fetchedCurrencyAccount.currency).toUpperCase().trim() === currency.toUpperCase().trim() &&
+      !accountNotFound;
+    
+    const accountStatusFetched = fetchedCurrencyAccount?.status;
+    
+    const result = hasInList || hasFetched;
+    
+    // Debug logging with account status
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`hasCurrencyAccount(${currency}):`, {
+        currency,
+        selectedCurrency,
+        hasInList,
+        hasFetched,
+        accountStatusInList,
+        accountStatusFetched,
+        currencyAccounts: currencyAccounts?.map((acc: any) => ({
+          currency: acc?.currency,
+          accountNumber: acc?.accountNumber,
+          status: acc?.status,
+          id: acc?.id,
+        })),
+        fetchedCurrencyAccount: fetchedCurrencyAccount ? {
+          currency: fetchedCurrencyAccount.currency,
+          accountNumber: fetchedCurrencyAccount.accountNumber,
+          status: fetchedCurrencyAccount.status,
+          id: fetchedCurrencyAccount.id,
+        } : null,
+        accountNotFound,
+        result,
+      });
+    }
+    
+    return result;
+  };
+  
+  // Get the actual account for the selected currency to check its status
+  const getCurrencyAccount = (currency: "USD" | "EUR" | "GBP") => {
+    // First check fetched account
+    if (currency === selectedCurrency && fetchedCurrencyAccount && 
+        String(fetchedCurrencyAccount.currency).toUpperCase().trim() === currency.toUpperCase().trim() &&
+        !accountNotFound) {
+      return fetchedCurrencyAccount;
+    }
+    
+    // Then check list
+    if (Array.isArray(currencyAccounts)) {
+      const account = currencyAccounts.find((acc: any) => {
+        if (!acc || !acc.currency) return false;
+        const accCurrency = String(acc.currency).toUpperCase().trim();
+        const targetCurrency = currency.toUpperCase().trim();
+        return accCurrency === targetCurrency;
+      });
+      if (account) return account;
+    }
+    
+    return null;
+  };
 
   const onCreateCardError = (error: any) => {
-    const errorMessage = error?.response?.data?.message;
-    const descriptions = Array.isArray(errorMessage)
-      ? errorMessage
-      : [errorMessage || "Failed to create virtual card"];
+    // Extract error message from response
+    const errorData = error?.response?.data;
+    let errorMessage = errorData?.message;
+    
+    // Handle array of messages
+    if (Array.isArray(errorMessage)) {
+      errorMessage = errorMessage;
+    } else if (typeof errorMessage === 'string') {
+      errorMessage = [errorMessage];
+    } else if (errorData?.error) {
+      // Some APIs return error in 'error' field
+      errorMessage = [errorData.error];
+    } else if (errorData?.errors) {
+      // Handle validation errors
+      errorMessage = Array.isArray(errorData.errors) 
+        ? errorData.errors 
+        : [String(errorData.errors)];
+    } else {
+      errorMessage = [error?.message || "Failed to create virtual card"];
+    }
 
-    ErrorToast({
+    // Add helpful context for validation errors
+    if (error?.response?.status === 400 && errorMessage.some((msg: string) => 
+      msg.toLowerCase().includes("validate") || 
+      msg.toLowerCase().includes("parameter")
+    )) {
+      const account = getCurrencyAccount(selectedCurrency);
+      const accountInfo = account ? {
+        status: account.status,
+        id: account.id,
+        accountNumber: account.accountNumber,
+      } : null;
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Validation error - Account info:', accountInfo);
+      }
+      
+      errorMessage = [
+        ...errorMessage,
+        `Your ${selectedCurrency} account ${accountInfo ? `(Status: ${accountInfo.status || 'unknown'})` : ''} may need to be fully activated.`,
+        "Please ensure your account is active and verified.",
+        "If you just created the account, please wait a few moments for it to be fully activated, then try again.",
+        "If the issue persists, please contact support."
+      ];
+    }
+
+    // Log full error for debugging
+    if (process.env.NODE_ENV === 'development') {
+      console.group('🔍 onCreateCardError Details');
+      console.log('Error Type:', error?.constructor?.name);
+      console.log('Error Message:', error?.message);
+      console.log('Status:', error?.response?.status);
+      console.log('Status Text:', error?.response?.statusText);
+      console.log('Response Data:', error?.response?.data);
+      console.log('Error Data (extracted):', errorData);
+      console.log('Error Messages (processed):', errorMessage);
+      console.log('Request URL:', error?.config?.baseURL + error?.config?.url);
+      console.log('Request Payload:', error?.config?.data);
+      console.groupEnd();
+    }
+
+    // Show error in modal instead of toast
+    setErrorModal({
+      isOpen: true,
       title: "Creation Failed",
-      descriptions,
+      descriptions: errorMessage,
     });
   };
 
@@ -76,6 +227,7 @@ const CardsContent: React.FC = () => {
     });
     setOpenCreateCard(false);
     setCardLabel("");
+    setInitialBalance("");
     setSelectedCurrency("USD"); // Reset to USD after creation
     refetchCards();
   };
@@ -183,6 +335,20 @@ const CardsContent: React.FC = () => {
       return;
     }
 
+    // Check account status
+    const account = getCurrencyAccount(selectedCurrency);
+    if (account && account.status && account.status !== "ACTIVE") {
+      ErrorToast({
+        title: "Account Not Active",
+        descriptions: [
+          `Your ${selectedCurrency} account is ${account.status.toLowerCase()}.`,
+          "Please ensure your account is active before creating a virtual card.",
+          "If you just created the account, please wait a moment for it to be activated."
+        ],
+      });
+      return;
+    }
+
     if (!cardLabel.trim()) {
       ErrorToast({
         title: "Validation Error",
@@ -191,10 +357,47 @@ const CardsContent: React.FC = () => {
       return;
     }
 
-    createCard({
+    // Parse initial balance if provided
+    const parsedInitialBalance = initialBalance.trim() 
+      ? parseFloat(initialBalance.trim()) 
+      : undefined;
+    
+    // Validate initial balance if provided
+    if (initialBalance.trim() && (isNaN(parsedInitialBalance!) || parsedInitialBalance! < 0)) {
+      ErrorToast({
+        title: "Validation Error",
+        descriptions: ["Initial balance must be a valid positive number."],
+      });
+      return;
+    }
+
+    // Build payload with optional initialBalance
+    const payload: any = {
       label: cardLabel.trim(),
       currency: selectedCurrency,
-    });
+    };
+    
+    if (parsedInitialBalance !== undefined && parsedInitialBalance > 0) {
+      payload.initialBalance = parsedInitialBalance;
+    }
+
+    // Log account details before creating card
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Creating card with account:', {
+        currency: selectedCurrency,
+        label: cardLabel.trim(),
+        initialBalance: parsedInitialBalance,
+        account: account ? {
+          id: account.id,
+          currency: account.currency,
+          status: account.status,
+          accountNumber: account.accountNumber,
+        } : null,
+        payload,
+      });
+    }
+
+    createCard(payload);
   };
 
   const handleFreeze = () => {
@@ -518,11 +721,9 @@ const CardsContent: React.FC = () => {
     <>
       <div className="flex flex-col gap-6 md:gap-8 pb-10 overflow-y-auto scroll-area scroll-smooth pr-1">
         {/* Header + Currency Switcher */}
-        <div className="w-full flex flex-row items-center justify-between gap-3">
-          <div className="flex-1 min-w-0">
+        <div className="w-full flex flex-col gap-3">
+          <div className="w-full flex items-center justify-between gap-3 sm:gap-4">
             <h1 className="text-white text-xl sm:text-2xl font-semibold">Cards</h1>
-            <p className="text-white/60 text-xs sm:text-sm mt-1 hidden sm:block">Manage your virtual cards</p>
-          </div>
           <div className="relative flex-shrink-0" ref={currencyDropdownRef}>
             <button
               type="button"
@@ -574,11 +775,8 @@ const CardsContent: React.FC = () => {
               </div>
             )}
           </div>
-        </div>
-        <div className="w-full flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
-          <div>
-            <p className="text-white/60 text-xs sm:text-sm">Manage your virtual and physical cards</p>
           </div>
+          <p className="text-white/60 text-xs sm:text-sm">Manage your virtual cards</p>
         </div>
 
         <div className="flex flex-col gap-6">
@@ -635,10 +833,18 @@ const CardsContent: React.FC = () => {
         confirmTone="danger"
       />
       
+      {/* Error Modal for Card Creation */}
+      <ValidationErrorModal
+        isOpen={errorModal.isOpen}
+        onClose={() => setErrorModal({ isOpen: false, title: "", descriptions: [] })}
+        title={errorModal.title}
+        descriptions={errorModal.descriptions}
+      />
+      
       {/* Create Card Modal */}
       {openCreateCard && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/80" onClick={() => { setOpenCreateCard(false); setCardLabel(""); setSelectedCurrency("USD"); }} />
+          <div className="absolute inset-0 bg-black/80" onClick={() => { setOpenCreateCard(false); setCardLabel(""); setInitialBalance(""); setSelectedCurrency("USD"); }} />
           <div className="relative w-full max-w-md bg-bg-600 dark:bg-bg-1100 border border-white/10 rounded-2xl p-5 z-10">
             <h2 className="text-white text-base font-semibold mb-4">Create Virtual Card</h2>
             <div className="flex flex-col gap-3">
@@ -663,9 +869,37 @@ const CardsContent: React.FC = () => {
                   onChange={(e) => setCardLabel(e.target.value)}
                 />
               </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-white/70 text-xs">
+                  Initial Balance (Optional)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  className="w-full bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-3 px-3 text-white text-sm placeholder:text-white/50 outline-none"
+                  placeholder={`e.g., 100.00`}
+                  value={initialBalance}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    // Allow empty, numbers, and decimal point
+                    if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                      setInitialBalance(value);
+                    }
+                  }}
+                />
+                <p className="text-white/50 text-[10px] mt-1">
+                  Optional: Set an initial balance for your card in {selectedCurrency}
+                </p>
+              </div>
               <div className="flex gap-3 mt-2">
                 <CustomButton
-                  onClick={() => { setOpenCreateCard(false); setCardLabel(""); setSelectedCurrency("USD"); }}
+                  onClick={() => { 
+                    setOpenCreateCard(false); 
+                    setCardLabel(""); 
+                    setInitialBalance("");
+                    setSelectedCurrency("USD"); 
+                  }}
                   className="flex-1 bg-transparent border border-white/15 text-white rounded-lg py-2.5"
                 >
                   Cancel

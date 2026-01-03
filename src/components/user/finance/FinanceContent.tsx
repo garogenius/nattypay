@@ -53,26 +53,26 @@ const FinanceContent: React.FC = () => {
 
   return (
     <div className="flex flex-col gap-6 md:gap-8 pb-10 overflow-y-auto scroll-area scroll-smooth pr-1">
-      <div className="w-full flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
-        <div>
+      <div className="w-full flex flex-col gap-3">
+        <div className="w-full flex items-center justify-between gap-3 sm:gap-4">
           <h1 className="text-lg sm:text-xl md:text-2xl font-semibold text-white">Finance</h1>
-          <p className="text-white/60 text-xs sm:text-sm">Manage your investments</p>
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <button
+              onClick={() => navigate("/user/investment-opportunity")}
+              className="flex items-center gap-1 sm:gap-2 bg-transparent border border-[#D4B139] hover:bg-[#D4B139]/10 text-[#D4B139] px-2 py-1.5 sm:px-4 sm:py-2.5 rounded-lg text-[10px] sm:text-xs md:text-sm font-medium transition-colors whitespace-nowrap"
+            >
+              Investment Opportunity
+            </button>
+            <button
+              onClick={()=> setOpen(true)}
+              className="flex items-center gap-1 sm:gap-2 bg-[#D4B139] hover:bg-[#c7a42f] text-black px-2 py-1.5 sm:px-4 sm:py-2.5 rounded-lg text-[10px] sm:text-xs md:text-sm font-medium transition-colors whitespace-nowrap"
+            >
+              <FiPlus className="text-sm sm:text-base md:text-lg" />
+              Start New Plan
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => navigate("/user/investment-opportunity")}
-            className="flex items-center gap-2 bg-transparent border border-[#D4B139] hover:bg-[#D4B139]/10 text-[#D4B139] px-4 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-medium transition-colors"
-          >
-            Investment Opportunity
-          </button>
-        <button
-          onClick={()=> setOpen(true)}
-          className="flex items-center gap-2 bg-[#D4B139] hover:bg-[#c7a42f] text-black px-4 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-medium transition-colors"
-        >
-          <FiPlus className="text-base sm:text-lg" />
-          Start New Plan
-        </button>
-        </div>
+        <p className="text-white/60 text-xs sm:text-sm">Manage your investments</p>
       </div>
 
       <div className="flex flex-col gap-4 sm:gap-6">

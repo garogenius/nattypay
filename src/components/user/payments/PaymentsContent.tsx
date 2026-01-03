@@ -24,27 +24,27 @@ const PaymentsContent: React.FC = () => {
 
   return (
     <div className="flex flex-col gap-6 md:gap-8 pb-10 overflow-y-auto scroll-area scroll-smooth pr-1">
-      <div className="w-full flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0">
-        <div>
+      <div className="w-full flex flex-col gap-3">
+        <div className="w-full flex items-center justify-between gap-3 sm:gap-4">
           <h1 className="text-xl sm:text-2xl font-semibold text-white">Payments</h1>
-          <p className="text-white/60 text-xs sm:text-sm">Pay bills securely, and manage scheduled payments easily</p>
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <button
+              className="flex items-center gap-1 sm:gap-2 rounded-xl border border-[#2C3947] px-2 sm:px-3 py-1.5 sm:py-2 text-white/80 hover:bg-white/5 transition-colors"
+              onClick={() => setIsQRCodeOpen(true)}
+            >
+              <IoQrCodeOutline className="text-base sm:text-lg" />
+              <span className="text-xs sm:text-sm">QR Code</span>
+            </button>
+            <button
+              className="flex items-center gap-1 sm:gap-2 rounded-xl border border-[#2C3947] px-2 sm:px-3 py-1.5 sm:py-2 text-white/80 hover:bg-white/5 transition-colors"
+              onClick={()=> setOpenSettings(true)}
+            >
+              <CgOptions className="text-base sm:text-lg" />
+              <span className="text-xs sm:text-sm">Settings</span>
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          <button
-            className="flex items-center gap-1 sm:gap-2 rounded-xl border border-[#2C3947] px-2 sm:px-3 py-1.5 sm:py-2 text-white/80 hover:bg-white/5 transition-colors"
-            onClick={() => setIsQRCodeOpen(true)}
-          >
-            <IoQrCodeOutline className="text-base sm:text-lg" />
-            <span className="text-xs sm:text-sm">QR Code</span>
-          </button>
-          <button
-            className="flex items-center gap-1 sm:gap-2 rounded-xl border border-[#2C3947] px-2 sm:px-3 py-1.5 sm:py-2 text-white/80 hover:bg-white/5 transition-colors"
-            onClick={()=> setOpenSettings(true)}
-          >
-            <CgOptions className="text-base sm:text-lg" />
-            <span className="text-xs sm:text-sm">Settings</span>
-          </button>
-        </div>
+        <p className="text-white/60 text-xs sm:text-sm">Pay bills securely, and manage scheduled payments easily</p>
       </div>
 
       {/* Top Tabs (Savings-style) */}

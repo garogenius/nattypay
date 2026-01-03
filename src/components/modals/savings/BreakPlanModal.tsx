@@ -3,6 +3,7 @@
 import React from "react";
 import { CgClose } from "react-icons/cg";
 import BreakPlanDetailsModal from "./BreakPlanDetailsModal";
+import ValidationErrorModal from "@/components/modals/ValidationErrorModal";
 import { useWithdrawSavingsPlan, useGetSavingsPlanById } from "@/api/savings/savings.queries";
 import { useGetEasyLifePlanById, useWithdrawEasyLifePlan } from "@/api/easylife-savings/easylife-savings.queries";
 import { useVerifyWalletPin } from "@/api/user/user.queries";
@@ -33,6 +34,8 @@ const BreakPlanModal: React.FC<BreakPlanModalProps> = ({
   const [showSuccess, setShowSuccess] = React.useState(false);
   const [walletPin, setWalletPin] = React.useState("");
   const [showPinStep, setShowPinStep] = React.useState(false);
+  const [showErrorModal, setShowErrorModal] = React.useState(false);
+  const [errorModalData, setErrorModalData] = React.useState<{ title: string; descriptions: string[] }>({ title: "", descriptions: [] });
   const dropdownRef = React.useRef<HTMLDivElement>(null);
 
   const { plan: savingsPlan } = useGetSavingsPlanById(planType === "target" ? planId || null : null);
@@ -46,10 +49,11 @@ const BreakPlanModal: React.FC<BreakPlanModalProps> = ({
       ? (errorMessage as string[])
       : [typeof errorMessage === "string" ? errorMessage : "Failed to break savings plan"];
 
-    ErrorToast({
+    setErrorModalData({
       title: "Breaking Plan Failed",
       descriptions,
     });
+    setShowErrorModal(true);
     setShowPinStep(false);
     setWalletPin("");
   };
@@ -334,6 +338,13 @@ const BreakPlanModal: React.FC<BreakPlanModalProps> = ({
         planName={planName}
         reason={reasons.find(r => r.value === reason)?.label || ""}
         breakDate={new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-')}
+      />
+
+      <ValidationErrorModal
+        isOpen={showErrorModal}
+        onClose={() => setShowErrorModal(false)}
+        title={errorModalData.title}
+        descriptions={errorModalData.descriptions}
       />
     </div>
   );
