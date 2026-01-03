@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useRef, useState } from "react";
+import React, { useMemo, useRef, useState, useEffect } from "react";
 import NextImage from "next/image";
 import Link from "next/link";
 import useNavigate from "@/hooks/useNavigate";
@@ -482,6 +482,21 @@ const AccountsContent: React.FC = () => {
   const [cardLabel, setCardLabel] = useState("");
   const [selectedCard, setSelectedCard] = useState<IVirtualCard | null>(null);
 
+  // Debug: Log empty state condition (moved from JSX to useEffect)
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development' && selectedCurrency !== "NGN") {
+      console.log('Empty State Condition Check:', {
+        selectedCurrency,
+        accountNotFound,
+        currencyAccount: !!currencyAccount,
+        fetchedCurrencyAccount: !!fetchedCurrencyAccount,
+        accountsLoading,
+        fetchingAccountDetails,
+        conditionResult: accountNotFound || (!currencyAccount && !fetchedCurrencyAccount && !accountsLoading && !fetchingAccountDetails),
+      });
+    }
+  }, [selectedCurrency, accountNotFound, currencyAccount, fetchedCurrencyAccount, accountsLoading, fetchingAccountDetails]);
+
   return (
     <div className="flex flex-col gap-6 pb-10">
       {/* Header + Currency Switcher */}
@@ -550,16 +565,6 @@ const AccountsContent: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="w-full bg-bg-600 dark:bg-bg-1100 border border-white/10 rounded-2xl p-4 sm:p-5">
           <h3 className="text-white font-semibold mb-4">Account Details</h3>
-           {/* Debug: Log empty state condition */}
-           {process.env.NODE_ENV === 'development' && selectedCurrency !== "NGN" && console.log('Empty State Condition Check:', {
-             selectedCurrency,
-             accountNotFound,
-             currencyAccount: !!currencyAccount,
-             fetchedCurrencyAccount: !!fetchedCurrencyAccount,
-             accountsLoading,
-             fetchingAccountDetails,
-             conditionResult: accountNotFound || (!currencyAccount && !fetchedCurrencyAccount && !accountsLoading && !fetchingAccountDetails),
-           })}
           
           {/* Show Create Account if account doesn't exist for non-NGN currencies */}
           {/* For NGN, check if wallet exists; for others, check if currency account exists */}
