@@ -112,18 +112,24 @@ export const useGetCurrencyAccountByCurrency = (currency: string) => {
     });
   }
 
+  // Type guard for axios errors
+  const isAxiosError = (err: any): err is { response?: { status?: number; data?: any } } => {
+    return err && typeof err === 'object' && 'response' in err;
+  };
+
   // Check if error is a 404 (account not found)
   // Also check if response data contains 404 status code (some APIs return 200 with 404 in data)
-  const errorMessage = error?.response?.data?.message;
+  const axiosError = isError && error && isAxiosError(error) ? error : null;
+  const errorMessage = axiosError?.response?.data?.message;
   const errorMessageStr = Array.isArray(errorMessage) 
     ? errorMessage.join(" ").toLowerCase()
     : typeof errorMessage === "string" 
       ? errorMessage.toLowerCase() 
       : "";
   
-  const isNotFoundFromError = isError && (
-    error?.response?.status === 404 || 
-    error?.response?.data?.statusCode === 404 ||
+  const isNotFoundFromError = isError && axiosError && (
+    axiosError.response?.status === 404 || 
+    axiosError.response?.data?.statusCode === 404 ||
     (errorMessageStr && errorMessageStr.includes("not found")) ||
     (errorMessageStr && errorMessageStr.includes("no") && errorMessageStr.includes("account"))
   );
@@ -133,8 +139,8 @@ export const useGetCurrencyAccountByCurrency = (currency: string) => {
     console.log('Currency Account Query Error:', {
       currency,
       error,
-      'error.response.status': error?.response?.status,
-      'error.response.data': error?.response?.data,
+      'error.response.status': axiosError?.response?.status,
+      'error.response.data': axiosError?.response?.data,
       isNotFoundFromError,
     });
   }
