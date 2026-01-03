@@ -248,11 +248,14 @@ const TransferProcess = ({ onStepChange, compact = false, initialType, onBackFir
   const watchedDescription = watch("description");
   const watchedSessionId = watch("sessionId");
 
-  const { fee } = useGetTransferFee({
+  const { fee: feeArray } = useGetTransferFee({
     currency: "NGN",
     amount: watchedAmount,
     active: selectedType === "bank",
   });
+  
+  // Extract fee value from array (fee is returned as number[] from API)
+  const fee = Array.isArray(feeArray) && feeArray.length > 0 ? feeArray[0] : (typeof feeArray === "number" ? feeArray : 0);
 
   const onVerifyAccountError = async (error: any) => {
     const errorMessage = error?.response?.data?.message;
@@ -308,7 +311,8 @@ const TransferProcess = ({ onStepChange, compact = false, initialType, onBackFir
       }
       // If we don't have required amount, use the transfer amount + fee
       if (!info.requiredAmount) {
-        const totalAmount = watchedAmount + (fee || 0);
+        const feeValue = typeof fee === "number" ? fee : 0;
+        const totalAmount = watchedAmount + feeValue;
         info.requiredAmount = totalAmount;
       }
       setBalanceInfo(info);
