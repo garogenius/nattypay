@@ -9,6 +9,7 @@ import { useFundEasyLifePlan } from "@/api/easylife-savings/easylife-savings.que
 import { useVerifyWalletPin } from "@/api/user/user.queries";
 import ErrorToast from "@/components/toast/ErrorToast";
 import SuccessToast from "@/components/toast/SuccessToast";
+import InsufficientBalanceModal from "@/components/modals/finance/InsufficientBalanceModal";
 
 interface SavingsDepositModalProps {
   isOpen: boolean;
@@ -32,6 +33,8 @@ const SavingsDepositModal: React.FC<SavingsDepositModalProps> = ({
   const [walletPin, setWalletPin] = React.useState("");
   const [showPinStep, setShowPinStep] = React.useState(false);
   const [pendingFund, setPendingFund] = React.useState<null | { amount: number; currency: string }>(null);
+  const [showInsufficientBalanceModal, setShowInsufficientBalanceModal] = React.useState(false);
+  const [balanceInfo, setBalanceInfo] = React.useState<{ requiredAmount?: number; currentBalance?: number }>({});
 
   const onError = (error: unknown) => {
     const errorMessage = (error as { response?: { data?: { message?: unknown } } })?.response?.data
@@ -244,6 +247,13 @@ const SavingsDepositModal: React.FC<SavingsDepositModalProps> = ({
           </>
         )}
       </div>
+
+      <InsufficientBalanceModal
+        isOpen={showInsufficientBalanceModal}
+        onClose={() => setShowInsufficientBalanceModal(false)}
+        requiredAmount={balanceInfo.requiredAmount || 0}
+        currentBalance={balanceInfo.currentBalance || 0}
+      />
     </div>
   );
 };
