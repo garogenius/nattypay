@@ -770,7 +770,7 @@ export const useGetCurrencyAccountPayouts = (
 };
 
 export const useGetCurrencyAccountPayoutDestinations = (currency: string) => {
-  const { data, isPending, isError } = useQuery({
+  const { data, isPending, isError, refetch } = useQuery({
     queryKey: ["currency-account-payout-destinations", currency],
     queryFn: () => getCurrencyAccountPayoutDestinationsRequest(currency),
     enabled: !!currency,
@@ -779,7 +779,7 @@ export const useGetCurrencyAccountPayoutDestinations = (currency: string) => {
   const destinations: IPayoutDestination[] = data?.data?.destinations || data?.data?.data?.destinations || [];
   const count = data?.data?.count || data?.data?.data?.count || 0;
 
-  return { destinations, count, isPending, isError };
+  return { destinations, count, isPending, isError, refetch };
 };
 
 export const useCreateCurrencyAccountPayoutDestination = (
