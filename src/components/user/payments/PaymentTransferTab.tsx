@@ -156,7 +156,7 @@ const PaymentTransferTab: React.FC<PaymentTransferTabProps> = ({ transferType, s
                     <div>
                       <p className="text-white text-sm font-medium">{tx.description || "Transfer"}</p>
                       <p className="text-white/50 text-xs">
-                        {format(new Date(tx.created_at || tx.createdAt || Date.now()), "MMM d, yyyy")}
+                        {format(new Date(('created_at' in tx ? tx.created_at : tx.createdAt) || Date.now()), "MMM d, yyyy")}
                       </p>
                     </div>
                   </div>
