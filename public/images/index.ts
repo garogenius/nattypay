@@ -2,6 +2,7 @@ import logo from "./logo.svg";
 import singleLogo from "./single-logo.png";
 import logo2 from "./logo2.svg";
 import cbnLogo from "./cbn.png";
+import nattyLoader from "./natty01.gif";
 
 import heroImage from "./home/landingPage/heroImage.png";
 
@@ -162,6 +163,7 @@ export default {
   singleLogo,
   logo2,
   cbnLogo,
+  nattyLoader,
   landingPage,
   about,
   map,
