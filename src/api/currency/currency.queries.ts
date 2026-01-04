@@ -122,7 +122,7 @@ export const useGetCurrencyAccounts = () => {
 };
 
 export const useGetCurrencyAccountByCurrency = (currency: string) => {
-  const { data, isPending, isError, error } = useQuery({
+  const { data, isPending, isError, error, refetch } = useQuery({
     queryKey: ["currency-account", currency],
     queryFn: () => getCurrencyAccountByCurrencyRequest(currency),
     enabled: !!currency && currency !== "NGN",
@@ -361,7 +361,7 @@ export const useGetCurrencyAccountByCurrency = (currency: string) => {
     });
   }
 
-  return { account, isPending, isError: isError && !isNotFound, isNotFound };
+  return { account, isPending, isError: isError && !isNotFound, isNotFound, refetch };
 };
 
 export const useUpdateCurrencyAccount = (
