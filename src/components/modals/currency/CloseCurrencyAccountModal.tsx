@@ -66,7 +66,7 @@ const CloseCurrencyAccountModal: React.FC<CloseCurrencyAccountModalProps> = ({
   if (!isOpen || !account) return null;
 
   const canSubmit = walletPin.length === 4;
-  const hasBalance = account.balance && account.balance > 0;
+  const hasBalance = (account.balance ?? 0) > 0;
 
   return (
     <div className="z-[999999] overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 flex justify-center items-center w-full md:inset-0 h-[100dvh]">
