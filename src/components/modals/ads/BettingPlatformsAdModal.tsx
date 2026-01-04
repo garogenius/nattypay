@@ -116,7 +116,9 @@ const BettingPlatformsAdModal: React.FC<BettingPlatformsAdModalProps> = ({ isOpe
             <h3 className="text-white font-semibold text-xs sm:text-sm md:text-base mb-1.5 sm:mb-2 md:mb-3 text-center">Available Platforms</h3>
             {platformsLoading ? (
               <div className="flex items-center justify-center py-4 sm:py-6 md:py-8">
-                <SpinnerLoader width={20} height={20} color="#D4B139" className="sm:w-6 sm:h-6" />
+                <div className="w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center">
+                  <SpinnerLoader width={20} height={20} color="#D4B139" />
+                </div>
                 <span className="text-white/70 text-[10px] sm:text-xs md:text-sm ml-2 sm:ml-3">Loading platforms...</span>
               </div>
             ) : (
