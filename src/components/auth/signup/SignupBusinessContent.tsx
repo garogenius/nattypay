@@ -110,10 +110,24 @@ const SignupBusinessContent = () => {
   const watchedDateOfBirth = watch("dateOfBirth");
 
   const onError = async (error: any) => {
+    // Log the full error for debugging
+    console.error("Business registration error:", error);
+    
     const errorMessage = error?.response?.data?.message;
-    const descriptions = Array.isArray(errorMessage)
-      ? errorMessage
-      : [errorMessage];
+    const errorData = error?.response?.data;
+    
+    // Create descriptions array with detailed error info
+    let descriptions: string[] = [];
+    if (Array.isArray(errorMessage)) {
+      descriptions = errorMessage;
+    } else if (errorMessage) {
+      descriptions = [errorMessage];
+    } else if (errorData?.error) {
+      descriptions = [errorData.error];
+    } else {
+      descriptions = ["An error occurred during registration. Please try again."];
+    }
+    
     ErrorToast({
       title: "Error during registration",
       descriptions,
@@ -140,14 +154,27 @@ const SignupBusinessContent = () => {
 
   const onSubmit = async (data: RegisterFormData) => {
     setAuthEmail(data?.email);
-    // Exclude confirmPassword, businessName, fullname, and dateOfBirth from API request
-    const { confirmPassword, businessName, currency, fullname, dateOfBirth, ...restData } = data;
+    // Exclude confirmPassword, businessName, currency, fullname, dateOfBirth, and isBusinessRegistered from API request
+    const { confirmPassword, businessName, currency, fullname, dateOfBirth, isBusinessRegistered, ...restData } = data;
+    
+    // Validate required fields
+    if (!businessName || !businessName.trim()) {
+      ErrorToast({
+        title: "Validation Error",
+        descriptions: ["Business name is required"],
+      });
+      return;
+    }
+    
     const registerData: any = {
-      ...restData,
+      username: restData.username,
+      email: restData.email,
+      password: restData.password,
       countryCode: currency,
       accountType: "BUSINESS" as const,
-      companyRegistrationNumber: businessName || "",
+      companyRegistrationNumber: businessName.trim(),
     };
+    
     // Only include fullname and dateOfBirth if they have values
     if (fullname && fullname.trim()) {
       registerData.fullname = fullname.trim();
@@ -155,6 +182,10 @@ const SignupBusinessContent = () => {
     if (dateOfBirth && dateOfBirth.trim()) {
       registerData.dateOfBirth = dateOfBirth.trim();
     }
+    
+    // Log the data being sent for debugging
+    console.log("Business registration data:", registerData);
+    
     signup(registerData);
   };
 

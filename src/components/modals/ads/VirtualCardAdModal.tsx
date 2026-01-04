@@ -79,7 +79,7 @@ const VirtualCardAdModal: React.FC<VirtualCardAdModalProps> = ({ isOpen, onClose
       <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={handleClose} />
       
       <div
-        className={`relative w-full max-w-2xl bg-bg-600 dark:bg-bg-1100 border border-border-800 dark:border-border-700 rounded-2xl overflow-hidden transform transition-all duration-300 ${
+        className={`relative w-full max-w-2xl max-h-[90vh] sm:max-h-[85vh] bg-bg-600 dark:bg-bg-1100 border border-border-800 dark:border-border-700 rounded-2xl overflow-y-auto transform transition-all duration-300 ${
           isVisible ? "scale-100 translate-y-0" : "scale-95 translate-y-4"
         }`}
         onClick={(e) => e.stopPropagation()}
@@ -102,21 +102,21 @@ const VirtualCardAdModal: React.FC<VirtualCardAdModalProps> = ({ isOpen, onClose
           <CgClose className="text-xl text-white" />
         </button>
 
-        <div className="relative z-10 p-6 sm:p-8">
+        <div className="relative z-10 p-4 sm:p-6 md:p-8">
           {/* Header */}
-          <div className="text-center mb-6">
-            <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">
+          <div className="text-center mb-4 sm:mb-6">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-2">
               Get Your Free {cardCurrency} Virtual Card! 🎁
             </h2>
-            <p className="text-white/70 text-sm sm:text-base">
+            <p className="text-white/70 text-xs sm:text-sm md:text-base">
               Create instant virtual cards for USD or EUR - No fees, instant activation
             </p>
           </div>
 
           {/* Animated Card */}
-          <div className="flex justify-center mb-6">
+          <div className="flex justify-center mb-4 sm:mb-6">
             <div
-              className="relative w-full max-w-sm transition-transform duration-300"
+              className="relative w-full max-w-xs sm:max-w-sm transition-transform duration-300"
               onMouseMove={handleMouseMove}
               onMouseLeave={handleMouseLeave}
               style={{
@@ -125,7 +125,7 @@ const VirtualCardAdModal: React.FC<VirtualCardAdModalProps> = ({ isOpen, onClose
               }}
             >
               <div
-                className={`relative overflow-hidden rounded-2xl ${cardGradient} p-5 sm:p-6 h-56 sm:h-64 border border-white/20 shadow-2xl transition-all duration-1000`}
+                className={`relative overflow-hidden rounded-2xl ${cardGradient} p-4 sm:p-5 md:p-6 h-44 sm:h-56 md:h-64 border border-white/20 shadow-2xl transition-all duration-1000`}
               >
                 {/* Card shine effect */}
                 <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-transparent" />
@@ -192,7 +192,7 @@ const VirtualCardAdModal: React.FC<VirtualCardAdModalProps> = ({ isOpen, onClose
           </div>
 
           {/* Features */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 mb-4 sm:mb-6">
             <div className="flex items-center gap-2 p-3 rounded-lg bg-white/5 border border-white/10">
               <div className="w-8 h-8 rounded-full bg-[#D4B139]/20 flex items-center justify-center">
                 <FiWifi className="text-[#D4B139]" />
@@ -255,6 +255,7 @@ const VirtualCardAdModal: React.FC<VirtualCardAdModalProps> = ({ isOpen, onClose
 };
 
 export default VirtualCardAdModal;
+
 
 
 

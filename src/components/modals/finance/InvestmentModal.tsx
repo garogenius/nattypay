@@ -207,7 +207,7 @@ const InvestmentModal: React.FC<InvestmentModalProps> = ({ isOpen, onClose }) =>
       <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4">
         <div className="absolute inset-0 bg-black/80" onClick={onClose} />
 
-      <div className="relative w-full max-w-md bg-bg-600 dark:bg-bg-1100 border border-border-800 dark:border-border-700 rounded-2xl p-3 sm:p-5 z-10 max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
+      <div className="relative w-full max-w-md bg-bg-600 dark:bg-bg-1100 border border-border-800 dark:border-border-700 rounded-2xl p-3 sm:p-4 md:p-5 z-10 max-h-[90vh] sm:max-h-[85vh] overflow-y-auto">
         <button
           onClick={onClose}
           className="absolute top-4 right-4 p-1.5 hover:bg-white/10 rounded-full transition-colors"
@@ -217,9 +217,9 @@ const InvestmentModal: React.FC<InvestmentModalProps> = ({ isOpen, onClose }) =>
 
         {step === 1 ? (
           <>
-            <h2 className="text-lg sm:text-xl font-semibold text-white mb-4 sm:mb-6">Create Investment</h2>
+            <h2 className="text-base sm:text-lg md:text-xl font-semibold text-white mb-3 sm:mb-4 md:mb-6">Create Investment</h2>
             
-            <div className="space-y-4 sm:space-y-6">
+            <div className="space-y-3 sm:space-y-4 md:space-y-6">
               <div>
                 <label className="block text-sm font-medium text-white/70 mb-2">
                   Investment Amount (Minimum ₦{MINIMUM_AMOUNT.toLocaleString()})
@@ -307,9 +307,9 @@ const InvestmentModal: React.FC<InvestmentModalProps> = ({ isOpen, onClose }) =>
           </>
         ) : step === 2 ? (
           <>
-            <h2 className="text-lg sm:text-xl font-semibold text-white mb-4 sm:mb-6">Create Investment</h2>
+            <h2 className="text-base sm:text-lg md:text-xl font-semibold text-white mb-3 sm:mb-4 md:mb-6">Create Investment</h2>
             
-            <div className="space-y-4 sm:space-y-6">
+            <div className="space-y-3 sm:space-y-4 md:space-y-6">
               <div>
                 <label className="block text-sm font-medium text-white/70 mb-2">
                   Agreement Reference (Optional)

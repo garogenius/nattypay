@@ -92,7 +92,7 @@ const ReferralAdModal: React.FC<ReferralAdModalProps> = ({ isOpen, onClose, onCo
       <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={handleClose} />
       
       <div
-        className={`relative w-full max-w-2xl bg-bg-600 dark:bg-bg-1100 border border-border-800 dark:border-border-700 rounded-2xl overflow-hidden transform transition-all duration-300 ${
+        className={`relative w-full max-w-2xl max-h-[90vh] sm:max-h-[85vh] bg-bg-600 dark:bg-bg-1100 border border-border-800 dark:border-border-700 rounded-2xl overflow-y-auto transform transition-all duration-300 ${
           isVisible ? "scale-100 translate-y-0" : "scale-95 translate-y-4"
         }`}
         onClick={(e) => e.stopPropagation()}
@@ -111,13 +111,13 @@ const ReferralAdModal: React.FC<ReferralAdModalProps> = ({ isOpen, onClose, onCo
           <CgClose className="text-xl text-white" />
         </button>
 
-        <div className="relative z-10 p-6 sm:p-8">
+        <div className="relative z-10 p-4 sm:p-6 md:p-8">
           {/* Header */}
-          <div className="text-center mb-6">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-[#D4B139] to-green-500 mb-4 animate-bounce">
-              <FiGift className="text-3xl text-white" />
+          <div className="text-center mb-4 sm:mb-6">
+            <div className="inline-flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full bg-gradient-to-br from-[#D4B139] to-green-500 mb-3 sm:mb-4 animate-bounce">
+              <FiGift className="text-2xl sm:text-2xl md:text-3xl text-white" />
             </div>
-            <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-2">
               Refer & Earn ₦4,500! 🎁
             </h2>
             <p className="text-white/70 text-sm sm:text-base">
@@ -126,7 +126,7 @@ const ReferralAdModal: React.FC<ReferralAdModalProps> = ({ isOpen, onClose, onCo
           </div>
 
           {/* Bonus Display */}
-          <div className="mb-6 p-6 rounded-xl bg-gradient-to-br from-[#D4B139]/20 to-green-500/20 border border-[#D4B139]/30">
+          <div className="mb-4 sm:mb-6 p-4 sm:p-5 md:p-6 rounded-xl bg-gradient-to-br from-[#D4B139]/20 to-green-500/20 border border-[#D4B139]/30">
             <div className="text-center">
               <p className="text-white/70 text-sm mb-2">Your Referral Bonus</p>
               <div className="flex items-center justify-center gap-2">
@@ -183,7 +183,7 @@ const ReferralAdModal: React.FC<ReferralAdModalProps> = ({ isOpen, onClose, onCo
           </div>
 
           {/* Benefits */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-4 sm:mb-6">
             {[
               { label: "Instant Payout", icon: "⚡" },
               { label: "No Limits", icon: "♾️" },
@@ -233,6 +233,7 @@ const ReferralAdModal: React.FC<ReferralAdModalProps> = ({ isOpen, onClose, onCo
 };
 
 export default ReferralAdModal;
+
 
 
 
