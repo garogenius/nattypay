@@ -19,11 +19,11 @@ export interface IRegister {
 
 export interface IBusinessRegister {
   username: string;
-  fullname: string;
+  fullname?: string; // Optional for business registration
   email?: string; // Optional - use when registering with email
   phoneNumber?: string; // Optional - use when registering with phone (format: "+2348012345678")
   password: string;
-  dateOfBirth: string; // Format: "15-Jan-1990"
+  dateOfBirth?: string; // Optional for business registration - Format: "15-Jan-1990"
   companyRegistrationNumber: string;
   countryCode: string; // "NGN", "USD", "EUR", "GBP" - Note: countryCode not currency
   accountType: "BUSINESS";

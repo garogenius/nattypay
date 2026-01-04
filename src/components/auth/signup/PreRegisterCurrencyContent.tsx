@@ -199,13 +199,19 @@ const PreRegisterCurrencyContent = () => {
       // Business registration payload
       const businessPayload: any = {
         username: registrationData.username,
-        fullname: registrationData.fullname,
         password: registrationData.password,
         accountType: "BUSINESS",
-        dateOfBirth: "",
         referralCode: registrationData.invitationCode || "",
         countryCode: validCurrency, // Use currency code as countryCode (NGN, USD, EUR, GBP)
       };
+      
+      // Only include fullname and dateOfBirth if they have values (not needed for business)
+      if (registrationData.fullname && registrationData.fullname.trim()) {
+        businessPayload.fullname = registrationData.fullname.trim();
+      }
+      if (registrationData.dateOfBirth && registrationData.dateOfBirth.trim()) {
+        businessPayload.dateOfBirth = registrationData.dateOfBirth.trim();
+      }
       
       if (registrationData.email) {
         businessPayload.email = registrationData.email;

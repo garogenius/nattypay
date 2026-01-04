@@ -32,8 +32,8 @@ const schema = yup.object().shape({
   password: yup.string().min(8, "Password must be at least 8 characters").required("Password is required"),
   confirmPassword: yup.string().oneOf([yup.ref("password")], "Passwords do not match").required("Please confirm your password"),
   username: yup.string().required("Username is required"),
-  fullname: yup.string().required("Full Name is required"),
-  dateOfBirth: yup.string().required("Date of birth is required"),
+  fullname: yup.string().optional(),
+  dateOfBirth: yup.string().optional(),
 });
 
 type RegisterFormData = yup.InferType<typeof schema>;
@@ -140,14 +140,21 @@ const SignupBusinessContent = () => {
 
   const onSubmit = async (data: RegisterFormData) => {
     setAuthEmail(data?.email);
-    // Exclude confirmPassword and businessName from API request
-    const { confirmPassword, businessName, currency, ...restData } = data;
-    const registerData = {
+    // Exclude confirmPassword, businessName, fullname, and dateOfBirth from API request
+    const { confirmPassword, businessName, currency, fullname, dateOfBirth, ...restData } = data;
+    const registerData: any = {
       ...restData,
       countryCode: currency,
       accountType: "BUSINESS" as const,
       companyRegistrationNumber: businessName || "",
     };
+    // Only include fullname and dateOfBirth if they have values
+    if (fullname && fullname.trim()) {
+      registerData.fullname = fullname.trim();
+    }
+    if (dateOfBirth && dateOfBirth.trim()) {
+      registerData.dateOfBirth = dateOfBirth.trim();
+    }
     signup(registerData);
   };
 

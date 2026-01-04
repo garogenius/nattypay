@@ -145,11 +145,17 @@ const CurrencySelectionContent = () => {
     // Prepare registration payload
     const registrationPayload: any = {
       username: registrationData.username,
-      fullname: registrationData.fullname,
       password: registrationData.password,
-      dateOfBirth: registrationData.dateOfBirth,
       accountType: registrationData.accountType,
     };
+    
+    // Only include fullname and dateOfBirth if they have values (not needed for business)
+    if (registrationData.fullname && registrationData.fullname.trim()) {
+      registrationPayload.fullname = registrationData.fullname.trim();
+    }
+    if (registrationData.dateOfBirth && registrationData.dateOfBirth.trim()) {
+      registrationPayload.dateOfBirth = registrationData.dateOfBirth.trim();
+    }
 
     // Add email or phoneNumber based on what was provided
     if (registrationData.email) {

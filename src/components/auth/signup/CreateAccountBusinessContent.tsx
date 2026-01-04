@@ -111,12 +111,18 @@ const CreateAccountBusinessContent = () => {
       // Store registration data temporarily (without currency)
       const registrationData: any = {
         username: data.username,
-        fullname: data.fullname,
         password: data.password,
-        dateOfBirth: data.dateOfBirth,
         accountType: "BUSINESS",
         companyRegistrationNumber: data.companyRegistrationNumber,
       };
+      
+      // Only include fullname and dateOfBirth if they have values
+      if (data.fullname && data.fullname.trim()) {
+        registrationData.fullname = data.fullname.trim();
+      }
+      if (data.dateOfBirth && data.dateOfBirth.trim()) {
+        registrationData.dateOfBirth = data.dateOfBirth.trim();
+      }
 
       // Add email or phoneNumber based on active tab
       if (data.tab === "email") {
