@@ -48,9 +48,9 @@ const TransportModal: React.FC<TransportModalProps> = ({ isOpen, onClose }) => {
 
   // Normalize plan items from billInfo
   const plans = (billInfo?.items || []).map((v: any) => ({
-    name: v.short_name || v.name || v.item_name,
-    amount: typeof v.payAmount === 'number' ? v.payAmount : Number(v.amount) || 0,
-    itemCode: v.item_code || v.itemCode,
+    name: v.short_name || v.name || v.itemName || v.item_name || v.billPaymentProductName,
+    amount: typeof v.payAmount === 'number' ? v.payAmount : (typeof v.amount === 'number' ? v.amount : Number(v.amount) || 0),
+    itemCode: v.item_code || v.itemCode || v.billPaymentProductId,
   }));
 
   const canProceed = !!selectedProvider && !!selectedPlan && billerNumber.length > 0;
@@ -138,19 +138,24 @@ const TransportModal: React.FC<TransportModalProps> = ({ isOpen, onClose }) => {
                         <div className="flex items-center justify-center py-4">
                           <SpinnerLoader width={20} height={20} color="#D4B139" />
                         </div>
-                      ) : (transportPlans || []).map((p: any) => (
+                      ) : (transportPlans && transportPlans.length > 0) ? transportPlans.map((p: any) => (
                         <button
-                          key={p.billerCode}
+                          key={p.billerCode || p.billerId || p.code}
                           onClick={() => {
-                            setSelectedProvider({ name: p.shortName || p.name, billerCode: p.billerCode });
+                            setSelectedProvider({ 
+                              name: p.shortName || p.name || p.billerName || p.billerShortName, 
+                              billerCode: p.billerCode || p.billerId || p.code 
+                            });
                             setSelectedPlan(null);
                             setProviderOpen(false);
                           }}
                           className="w-full text-left px-4 py-3 text-white/80 hover:bg-white/5 text-sm"
                         >
-                          {p.shortName || p.name}
+                          {p.shortName || p.name || p.billerName || p.billerShortName || "Unknown Provider"}
                         </button>
-                      ))}
+                      )) : (
+                        <div className="px-4 py-3 text-white/50 text-sm">No providers available</div>
+                      )}
                     </div>
                   </div>
                 )}

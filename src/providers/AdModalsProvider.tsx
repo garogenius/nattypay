@@ -57,7 +57,7 @@ const AdModalsProvider: React.FC<{ children: React.ReactNode }> = ({ children })
       checkAndShowModal();
     }, 2000);
 
-    // Set up interval to check for next modal every 8 minutes
+    // Set up interval to check for next modal every 5 minutes
     const timer = setInterval(() => {
       checkAndShowModal();
     }, MODAL_INTERVAL);

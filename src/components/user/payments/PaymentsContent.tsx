@@ -28,7 +28,7 @@ const PaymentsContent: React.FC = () => {
         <div className="w-full flex items-center justify-between gap-3 sm:gap-4">
           <div className="flex items-center gap-2">
             <h1 className="text-xl sm:text-2xl font-semibold text-white">Payments</h1>
-            <span className="px-2 py-1 rounded-lg bg-white/10 text-white/80 text-xs font-medium border border-white/20">
+            <span className="hidden sm:inline-block px-2 py-1 rounded-lg bg-white/10 text-white/80 text-xs font-medium border border-white/20">
               {selectedCurrency}
             </span>
           </div>

@@ -1,13 +1,13 @@
 /**
  * Ad Modals Service
  * Manages the display logic for promotional ad modals
- * - 8 minute interval between modals
- * - 10 second display duration per modal
+ * - 5 minute interval between modals
+ * - 25 second display duration per modal
  * - Tracks which modals have been shown
  */
 
 const STORAGE_KEY = "nattypay_ad_modals";
-const MODAL_INTERVAL = 8 * 60 * 1000; // 8 minutes in milliseconds
+const MODAL_INTERVAL = 5 * 60 * 1000; // 5 minutes in milliseconds
 const MODAL_DISPLAY_DURATION = 10 * 1000; // 10 seconds in milliseconds
 
 export type AdModalType = "welcome" | "virtual-card" | "savings-investment" | "referral" | "betting-platforms";
