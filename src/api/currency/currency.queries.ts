@@ -679,7 +679,7 @@ export const useGetBanksByCurrency = (currency: string) => {
 
   // Handle different possible response structures
   // API response: { banks: [...], count: 2 }
-  // Could be at: data.data.banks, data.data.data.banks, data.banks, or data.data.data
+  // Could be at: data.data.banks, data.data.data.banks, or data.data.data
   let banks: any[] = [];
   if (data?.data) {
     if (Array.isArray(data.data.banks)) {
@@ -691,8 +691,6 @@ export const useGetBanksByCurrency = (currency: string) => {
     } else if (Array.isArray(data.data)) {
       banks = data.data;
     }
-  } else if (Array.isArray(data?.banks)) {
-    banks = data.banks;
   }
 
   // Debug log in development
