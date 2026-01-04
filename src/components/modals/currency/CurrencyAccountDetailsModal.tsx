@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Image from "next/image";
 import { CgClose } from "react-icons/cg";
 import { FiPlus } from "react-icons/fi";
 import { ICurrencyAccount } from "@/api/currency/currency.types";
@@ -105,7 +106,13 @@ const CurrencyAccountDetailsModal: React.FC<CurrencyAccountDetailsModalProps> = 
         {/* Header */}
         <div className="px-5 sm:px-6 pt-1 pb-4 border-b border-white/10">
           <div className="flex items-center gap-3 mb-2">
-            {getCurrencyIconByString(currency, 32)}
+            <Image
+              src={getCurrencyIconByString(currency.toLowerCase()) || ""}
+              alt={currency}
+              width={32}
+              height={32}
+              className="w-8 h-8"
+            />
             <div>
               <h2 className="text-white text-base sm:text-lg font-semibold">
                 {account.accountName || account.label || `${currency} Account`}

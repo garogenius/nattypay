@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Image from "next/image";
 import { CgClose } from "react-icons/cg";
 import { useCreateCurrencyAccount } from "@/api/currency/currency.queries";
 import CustomButton from "@/components/shared/Button";
@@ -101,7 +102,13 @@ const CreateCurrencyAccountModal: React.FC<CreateCurrencyAccountModalProps> = ({
                 className="w-full flex items-center justify-between bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-3.5 px-3 text-white"
               >
                 <div className="flex items-center gap-3">
-                  {getCurrencyIconByString(currency, 20)}
+                  <Image
+                    src={getCurrencyIconByString(currency.toLowerCase()) || ""}
+                    alt={currency}
+                    width={20}
+                    height={20}
+                    className="w-5 h-5"
+                  />
                   <span>{currencies.find((c) => c.value === currency)?.label}</span>
                 </div>
                 <svg
@@ -127,7 +134,13 @@ const CreateCurrencyAccountModal: React.FC<CreateCurrencyAccountModalProps> = ({
                         currency === curr.value ? "bg-white/10" : ""
                       }`}
                     >
-                      {getCurrencyIconByString(curr.value, 20)}
+                      <Image
+                        src={getCurrencyIconByString(curr.value.toLowerCase()) || ""}
+                        alt={curr.value}
+                        width={20}
+                        height={20}
+                        className="w-5 h-5"
+                      />
                       <span className="text-white">{curr.label}</span>
                     </button>
                   ))}
