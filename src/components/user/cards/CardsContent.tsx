@@ -9,7 +9,9 @@ import ResetPinModal from "@/components/modals/cards/ResetPinModal";
 import SpendingLimitModal from "@/components/modals/cards/SpendingLimitModal";
 import ConfirmActionModal from "@/components/modals/cards/ConfirmActionModal";
 import ValidationErrorModal from "@/components/modals/ValidationErrorModal";
-import { useGetCards, useCreateCard, useFreezeCard, useUnfreezeCard, useBlockCard, useCloseCard, useGetCurrencyAccounts, useGetCurrencyAccountByCurrency } from "@/api/currency/currency.queries";
+import BlockCardModal from "@/components/modals/currency/BlockCardModal";
+import CloseCardModal from "@/components/modals/currency/CloseCardModal";
+import { useGetCards, useCreateCard, useFreezeCard, useUnfreezeCard, useGetCurrencyAccounts, useGetCurrencyAccountByCurrency } from "@/api/currency/currency.queries";
 import { IVirtualCard } from "@/api/currency/currency.types";
 import ErrorToast from "@/components/toast/ErrorToast";
 import SuccessToast from "@/components/toast/SuccessToast";
@@ -323,8 +325,6 @@ const CardsContent: React.FC = () => {
 
   const { mutate: freezeCard } = useFreezeCard(onFreezeError, onFreezeSuccess);
   const { mutate: unfreezeCard } = useUnfreezeCard(onUnfreezeError, onUnfreezeSuccess);
-  const { mutate: blockCard } = useBlockCard(onBlockError, onBlockSuccess);
-  const { mutate: closeCard } = useCloseCard(onCloseError, onCloseSuccess);
 
   const handleCreateCard = () => {
     if (!hasCurrencyAccount(selectedCurrency)) {
@@ -411,12 +411,12 @@ const CardsContent: React.FC = () => {
 
   const handleBlock = () => {
     if (!selectedCard) return;
-    blockCard(selectedCard.id);
+    // BlockCardModal will handle the actual blocking with PIN
   };
 
   const handleClose = () => {
     if (!selectedCard) return;
-    closeCard(selectedCard.id);
+    // CloseCardModal will handle the actual closing with PIN
   };
 
   const formatExpiry = (card: IVirtualCard) => {
@@ -814,24 +814,30 @@ const CardsContent: React.FC = () => {
         description={selectedCard?.status === "FROZEN" ? "Your card will become active for transactions." : "This will temporarily disable card transactions until un-frozen."}
         confirmText={selectedCard?.status === "FROZEN" ? "Un-freeze" : "Freeze"}
       />
-      <ConfirmActionModal 
-        isOpen={openBlock}
-        onClose={()=> { setOpenBlock(false); setSelectedCard(null); }}
-        onConfirm={handleBlock}
-        title="Block Card?"
-        description="This action is permanent. Your card will be blocked and you'll need to create a new one."
-        confirmText="Block"
-        confirmTone="danger"
-      />
-      <ConfirmActionModal 
-        isOpen={openClose}
-        onClose={()=> { setOpenClose(false); setSelectedCard(null); }}
-        onConfirm={handleClose}
-        title="Close Card?"
-        description="This action is permanent. Your card will be closed and you'll need to create a new one."
-        confirmText="Close"
-        confirmTone="danger"
-      />
+      {selectedCard && (
+        <BlockCardModal
+          isOpen={openBlock}
+          onClose={() => { setOpenBlock(false); setSelectedCard(null); }}
+          card={selectedCard}
+          onSuccess={() => {
+            setOpenBlock(false);
+            setSelectedCard(null);
+            refetchCards();
+          }}
+        />
+      )}
+      {selectedCard && (
+        <CloseCardModal
+          isOpen={openClose}
+          onClose={() => { setOpenClose(false); setSelectedCard(null); }}
+          card={selectedCard}
+          onSuccess={() => {
+            setOpenClose(false);
+            setSelectedCard(null);
+            refetchCards();
+          }}
+        />
+      )}
       
       {/* Error Modal for Card Creation */}
       <ValidationErrorModal
