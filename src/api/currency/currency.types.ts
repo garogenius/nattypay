@@ -95,6 +95,98 @@ export interface ISupportedCurrency {
   symbol: string;
 }
 
+// Currency Account Transaction Types
+export interface ICurrencyAccountTransaction {
+  id: string;
+  account_id: string;
+  amount: number;
+  currency: string;
+  transaction_type: "credit" | "debit";
+  status: "pending" | "completed" | "failed";
+  description?: string;
+  reference?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// Currency Account Deposit Types
+export interface ICurrencyAccountDeposit {
+  id: string;
+  account_id: string;
+  amount: number;
+  currency: string;
+  status: "pending" | "completed" | "failed";
+  reference: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// Currency Account Payout Types
+export interface ICurrencyAccountPayout {
+  id: string;
+  account_id: string;
+  destination_id: string;
+  amount: number;
+  currency: string;
+  status: "pending" | "completed" | "failed";
+  reference: string;
+  fee: number;
+  created_at: string;
+  updated_at?: string;
+}
+
+// Payout Destination Types
+export interface IPayoutDestination {
+  id: string;
+  type: "wire" | "nip" | "stablecoin";
+  account_number: string;
+  bank_name?: string;
+  account_name: string;
+  currency: string;
+  created_at: string;
+}
+
+export interface ICreatePayoutDestination {
+  type: "wire" | "nip" | "stablecoin";
+  account_number: string;
+  bank_name?: string;
+  account_name: string;
+}
+
+export interface ICreatePayout {
+  destinationId: string;
+  amount: number;
+  reference?: string;
+  description?: string;
+}
+
+export interface IUpdateCurrencyAccount {
+  label: string;
+}
+
+export interface ICloseCurrencyAccount {
+  walletPin: string;
+}
+
+export interface IUpdateCard {
+  label: string;
+}
+
+export interface IBlockCard {
+  walletPin: string;
+  reason?: string;
+}
+
+export interface ICloseCard {
+  walletPin: string;
+}
+
+export interface IGetTransferFee {
+  currency: string;
+  amount: number;
+  accountNumber: string;
+}
+
 
 
 

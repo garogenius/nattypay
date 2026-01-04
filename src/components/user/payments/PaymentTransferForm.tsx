@@ -2,12 +2,15 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useVerifyAccount, useInitiateTransfer, useGetAllBanks } from "@/api/wallet/wallet.queries";
+import { useGetBanksByCurrency, useGetCurrencyAccountByCurrency } from "@/api/currency/currency.queries";
+import { useQueryClient } from "@tanstack/react-query";
 import ErrorToast from "@/components/toast/ErrorToast";
 import SuccessToast from "@/components/toast/SuccessToast";
 import { FiCheckCircle } from "react-icons/fi";
 import CustomButton from "@/components/shared/Button";
 import { formatNumberWithCommas } from "@/utils/utilityFunctions";
 import useUserStore from "@/store/user.store";
+import usePaymentSettingsStore from "@/store/paymentSettings.store";
 import { useGetTransactions } from "@/api/wallet/wallet.queries";
 import images from "../../../../public/images";
 import Image from "next/image";
@@ -31,8 +34,26 @@ interface PaymentTransferFormProps {
 
 const PaymentTransferForm: React.FC<PaymentTransferFormProps> = ({ type, accountNumber: acctProp, setAccountNumber: setAcctProp, accountName: nameProp, setAccountName: setNameProp, sessionId: sessProp, setSessionId: setSessProp, amount: amtProp, setAmount: setAmtProp }) => {
   const { user } = useUserStore();
+  const { selectedCurrency } = usePaymentSettingsStore();
+  const queryClient = useQueryClient();
   const primaryWallet = user?.wallet?.[0];
   const { transactionsData } = useGetTransactions({ page: 1, limit: 8 });
+  
+  // Get currency account for selected currency
+  const { account: currencyAccount, isPending: accountLoading } = useGetCurrencyAccountByCurrency(
+    selectedCurrency !== "NGN" ? selectedCurrency : ""
+  );
+  
+  // Get banks: For NGN use wallet API, for other currencies use currency API
+  const { banks: ngnBanks, isPending: ngnBanksLoading } = useGetAllBanks();
+  const { banks: currencyBanks, isPending: currencyBanksLoading } = useGetBanksByCurrency(
+    selectedCurrency !== "NGN" ? selectedCurrency : ""
+  );
+  
+  // Determine which banks to use based on selected currency
+  const banks = selectedCurrency === "NGN" ? (ngnBanks || []) : (currencyBanks || []);
+  const banksLoading = selectedCurrency === "NGN" ? ngnBanksLoading : currencyBanksLoading;
+  
   const [accountNumberState, setAccountNumberState] = useState("");
   const [accountNameState, setAccountNameState] = useState("");
   const [sessionIdState, setSessionIdState] = useState("");
@@ -48,10 +69,70 @@ const PaymentTransferForm: React.FC<PaymentTransferFormProps> = ({ type, account
   const [narration, setNarration] = useState("");
   const [bankCode, setBankCode] = useState<string>("");
   const [bankName, setBankName] = useState<string>("");
-  const { banks } = useGetAllBanks();
   const [openBanks, setOpenBanks] = useState(false);
   const bankDropdownRef = useRef<HTMLDivElement | null>(null);
   useOnClickOutside(bankDropdownRef, () => setOpenBanks(false));
+  
+  // Get current account balance based on selected currency
+  const currentBalance = useMemo(() => {
+    if (selectedCurrency === "NGN") {
+      return primaryWallet?.balance || 0;
+    }
+    return currencyAccount?.balance || 0;
+  }, [selectedCurrency, primaryWallet, currencyAccount]);
+  
+  // Format currency symbol
+  const getCurrencySymbol = (currency: string) => {
+    switch (currency) {
+      case "NGN":
+        return "₦";
+      case "USD":
+        return "$";
+      case "EUR":
+        return "€";
+      case "GBP":
+        return "£";
+      default:
+        return "₦";
+    }
+  };
+  
+  // Check if account exists for selected currency
+  const accountExists = useMemo(() => {
+    if (selectedCurrency === "NGN") {
+      return !!primaryWallet;
+    }
+    return !!currencyAccount;
+  }, [selectedCurrency, primaryWallet, currencyAccount]);
+  
+  // Reset form when currency changes
+  useEffect(() => {
+    setAccountNumber("");
+    setAccountName("");
+    setSessionId("");
+    setAmount("");
+    setBankCode("");
+    setBankName("");
+    setNarration("");
+    setOpenBanks(false);
+    // Invalidate banks query to refetch for new currency
+    if (selectedCurrency !== "NGN") {
+      queryClient.invalidateQueries({ queryKey: ["banks", selectedCurrency] });
+    }
+  }, [selectedCurrency, setAccountNumber, setAccountName, setSessionId, setAmount, queryClient]);
+  
+  // Debug: Log banks data when it changes
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('PaymentTransferForm - Banks data:', {
+        selectedCurrency,
+        banksCount: banks?.length || 0,
+        banks: banks?.slice(0, 3).map((bank: any) => ({ code: bank?.code, name: bank?.name })),
+        banksLoading,
+        isNGN: selectedCurrency === "NGN",
+      });
+    }
+  }, [selectedCurrency, banks, banksLoading]);
 
   const onVerifyAccountError = (error: any) => {
     // Extract error message from various possible response formats
@@ -66,11 +147,27 @@ const PaymentTransferForm: React.FC<PaymentTransferFormProps> = ({ type, account
   };
 
   const onVerifyAccountSuccess = (data: any) => {
-    const d = data?.data?.data;
-    setAccountName(d?.accountName || "");
-    setSessionId(d?.sessionId || "");
-    if (type === "nattypay" && d?.bankCode) {
-      setBankCode(d.bankCode);
+    // Handle different possible response structures
+    const responseData = data?.data?.data || data?.data || data;
+    const accountName = responseData?.accountName || responseData?.account_name || "";
+    const sessionId = responseData?.sessionId || responseData?.session_id || "";
+    
+    setAccountName(accountName);
+    setSessionId(sessionId);
+    
+    if (type === "nattypay" && (responseData?.bankCode || responseData?.bank_code)) {
+      setBankCode(responseData?.bankCode || responseData?.bank_code);
+    }
+    
+    // Debug log in development
+    if (process.env.NODE_ENV === 'development') {
+      console.log('PaymentTransferForm - Account Verification Success:', {
+        rawData: data,
+        responseData,
+        accountName,
+        sessionId,
+        bankCode: responseData?.bankCode || responseData?.bank_code,
+      });
     }
   };
 
@@ -95,11 +192,56 @@ const PaymentTransferForm: React.FC<PaymentTransferFormProps> = ({ type, account
   }, [accountNumber, bankCode, type, verifyAccount]);
 
   const canProceed = useMemo(() => {
-    const amt = Number(amount.replace(/,/g, "")) || 0;
-    return accountNumber.length === 10 && !!accountName && !!sessionId && amt > 0;
-  }, [accountNumber, accountName, sessionId, amount]);
+    // Parse amount, handling commas (formatNumberWithCommas adds commas)
+    const cleanAmount = amount.replace(/,/g, "");
+    const amt = Number(cleanAmount) || 0;
+    const hasValidAccountNumber = accountNumber && accountNumber.length === 10;
+    const hasVerifiedAccount = !!accountName && !!sessionId;
+    // Amount must be > 0 and <= current balance
+    const hasValidAmount = amt > 0 && amt <= currentBalance;
+    const hasBankCodeForBankTransfer = type === "bank" ? !!bankCode : true;
+    
+    const canProceedResult = accountExists && hasValidAccountNumber && hasVerifiedAccount && hasValidAmount && hasBankCodeForBankTransfer;
+    
+    // Debug log in development
+    if (process.env.NODE_ENV === 'development') {
+      console.log('PaymentTransferForm - canProceed check:', {
+        accountExists,
+        hasValidAccountNumber,
+        accountNumber: accountNumber,
+        accountNumberLength: accountNumber?.length || 0,
+        hasVerifiedAccount,
+        accountName: accountName || "NOT SET",
+        sessionId: sessionId || "NOT SET",
+        hasValidAmount,
+        rawAmount: amount,
+        parsedAmount: amt,
+        currentBalance,
+        hasBankCodeForBankTransfer,
+        bankCode: type === "bank" ? (bankCode || "NOT SET") : "N/A",
+        type,
+        canProceed: canProceedResult,
+        breakdown: {
+          accountExists,
+          hasValidAccountNumber,
+          hasVerifiedAccount,
+          hasValidAmount,
+          hasBankCodeForBankTransfer,
+        }
+      });
+    }
+    
+    return canProceedResult;
+  }, [accountNumber, accountName, sessionId, amount, accountExists, currentBalance, type, bankCode]);
 
-  const quickAmounts = [1000, 5000, 10000, 20000];
+  const quickAmounts = useMemo(() => {
+    // Adjust quick amounts based on currency
+    if (selectedCurrency === "NGN") {
+      return [1000, 5000, 10000, 20000];
+    }
+    // For foreign currencies, use smaller amounts
+    return [10, 50, 100, 200];
+  }, [selectedCurrency]);
   const [openConfirm, setOpenConfirm] = useState(false);
   const [openResult, setOpenResult] = useState(false);
   const [resultPayload, setResultPayload] = useState<any>(null);
@@ -130,6 +272,11 @@ const PaymentTransferForm: React.FC<PaymentTransferFormProps> = ({ type, account
     SuccessToast({ title: "Transfer successful", description: "Your transfer was successful" });
     setResultStatus("success");
     setResultPayload({ transaction });
+    // Invalidate currency-specific queries
+    queryClient.invalidateQueries({ queryKey: ["currency-account-transactions", selectedCurrency] });
+    queryClient.invalidateQueries({ queryKey: ["currency-account", selectedCurrency] });
+    queryClient.invalidateQueries({ queryKey: ["currency-accounts"] });
+    queryClient.invalidateQueries({ queryKey: ["user"] });
     setOpenResult(true);
   };
 
@@ -186,22 +333,32 @@ const PaymentTransferForm: React.FC<PaymentTransferFormProps> = ({ type, account
 
                 <div className="absolute left-0 right-0 top-full z-20">
                   <div className={`overflow-y-auto max-h-60 bg-bg-600 dark:bg-bg-1100 border border-border-600 dark:border-border-600 shadow-md no-scrollbar ${openBanks ? "block" : "hidden"} rounded-b-lg ${openBanks ? "-mt-px" : ""}`}>
-                    <SearchableDropdown
-                      items={banks}
-                      searchKey="name"
-                      displayFormat={(bank:any) => (
-                        <div className="flex flex-col text-text-700 dark:text-text-1000">
-                          <p className="text-sm font-medium">{bank.name}</p>
-                        </div>
-                      )}
-                      onSelect={(bank:any) => {
-                        setBankCode(String(bank.bankCode));
-                        setBankName(bank.name);
-                      }}
-                      placeholder="Search bank..."
-                      isOpen={openBanks}
-                      onClose={()=>{ setOpenBanks(false); }}
-                    />
+                    {banksLoading ? (
+                      <div className="flex items-center justify-center py-4">
+                        <SpinnerLoader width={20} height={20} color="#D4B139" />
+                      </div>
+                    ) : banks && banks.length > 0 ? (
+                      <SearchableDropdown
+                        items={banks}
+                        searchKey="name"
+                        displayFormat={(bank:any) => (
+                          <div className="flex flex-col text-text-700 dark:text-text-1000">
+                            <p className="text-sm font-medium">{bank.name}</p>
+                          </div>
+                        )}
+                        onSelect={(bank:any) => {
+                          setBankCode(String(bank.code || bank.bankCode));
+                          setBankName(bank.name);
+                        }}
+                        placeholder="Search bank..."
+                        isOpen={openBanks}
+                        onClose={()=>{ setOpenBanks(false); }}
+                      />
+                    ) : (
+                      <div className="flex items-center justify-center py-4 text-white/60 text-sm">
+                        No banks available for {selectedCurrency}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -238,7 +395,11 @@ const PaymentTransferForm: React.FC<PaymentTransferFormProps> = ({ type, account
         <div className="flex flex-col gap-1">
           <label className="text-white/80 text-sm">Enter Amount</label>
           <input
-            className="w-full bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-3 px-3 text-white placeholder:text-white/40 outline-none"
+            className={`w-full bg-bg-2400 dark:bg-bg-2100 border rounded-lg py-3 px-3 text-white placeholder:text-white/40 outline-none ${
+              amount && Number(amount.replace(/,/g, "")) > currentBalance
+                ? "border-red-500 focus:ring-1 focus:ring-red-500"
+                : "border-border-600"
+            }`}
             placeholder="0.00"
             inputMode="decimal"
             value={amount}
@@ -247,20 +408,34 @@ const PaymentTransferForm: React.FC<PaymentTransferFormProps> = ({ type, account
               if (/^\d*\.?\d*$/.test(v)) setAmount(formatNumberWithCommas(v));
             }}
           />
-          <p className="text-[#D4B139] text-xs mt-1">
-            Available Balance (₦{Number(primaryWallet?.balance || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
-          </p>
-          <div className="grid grid-cols-4 gap-2 mt-2">
-            {quickAmounts.map((amt) => (
-              <button
-                key={amt}
-                className="bg-bg-2400 dark:bg-bg-2100 border border-border-600 hover:bg-white/10 text-white/80 text-xs rounded py-2 transition-colors"
-                onClick={() => setAmount(formatNumberWithCommas(String(amt)))}
-              >
-                ₦{amt.toLocaleString()}
-              </button>
-            ))}
-          </div>
+          {!accountExists ? (
+            <p className="text-red-400 text-xs mt-1">
+              {selectedCurrency} account not found. Please create an account first.
+            </p>
+          ) : (
+            <>
+              <p className="text-[#D4B139] text-xs mt-1">
+                Available Balance ({getCurrencySymbol(selectedCurrency)}{Number(currentBalance).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
+              </p>
+              {amount && Number(amount.replace(/,/g, "")) > currentBalance && (
+                <p className="text-red-400 text-xs mt-1">
+                  Insufficient balance. Amount exceeds available balance.
+                </p>
+              )}
+              <div className="grid grid-cols-4 gap-2 mt-2">
+                {quickAmounts.map((amt) => (
+                  <button
+                    key={amt}
+                    className="bg-bg-2400 dark:bg-bg-2100 border border-border-600 hover:bg-white/10 text-white/80 text-xs rounded py-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    onClick={() => setAmount(formatNumberWithCommas(String(amt)))}
+                    disabled={amt > currentBalance}
+                  >
+                    {getCurrencySymbol(selectedCurrency)}{amt.toLocaleString()}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
         </div>
 
         <div className="flex flex-col gap-1">
@@ -275,9 +450,18 @@ const PaymentTransferForm: React.FC<PaymentTransferFormProps> = ({ type, account
 
         <CustomButton
           type="button"
-          disabled={!canProceed}
-          className="w-full bg-[#D4B139] hover:bg-[#c7a42f] text-black py-3.5 rounded-xl font-medium mt-2"
-          onClick={() => setOpenConfirm(true)}
+          disabled={!canProceed || !accountExists}
+          className="w-full bg-[#D4B139] hover:bg-[#c7a42f] text-black py-3.5 rounded-xl font-medium mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          onClick={() => {
+            if (!accountExists) {
+              ErrorToast({ 
+                title: "Account Not Found", 
+                descriptions: [`${selectedCurrency} account not found. Please create an account first.`] 
+              });
+              return;
+            }
+            setOpenConfirm(true);
+          }}
         >
           Next
         </CustomButton>
@@ -291,6 +475,20 @@ const PaymentTransferForm: React.FC<PaymentTransferFormProps> = ({ type, account
         amount={Number((amount || "").replace(/,/g, "")) || 0}
         onConfirm={(pin) => {
           const amt = Number((amount || "").replace(/,/g, "")) || 0;
+          if (!accountExists) {
+            ErrorToast({ 
+              title: "Account Not Found", 
+              descriptions: [`${selectedCurrency} account not found. Please create an account first.`] 
+            });
+            return;
+          }
+          if (amt > currentBalance) {
+            ErrorToast({ 
+              title: "Insufficient Balance", 
+              descriptions: [`Insufficient balance. Available: ${getCurrencySymbol(selectedCurrency)}${Number(currentBalance).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`] 
+            });
+            return;
+          }
           if (pin && pin.length === 4) {
             initiateTransfer({
               accountName,
@@ -300,7 +498,7 @@ const PaymentTransferForm: React.FC<PaymentTransferFormProps> = ({ type, account
               walletPin: pin,
               sessionId,
               ...(type === "bank" ? { bankCode } : {}),
-              currency: "NGN",
+              currency: selectedCurrency,
               addBeneficiary: false,
             } as any);
             setOpenConfirm(false);

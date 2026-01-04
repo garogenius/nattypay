@@ -5,9 +5,12 @@ import {
   createCurrencyAccountRequest,
   getCurrencyAccountsRequest,
   getCurrencyAccountByCurrencyRequest,
+  updateCurrencyAccountRequest,
+  closeCurrencyAccountRequest,
   createCardRequest,
   getCardsRequest,
   getCardByIdRequest,
+  updateCardRequest,
   fundCardRequest,
   freezeCardRequest,
   unfreezeCardRequest,
@@ -19,6 +22,14 @@ import {
   convertCurrencyRequest,
   getCurrencyRatesRequest,
   getSupportedCurrenciesRequest,
+  getBanksByCurrencyRequest,
+  getTransferFeeRequest,
+  getCurrencyAccountTransactionsRequest,
+  getCurrencyAccountDepositsRequest,
+  getCurrencyAccountPayoutsRequest,
+  getCurrencyAccountPayoutDestinationsRequest,
+  createCurrencyAccountPayoutDestinationRequest,
+  createCurrencyAccountPayoutRequest,
 } from "./currency.apis";
 import {
   IFundCard,
@@ -28,6 +39,18 @@ import {
   ICardTransaction,
   ICurrencyRate,
   ISupportedCurrency,
+  ICurrencyAccountTransaction,
+  ICurrencyAccountDeposit,
+  ICurrencyAccountPayout,
+  IPayoutDestination,
+  ICreatePayoutDestination,
+  ICreatePayout,
+  IUpdateCurrencyAccount,
+  ICloseCurrencyAccount,
+  IUpdateCard,
+  IBlockCard,
+  ICloseCard,
+  IGetTransferFee,
 } from "./currency.types";
 
 // Currency Accounts Hooks
@@ -58,7 +81,7 @@ export const useGetCurrencyAccounts = () => {
   // Handle different possible response structures
   let accounts: any[] = [];
   if (data?.data) {
-    // Try data.data.accounts first (most common structure)
+    // Try data.data.accounts first (most common structure - matches API response)
     if (Array.isArray(data.data.accounts)) {
       accounts = data.data.accounts;
     }
@@ -69,6 +92,10 @@ export const useGetCurrencyAccounts = () => {
     // Try data.data if it's an array
     else if (Array.isArray(data.data)) {
       accounts = data.data;
+    }
+    // Try data.data.data.accounts (deeply nested)
+    else if (data.data.data && Array.isArray(data.data.data.accounts)) {
+      accounts = data.data.data.accounts;
     }
   }
 
@@ -337,6 +364,43 @@ export const useGetCurrencyAccountByCurrency = (currency: string) => {
   return { account, isPending, isError: isError && !isNotFound, isNotFound };
 };
 
+export const useUpdateCurrencyAccount = (
+  onError: (error: any) => void,
+  onSuccess: (data: any) => void
+) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ currency, formdata }: { currency: string; formdata: IUpdateCurrencyAccount }) =>
+      updateCurrencyAccountRequest(currency, formdata),
+    onError,
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["currency-accounts"] });
+      queryClient.invalidateQueries({ queryKey: ["currency-account", variables.currency] });
+      onSuccess(data);
+    },
+  });
+};
+
+export const useCloseCurrencyAccount = (
+  onError: (error: any) => void,
+  onSuccess: (data: any) => void
+) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ currency, formdata }: { currency: string; formdata: ICloseCurrencyAccount }) =>
+      closeCurrencyAccountRequest(currency, formdata),
+    onError,
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["currency-accounts"] });
+      queryClient.invalidateQueries({ queryKey: ["currency-account", variables.currency] });
+      queryClient.invalidateQueries({ queryKey: ["user"] });
+      onSuccess(data);
+    },
+  });
+};
+
 // Virtual Cards Hooks
 export const useCreateCard = (
   onError: (error: any) => void,
@@ -398,6 +462,24 @@ export const useGetCardById = (cardId: string | null) => {
   return { card, isPending, isError };
 };
 
+export const useUpdateCard = (
+  onError: (error: any) => void,
+  onSuccess: (data: any) => void
+) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ cardId, formdata }: { cardId: string; formdata: IUpdateCard }) =>
+      updateCardRequest(cardId, formdata),
+    onError,
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["currency-cards"] });
+      queryClient.invalidateQueries({ queryKey: ["currency-card", variables.cardId] });
+      onSuccess(data);
+    },
+  });
+};
+
 export const useFundCard = (
   onError: (error: any) => void,
   onSuccess: (data: any) => void
@@ -425,11 +507,11 @@ export const useFreezeCard = (
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: freezeCardRequest,
+    mutationFn: (cardId: string) => freezeCardRequest(cardId, true),
     onError,
-    onSuccess: (data) => {
+    onSuccess: (data, cardId) => {
       queryClient.invalidateQueries({ queryKey: ["currency-cards"] });
-      queryClient.invalidateQueries({ queryKey: ["currency-card"] });
+      queryClient.invalidateQueries({ queryKey: ["currency-card", cardId] });
       onSuccess(data);
     },
   });
@@ -442,11 +524,11 @@ export const useUnfreezeCard = (
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: unfreezeCardRequest,
+    mutationFn: (cardId: string) => freezeCardRequest(cardId, false),
     onError,
-    onSuccess: (data) => {
+    onSuccess: (data, cardId) => {
       queryClient.invalidateQueries({ queryKey: ["currency-cards"] });
-      queryClient.invalidateQueries({ queryKey: ["currency-card"] });
+      queryClient.invalidateQueries({ queryKey: ["currency-card", cardId] });
       onSuccess(data);
     },
   });
@@ -477,11 +559,12 @@ export const useBlockCard = (
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: blockCardRequest,
+    mutationFn: ({ cardId, formdata }: { cardId: string; formdata: IBlockCard }) =>
+      blockCardRequest(cardId, formdata),
     onError,
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["currency-cards"] });
-      queryClient.invalidateQueries({ queryKey: ["currency-card"] });
+      queryClient.invalidateQueries({ queryKey: ["currency-card", variables.cardId] });
       onSuccess(data);
     },
   });
@@ -494,11 +577,13 @@ export const useCloseCard = (
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: closeCardRequest,
+    mutationFn: ({ cardId, formdata }: { cardId: string; formdata: ICloseCard }) =>
+      closeCardRequest(cardId, formdata),
     onError,
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["currency-cards"] });
-      queryClient.invalidateQueries({ queryKey: ["currency-card"] });
+      queryClient.invalidateQueries({ queryKey: ["currency-card", variables.cardId] });
+      queryClient.invalidateQueries({ queryKey: ["user"] });
       onSuccess(data);
     },
   });
@@ -582,6 +667,159 @@ export const useGetSupportedCurrencies = () => {
   const currencies: ISupportedCurrency[] = data?.data?.data || [];
 
   return { currencies, isPending, isError };
+};
+
+// Currency-specific Payment Hooks
+export const useGetBanksByCurrency = (currency: string) => {
+  const { data, isPending, isError } = useQuery({
+    queryKey: ["banks", currency],
+    queryFn: () => getBanksByCurrencyRequest(currency),
+    enabled: !!currency,
+  });
+
+  // Handle different possible response structures
+  // API response: { banks: [...], count: 2 }
+  // Could be at: data.data.banks, data.data.data.banks, data.banks, or data.data.data
+  let banks: any[] = [];
+  if (data?.data) {
+    if (Array.isArray(data.data.banks)) {
+      banks = data.data.banks;
+    } else if (Array.isArray(data.data.data?.banks)) {
+      banks = data.data.data.banks;
+    } else if (Array.isArray(data.data.data)) {
+      banks = data.data.data;
+    } else if (Array.isArray(data.data)) {
+      banks = data.data;
+    }
+  } else if (Array.isArray(data?.banks)) {
+    banks = data.banks;
+  }
+
+  // Debug log in development
+  if (process.env.NODE_ENV === 'development') {
+    console.log('useGetBanksByCurrency:', {
+      currency,
+      rawData: data,
+      banksCount: banks.length,
+      banks: banks.slice(0, 3).map((bank: any) => ({ code: bank?.code, name: bank?.name })),
+      isPending,
+      isError,
+    });
+  }
+
+  return { banks, isPending, isError };
+};
+
+export const useGetTransferFee = (params: IGetTransferFee & { enabled?: boolean }) => {
+  const { data, isPending, isError } = useQuery({
+    queryKey: ["transfer-fee", params],
+    queryFn: () => getTransferFeeRequest(params),
+    enabled: params.enabled !== false && !!params.currency && params.amount > 0 && !!params.accountNumber,
+  });
+
+  const feeData: { fee: number; totalAmount: number; currency: string; amount: number } | null = 
+    data?.data?.data || data?.data || null;
+
+  return { feeData, isPending, isError };
+};
+
+export const useGetCurrencyAccountTransactions = (
+  currency: string,
+  params?: { limit?: number; offset?: number }
+) => {
+  const { data, isPending, isError } = useQuery({
+    queryKey: ["currency-account-transactions", currency, params],
+    queryFn: () => getCurrencyAccountTransactionsRequest(currency, params),
+    enabled: !!currency,
+  });
+
+  const transactions: ICurrencyAccountTransaction[] = data?.data?.transactions || data?.data?.data?.transactions || [];
+  const count = data?.data?.count || data?.data?.data?.count || 0;
+
+  return { transactions, count, isPending, isError };
+};
+
+export const useGetCurrencyAccountDeposits = (
+  currency: string,
+  params?: { limit?: number; offset?: number }
+) => {
+  const { data, isPending, isError } = useQuery({
+    queryKey: ["currency-account-deposits", currency, params],
+    queryFn: () => getCurrencyAccountDepositsRequest(currency, params),
+    enabled: !!currency,
+  });
+
+  const deposits: ICurrencyAccountDeposit[] = data?.data?.deposits || data?.data?.data?.deposits || [];
+  const count = data?.data?.count || data?.data?.data?.count || 0;
+
+  return { deposits, count, isPending, isError };
+};
+
+export const useGetCurrencyAccountPayouts = (
+  currency: string,
+  params?: { limit?: number; offset?: number }
+) => {
+  const { data, isPending, isError } = useQuery({
+    queryKey: ["currency-account-payouts", currency, params],
+    queryFn: () => getCurrencyAccountPayoutsRequest(currency, params),
+    enabled: !!currency,
+  });
+
+  const payouts: ICurrencyAccountPayout[] = data?.data?.payouts || data?.data?.data?.payouts || [];
+  const count = data?.data?.count || data?.data?.data?.count || 0;
+
+  return { payouts, count, isPending, isError };
+};
+
+export const useGetCurrencyAccountPayoutDestinations = (currency: string) => {
+  const { data, isPending, isError } = useQuery({
+    queryKey: ["currency-account-payout-destinations", currency],
+    queryFn: () => getCurrencyAccountPayoutDestinationsRequest(currency),
+    enabled: !!currency,
+  });
+
+  const destinations: IPayoutDestination[] = data?.data?.destinations || data?.data?.data?.destinations || [];
+  const count = data?.data?.count || data?.data?.data?.count || 0;
+
+  return { destinations, count, isPending, isError };
+};
+
+export const useCreateCurrencyAccountPayoutDestination = (
+  onError: (error: any) => void,
+  onSuccess: (data: any) => void
+) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ currency, formdata }: { currency: string; formdata: ICreatePayoutDestination }) =>
+      createCurrencyAccountPayoutDestinationRequest(currency, formdata),
+    onError,
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["currency-account-payout-destinations", variables.currency] });
+      onSuccess(data);
+    },
+  });
+};
+
+export const useCreateCurrencyAccountPayout = (
+  onError: (error: any) => void,
+  onSuccess: (data: any) => void
+) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ currency, formdata }: { currency: string; formdata: ICreatePayout }) =>
+      createCurrencyAccountPayoutRequest(currency, formdata),
+    onError,
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["currency-account-payouts", variables.currency] });
+      queryClient.invalidateQueries({ queryKey: ["currency-account-transactions", variables.currency] });
+      queryClient.invalidateQueries({ queryKey: ["currency-account", variables.currency] });
+      queryClient.invalidateQueries({ queryKey: ["currency-accounts"] });
+      queryClient.invalidateQueries({ queryKey: ["user"] });
+      onSuccess(data);
+    },
+  });
 };
 
 

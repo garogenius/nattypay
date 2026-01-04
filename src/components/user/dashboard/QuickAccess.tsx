@@ -6,10 +6,10 @@ import { IoIosOptions } from "react-icons/io";
 import { IoWalletOutline } from "react-icons/io5";
 import { MdOutlinePhoneAndroid } from "react-icons/md";
 import { IconType } from "react-icons";
-import { PiHandWithdraw } from "react-icons/pi";
+import { SlTrophy } from "react-icons/sl";
 import SendMoneyModal from "@/components/modals/SendMoneyModal";
 import AddMoneyModal from "@/components/modals/AddMoneyModal";
-import WithdrawModal from "@/components/modals/WithdrawModal";
+import BettingModal from "@/components/modals/BettingModal";
 import MobileDataModal from "@/components/modals/MobileDataModal";
 import AirtimeModal from "@/components/modals/AirtimeModal";
 
@@ -43,9 +43,9 @@ const QuickAccessData: QuickAccessItem[] = [
     desktopOnly: true,
   },
   {
-    title: "Withdraw",
-    icon: PiHandWithdraw,
-    path: "/user/withdraw",
+    title: "Betting",
+    icon: SlTrophy,
+    path: "/user/betting",
   },
 ];
 
@@ -53,7 +53,7 @@ const QuickAccess = () => {
   const navigate = useNavigate();
   const [sendOpen, setSendOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
-  const [withdrawOpen, setWithdrawOpen] = useState(false);
+  const [bettingOpen, setBettingOpen] = useState(false);
   const [mobileDataOpen, setMobileDataOpen] = useState(false);
   const [airtimeOpen, setAirtimeOpen] = useState(false);
   return (
@@ -71,7 +71,7 @@ const QuickAccess = () => {
               onClick={() => {
                 if (item.title === "Send Money") setSendOpen(true);
                 else if (item.title === "Add Money") setAddOpen(true);
-                else if (item.title === "Withdraw") setWithdrawOpen(true);
+                else if (item.title === "Betting") setBettingOpen(true);
                 else if (item.title === "Mobile Data") setMobileDataOpen(true);
                 else if (item.title === "Airtime") setAirtimeOpen(true);
                 else navigate(item.path);
@@ -92,7 +92,7 @@ const QuickAccess = () => {
       </div>
       <SendMoneyModal isOpen={sendOpen} onClose={() => setSendOpen(false)} />
       <AddMoneyModal isOpen={addOpen} onClose={() => setAddOpen(false)} />
-      <WithdrawModal isOpen={withdrawOpen} onClose={() => setWithdrawOpen(false)} />
+      <BettingModal isOpen={bettingOpen} onClose={() => setBettingOpen(false)} />
       <MobileDataModal isOpen={mobileDataOpen} onClose={() => setMobileDataOpen(false)} />
       <AirtimeModal isOpen={airtimeOpen} onClose={() => setAirtimeOpen(false)} />
     </div>

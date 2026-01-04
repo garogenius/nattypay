@@ -190,25 +190,25 @@ const SavingsContent: React.FC = () => {
       </div>
 
       {/* Main Tabs - Outside Container */}
-      <div className="w-full bg-white/10 rounded-full p-1.5 sm:p-2 grid grid-cols-3 gap-1.5 sm:gap-2">
-        {(
-          [
-            { key: "fixed", label: "Fixed Savings" },
-            { key: "target", label: "Target Savings" },
-            { key: "easylife", label: "Easy-life Savings" },
-          ] as const
-        ).map((t) => (
-          <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
-            className={`rounded-full py-1.5 sm:py-2 text-[11px] xs:text-xs sm:text-sm font-medium transition-colors whitespace-nowrap flex items-center justify-center ${
-              tab === t.key ? "bg-white/15 text-white" : "text-white/70 hover:text-white"
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
+        <div className="w-full bg-white/10 rounded-full p-1.5 sm:p-2 grid grid-cols-3 gap-1.5 sm:gap-2">
+          {(
+            [
+              { key: "fixed", label: "Fixed Savings" },
+              { key: "target", label: "Target Savings" },
+              { key: "easylife", label: "Easy-life Savings" },
+            ] as const
+          ).map((t) => (
+            <button
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              className={`rounded-full py-1.5 sm:py-2 text-[11px] xs:text-xs sm:text-sm font-medium transition-colors whitespace-nowrap flex items-center justify-center ${
+                tab === t.key ? "bg-white/15 text-white" : "text-white/70 hover:text-white"
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
 
       <div className="rounded-2xl bg-bg-600 dark:bg-bg-1100 p-6 flex flex-col gap-6">
         {/* Sub-tabs */}

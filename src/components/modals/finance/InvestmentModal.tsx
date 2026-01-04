@@ -204,10 +204,10 @@ const InvestmentModal: React.FC<InvestmentModalProps> = ({ isOpen, onClose }) =>
         requiredAmount={amount}
         currentBalance={currentBalance}
       />
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4">
         <div className="absolute inset-0 bg-black/80" onClick={onClose} />
 
-      <div className="relative w-full max-w-md bg-bg-600 dark:bg-bg-1100 border border-border-800 dark:border-border-700 rounded-2xl p-5 z-10">
+      <div className="relative w-full max-w-md bg-bg-600 dark:bg-bg-1100 border border-border-800 dark:border-border-700 rounded-2xl p-3 sm:p-5 z-10 max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
         <button
           onClick={onClose}
           className="absolute top-4 right-4 p-1.5 hover:bg-white/10 rounded-full transition-colors"
@@ -217,9 +217,9 @@ const InvestmentModal: React.FC<InvestmentModalProps> = ({ isOpen, onClose }) =>
 
         {step === 1 ? (
           <>
-            <h2 className="text-xl font-semibold text-white mb-6">Create Investment</h2>
+            <h2 className="text-lg sm:text-xl font-semibold text-white mb-4 sm:mb-6">Create Investment</h2>
             
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               <div>
                 <label className="block text-sm font-medium text-white/70 mb-2">
                   Investment Amount (Minimum ₦{MINIMUM_AMOUNT.toLocaleString()})
@@ -240,27 +240,27 @@ const InvestmentModal: React.FC<InvestmentModalProps> = ({ isOpen, onClose }) =>
                 )}
               </div>
 
-              <div className="bg-bg-500 dark:bg-bg-900 p-4 rounded-lg">
+              <div className="bg-bg-500 dark:bg-bg-900 p-3 sm:p-4 rounded-lg">
                 <div className="flex justify-between mb-2">
-                  <span className="text-white/70">Principal Amount:</span>
-                  <span className="text-white font-medium">{formatCurrency(amount)}</span>
+                  <span className="text-white/70 text-sm">Principal Amount:</span>
+                  <span className="text-white font-medium text-sm sm:text-base">{formatCurrency(amount)}</span>
                 </div>
                 <div className="flex justify-between mb-2">
-                  <span className="text-white/70">ROI Rate:</span>
-                  <span className="text-[#D4B139]">{ROI_PERCENTAGE}% per annum</span>
+                  <span className="text-white/70 text-sm">ROI Rate:</span>
+                  <span className="text-[#D4B139] text-sm sm:text-base">{ROI_PERCENTAGE}% per annum</span>
                 </div>
                 <div className="flex justify-between mb-2">
-                  <span className="text-white/70">Lock Period:</span>
-                  <span className="text-white">{LOCK_PERIOD_MONTHS} months</span>
+                  <span className="text-white/70 text-sm">Lock Period:</span>
+                  <span className="text-white text-sm sm:text-base">{LOCK_PERIOD_MONTHS} months</span>
                 </div>
                 <div className="flex justify-between mb-2">
-                  <span className="text-white/70">Expected Interest:</span>
-                  <span className="text-[#D4B139] font-medium">+{formatCurrency(interestAmount)}</span>
+                  <span className="text-white/70 text-sm">Expected Interest:</span>
+                  <span className="text-[#D4B139] font-medium text-sm sm:text-base">+{formatCurrency(interestAmount)}</span>
                 </div>
-                <div className="h-px bg-white/10 my-3" />
+                <div className="h-px bg-white/10 my-2 sm:my-3" />
                 <div className="flex justify-between">
-                  <span className="text-white/70">Expected Return:</span>
-                  <span className="text-white font-medium">{formatCurrency(expectedReturn)}</span>
+                  <span className="text-white/70 text-sm">Expected Return:</span>
+                  <span className="text-white font-medium text-sm sm:text-base">{formatCurrency(expectedReturn)}</span>
                 </div>
               </div>
 
@@ -307,9 +307,9 @@ const InvestmentModal: React.FC<InvestmentModalProps> = ({ isOpen, onClose }) =>
           </>
         ) : step === 2 ? (
           <>
-            <h2 className="text-xl font-semibold text-white mb-6">Create Investment</h2>
+            <h2 className="text-lg sm:text-xl font-semibold text-white mb-4 sm:mb-6">Create Investment</h2>
             
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               <div>
                 <label className="block text-sm font-medium text-white/70 mb-2">
                   Agreement Reference (Optional)
@@ -383,37 +383,7 @@ const InvestmentModal: React.FC<InvestmentModalProps> = ({ isOpen, onClose }) =>
                 </p>
               </div>
 
-              <div className="bg-bg-500 dark:bg-bg-900 p-4 rounded-lg">
-                <div className="flex justify-between mb-2">
-                  <span className="text-white/70">Principal Amount:</span>
-                  <span className="text-white font-medium">{formatCurrency(amount)}</span>
-                </div>
-                <div className="flex justify-between mb-2">
-                  <span className="text-white/70">ROI Rate:</span>
-                  <span className="text-[#D4B139]">{ROI_PERCENTAGE}% per annum</span>
-                </div>
-                <div className="flex justify-between mb-2">
-                  <span className="text-white/70">Lock Period:</span>
-                  <span className="text-white">{LOCK_PERIOD_MONTHS} months</span>
-                </div>
-                <div className="flex justify-between mb-2">
-                  <span className="text-white/70">Expected Interest:</span>
-                  <span className="text-[#D4B139] font-medium">+{formatCurrency(interestAmount)}</span>
-                </div>
-                <div className="h-px bg-white/10 my-3" />
-                <div className="flex justify-between mb-2">
-                  <span className="text-white/70">Maturity Date:</span>
-                  <span className="text-white">
-                    {new Date(new Date().setMonth(new Date().getMonth() + LOCK_PERIOD_MONTHS)).toLocaleDateString('en-GB')}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-white/70">Expected Return:</span>
-                  <span className="text-white font-medium">{formatCurrency(expectedReturn)}</span>
-                </div>
-              </div>
-
-              <div className="flex gap-3">
+              <div className="flex gap-2 sm:gap-3">
                 <CustomButton
                   onClick={() => setStep(1)}
                   className="flex-1 bg-transparent border border-white/10 text-white hover:bg-white/5 py-3 rounded-lg"
@@ -433,48 +403,48 @@ const InvestmentModal: React.FC<InvestmentModalProps> = ({ isOpen, onClose }) =>
           </>
         ) : step === 3 ? (
           <div className="text-center">
-            <div className="w-16 h-16 bg-[#D4B139]/10 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#D4B139" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 bg-[#D4B139]/10 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
+              <svg width="24" height="24" className="sm:w-8 sm:h-8" viewBox="0 0 24 24" fill="none" stroke="#D4B139" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
                 <polyline points="22 4 12 14.01 9 11.01"></polyline>
               </svg>
             </div>
-            <h2 className="text-xl font-semibold text-white mb-2">Investment Created!</h2>
-            <p className="text-white/70 mb-6">Your investment of {formatCurrency(displayAmount)} has been successfully created.</p>
+            <h2 className="text-lg sm:text-xl font-semibold text-white mb-2">Investment Created!</h2>
+            <p className="text-white/70 text-sm sm:text-base mb-4 sm:mb-6">Your investment of {formatCurrency(displayAmount)} has been successfully created.</p>
             
-            <div className="bg-bg-500 dark:bg-bg-900 p-4 rounded-lg mb-6 text-left">
+            <div className="bg-bg-500 dark:bg-bg-900 p-3 sm:p-4 rounded-lg mb-4 sm:mb-6 text-left">
               <div className="flex justify-between mb-2">
-                <span className="text-white/70">Principal:</span>
-                <span className="text-white">{formatCurrency(displayAmount)}</span>
+                <span className="text-white/70 text-sm">Principal:</span>
+                <span className="text-white text-sm sm:text-base">{formatCurrency(displayAmount)}</span>
               </div>
               <div className="flex justify-between mb-2">
-                <span className="text-white/70">ROI Rate:</span>
-                <span className="text-[#D4B139]">{displayRoiRate} per annum</span>
+                <span className="text-white/70 text-sm">ROI Rate:</span>
+                <span className="text-[#D4B139] text-sm sm:text-base">{displayRoiRate} per annum</span>
               </div>
               <div className="flex justify-between mb-2">
-                <span className="text-white/70">Lock Period:</span>
-                <span className="text-white">{LOCK_PERIOD_MONTHS} months</span>
+                <span className="text-white/70 text-sm">Lock Period:</span>
+                <span className="text-white text-sm sm:text-base">{LOCK_PERIOD_MONTHS} months</span>
               </div>
               {transactionResult?.transactionId && (
                 <div className="flex justify-between mb-2">
-                  <span className="text-white/70">Transaction ID:</span>
-                  <span className="text-white font-mono text-xs">{transactionResult.transactionId}</span>
+                  <span className="text-white/70 text-sm">Transaction ID:</span>
+                  <span className="text-white font-mono text-xs break-all text-right ml-2">{transactionResult.transactionId}</span>
                 </div>
               )}
               {transactionResult?.agreementReference && (
                 <div className="flex justify-between mb-2">
-                  <span className="text-white/70">Agreement Ref:</span>
-                  <span className="text-white font-mono text-xs">{transactionResult.agreementReference}</span>
+                  <span className="text-white/70 text-sm">Agreement Ref:</span>
+                  <span className="text-white font-mono text-xs break-all text-right ml-2">{transactionResult.agreementReference}</span>
                 </div>
               )}
               <div className="h-px bg-white/10 my-2" />
               <div className="flex justify-between">
-                <span className="text-white/70">Maturity Date:</span>
-                <span className="text-white">{displayMaturityDate}</span>
+                <span className="text-white/70 text-sm">Maturity Date:</span>
+                <span className="text-white text-sm sm:text-base">{displayMaturityDate}</span>
               </div>
               <div className="flex justify-between mt-2">
-                <span className="text-white/70">Expected Return:</span>
-                <span className="text-white font-medium">{formatCurrency(displayExpectedReturn)}</span>
+                <span className="text-white/70 text-sm">Expected Return:</span>
+                <span className="text-white font-medium text-sm sm:text-base">{formatCurrency(displayExpectedReturn)}</span>
               </div>
             </div>
 

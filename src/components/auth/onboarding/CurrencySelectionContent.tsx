@@ -79,6 +79,10 @@ const CurrencySelectionContent = () => {
     const user = data?.data?.user;
     const registrationMethod = registrationData?.email ? "email" : "phone";
     
+    // SECURITY: Clear password immediately after successful registration
+    const { clearPassword } = useRegistrationStore.getState();
+    clearPassword();
+    
     // Store access token if returned from registration
     const accessToken = data?.data?.accessToken;
     if (accessToken) {
@@ -114,7 +118,7 @@ const CurrencySelectionContent = () => {
       navigate("/verify-phoneNumber");
     }
 
-    // Clear registration data after navigation
+    // Clear registration data after navigation (password already cleared)
     setTimeout(() => {
       clearRegistrationData();
     }, 100);

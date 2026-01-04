@@ -5,21 +5,56 @@ import { CgClose } from "react-icons/cg";
 import { FiAlertCircle, FiArrowRight } from "react-icons/fi";
 import CustomButton from "@/components/shared/Button";
 import useNavigate from "@/hooks/useNavigate";
+import useInsufficientBalanceModalStore from "@/store/insufficientBalanceModal.store";
 
 interface InsufficientBalanceModalProps {
-  isOpen: boolean;
-  onClose: () => void;
+  isOpen?: boolean;
+  onClose?: () => void;
   requiredAmount?: number;
   currentBalance?: number;
+  currency?: "NGN" | "USD" | "EUR" | "GBP";
 }
 
 const InsufficientBalanceModal: React.FC<InsufficientBalanceModalProps> = ({
-  isOpen,
-  onClose,
-  requiredAmount,
-  currentBalance,
+  isOpen: propIsOpen,
+  onClose: propOnClose,
+  requiredAmount: propRequiredAmount,
+  currentBalance: propCurrentBalance,
+  currency: propCurrency,
 }) => {
   const navigate = useNavigate();
+  
+  // Use store if no props provided (global usage)
+  const {
+    isOpen: storeIsOpen,
+    requiredAmount: storeRequiredAmount,
+    currentBalance: storeCurrentBalance,
+    currency: storeCurrency,
+    close: storeClose,
+  } = useInsufficientBalanceModalStore();
+
+  // Use props if provided, otherwise use store
+  const isOpen = propIsOpen !== undefined ? propIsOpen : storeIsOpen;
+  const requiredAmount = propRequiredAmount !== undefined ? propRequiredAmount : (storeRequiredAmount || 0);
+  const currentBalance = propCurrentBalance !== undefined ? propCurrentBalance : (storeCurrentBalance || 0);
+  const currency = propCurrency || storeCurrency;
+  const onClose = propOnClose || storeClose;
+
+  // Format currency symbol
+  const getCurrencySymbol = (curr: string) => {
+    switch (curr) {
+      case "NGN":
+        return "₦";
+      case "USD":
+        return "$";
+      case "EUR":
+        return "€";
+      case "GBP":
+        return "£";
+      default:
+        return "₦";
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -49,36 +84,36 @@ const InsufficientBalanceModal: React.FC<InsufficientBalanceModalProps> = ({
 
         {/* Title */}
         <div className="text-center mb-4">
-          <h2 className="text-xl font-semibold text-white mb-2">Insufficient Wallet Balance</h2>
+          <h2 className="text-xl font-semibold text-white mb-2">Insufficient Account Balance</h2>
           <p className="text-white/70 text-sm">
-            You don't have enough funds in your wallet to complete this transaction.
+            You don't have enough funds in your {currency} account to complete this transaction.
           </p>
         </div>
 
         {/* Balance Information */}
-        {(requiredAmount || currentBalance !== undefined) && (
+        {(requiredAmount > 0 || currentBalance >= 0) && (
           <div className="bg-white/5 border border-white/10 rounded-lg p-4 mb-4 space-y-2">
-            {requiredAmount && (
+            {requiredAmount > 0 && (
               <div className="flex items-center justify-between">
                 <span className="text-white/70 text-sm">Required Amount:</span>
                 <span className="text-white font-medium">
-                  ₦{requiredAmount.toLocaleString()}
+                  {getCurrencySymbol(currency)}{requiredAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
               </div>
             )}
-            {currentBalance !== undefined && (
+            {currentBalance >= 0 && (
               <div className="flex items-center justify-between">
                 <span className="text-white/70 text-sm">Current Balance:</span>
                 <span className="text-white font-medium">
-                  ₦{currentBalance.toLocaleString()}
+                  {getCurrencySymbol(currency)}{currentBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
               </div>
             )}
-            {requiredAmount && currentBalance !== undefined && (
+            {requiredAmount > 0 && currentBalance >= 0 && (
               <div className="flex items-center justify-between pt-2 border-t border-white/10">
                 <span className="text-white/70 text-sm">Shortfall:</span>
                 <span className="text-red-400 font-medium">
-                  ₦{Math.max(0, requiredAmount - currentBalance).toLocaleString()}
+                  {getCurrencySymbol(currency)}{Math.max(0, requiredAmount - currentBalance).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
               </div>
             )}

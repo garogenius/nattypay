@@ -7,9 +7,11 @@ import "react-loading-skeleton/dist/skeleton.css";
 import { Toaster } from "react-hot-toast";
 import ReactQueryProvider from "@/providers/ReactQueryProvider";
 import UserProvider from "@/providers/UserProvider";
+import AdModalsProvider from "@/providers/AdModalsProvider";
 import "react-datepicker/dist/react-datepicker.css";
 import ClientOnlyWelcome from "@/components/ClientOnlyWelcome";
 import TransactionViewModal from "@/components/modals/transactions/TransactionViewModal";
+import InsufficientBalanceModal from "@/components/modals/finance/InsufficientBalanceModal";
 import ClipboardDetector from "@/components/ClipboardDetector";
 
 // Initialize Inter font
@@ -34,26 +36,29 @@ export default function RootLayout({
         <ThemeProvider>
           <ReactQueryProvider>
             <UserProvider>
-              <Toaster
-                position="top-center"
-                reverseOrder={false}
-                toastOptions={{
-                  style: {
-                    border: "1px solid #E4E7EC",
-                    borderRadius: 15,
-                    padding: "16px",
-                    color: "#000",
-                    fontSize: 15,
-                    fontWeight: 400,
-                  },
-                  duration: 10000,
-                }}
-              />
-              <NextTopLoader color="#D4B139" showSpinner={false} />
-              <ClientOnlyWelcome />
-              <main className="w-full overflow-hidden">{children}</main>
-              <TransactionViewModal />
-              <ClipboardDetector />
+              <AdModalsProvider>
+                <Toaster
+                  position="top-center"
+                  reverseOrder={false}
+                  toastOptions={{
+                    style: {
+                      border: "1px solid #E4E7EC",
+                      borderRadius: 15,
+                      padding: "16px",
+                      color: "#000",
+                      fontSize: 15,
+                      fontWeight: 400,
+                    },
+                    duration: 10000,
+                  }}
+                />
+                <NextTopLoader color="#D4B139" showSpinner={false} />
+                <ClientOnlyWelcome />
+                <main className="w-full overflow-hidden">{children}</main>
+                <TransactionViewModal />
+                <InsufficientBalanceModal />
+                <ClipboardDetector />
+              </AdModalsProvider>
             </UserProvider>
           </ReactQueryProvider>
         </ThemeProvider>

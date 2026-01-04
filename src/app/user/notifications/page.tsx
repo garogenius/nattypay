@@ -88,13 +88,13 @@ const NotificationsPage = () => {
       <div className="flex flex-col gap-2 px-1 sm:px-0">
         <div className="flex items-center justify-between gap-3">
           <h1 className="text-white text-base sm:text-lg font-semibold">Notifications</h1>
-          <div className="flex items-center gap-1 sm:gap-2">
-            <button onClick={handleMarkAllAsRead} className="px-2 sm:px-3 py-1.5 sm:py-2 rounded-md border border-[#2C3947] text-white/80 text-xs sm:text-sm hover:bg-white/5 whitespace-nowrap">
-              <span className="hidden xs:inline">Mark all as read</span>
-              <span className="xs:hidden">Mark read</span>
-            </button>
-            <button onClick={handleDeleteAll} className="px-2 sm:px-3 py-1.5 sm:py-2 rounded-md border border-[#2C3947] text-white/80 text-xs sm:text-sm hover:bg-white/5 whitespace-nowrap">Clear All</button>
-          </div>
+        <div className="flex items-center gap-1 sm:gap-2">
+          <button onClick={handleMarkAllAsRead} className="px-2 sm:px-3 py-1.5 sm:py-2 rounded-md border border-[#2C3947] text-white/80 text-xs sm:text-sm hover:bg-white/5 whitespace-nowrap">
+            <span className="hidden xs:inline">Mark all as read</span>
+            <span className="xs:hidden">Mark read</span>
+          </button>
+          <button onClick={handleDeleteAll} className="px-2 sm:px-3 py-1.5 sm:py-2 rounded-md border border-[#2C3947] text-white/80 text-xs sm:text-sm hover:bg-white/5 whitespace-nowrap">Clear All</button>
+        </div>
         </div>
         <p className="text-white/60 text-xs sm:text-sm">Stay updated with your account activity</p>
       </div>

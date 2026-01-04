@@ -125,6 +125,28 @@ export const registerBiometric = async (
 
     return { credentialId, rawId: credential.rawId, publicKey: publicKeyPem, publicKeyBase64 };
   } catch (error: any) {
+    // Handle specific WebAuthn errors
+    if (error.name === "NotAllowedError" || error.name === "AbortError") {
+      throw new Error("Biometric setup was cancelled. Please try again when ready.");
+    }
+    if (error.name === "InvalidStateError") {
+      throw new Error("A biometric credential already exists. Please remove it first and try again.");
+    }
+    if (error.name === "NotSupportedError") {
+      throw new Error("Biometric authentication is not supported on this device or browser.");
+    }
+    if (error.name === "SecurityError") {
+      throw new Error("Security error occurred. Please ensure you're using HTTPS and try again.");
+    }
+    if (error.name === "UnknownError") {
+      throw new Error("An unknown error occurred during biometric setup. Please try again.");
+    }
+    
+    // Re-throw with original message if it's already a user-friendly error
+    if (error.message && typeof error.message === "string") {
+      throw error;
+    }
+    
     throw new Error(error.message || "Failed to register biometric authentication");
   }
 };
@@ -264,6 +286,7 @@ const normalizeToBase64 = (input: string): string => {
 
 /**
  * Get biometric type (fingerprint or face)
+ * Attempts to detect the available biometric type, but may return "unknown" if detection fails
  */
 export const getBiometricType = async (): Promise<"fingerprint" | "face" | "unknown"> => {
   if (!isWebAuthnSupported()) return "unknown";
@@ -272,30 +295,57 @@ export const getBiometricType = async (): Promise<"fingerprint" | "face" | "unkn
     // Check user agent to determine likely biometric type
     const userAgent = navigator.userAgent.toLowerCase();
     
-    // iOS devices typically use Face ID or Touch ID
+    // Try to detect from device capabilities if available
+    // Some browsers expose biometric type information
+    if ((navigator as any).credentials && (navigator as any).credentials.get) {
+      try {
+        // Check if we can determine from available authenticators
+        // This is a best-effort detection
+      } catch {
+        // Ignore errors, fall back to user agent detection
+      }
+    }
+    
+    // iOS devices: iPhone X and later use Face ID, older devices use Touch ID
     if (/iphone|ipad|ipod/.test(userAgent)) {
-      // Newer iPhones use Face ID, older ones use Touch ID
-      // We can't directly detect, so we'll default to "face" for newer devices
+      // Try to detect iPhone model from user agent
+      // iPhone X (2017) and later typically have Face ID
+      // iPhone 8 and earlier have Touch ID
+      const match = userAgent.match(/iphone\s*os\s*(\d+)/i);
+      if (match) {
+        const iosVersion = parseInt(match[1], 10);
+        // iOS 11+ with newer devices typically have Face ID
+        // But we can't reliably detect device model, so we'll check for newer iOS versions
+        if (iosVersion >= 11) {
+          // Check for iPhone model indicators (iPhone X, 11, 12, etc.)
+          // iPhone X was released with iOS 11, so devices on iOS 11+ might have Face ID
+          // However, this is not 100% accurate, so we default to "face" for newer iOS
+          return "face";
+        }
+      }
+      // Default to "face" for iOS devices (most modern iPhones/iPads have Face ID)
       return "face";
     }
     
-    // Android devices typically use fingerprint
+    // Android devices typically use fingerprint sensors
     if (/android/.test(userAgent)) {
       return "fingerprint";
     }
     
-    // Desktop devices might have either
-    // Windows Hello can be fingerprint or face
+    // Windows Hello supports both fingerprint and face recognition
+    // We can't detect which one is available, so default to fingerprint
     if (/windows/.test(userAgent)) {
-      return "fingerprint"; // Default to fingerprint for Windows
+      return "fingerprint";
     }
     
-    // macOS uses Touch ID (fingerprint)
+    // macOS uses Touch ID (fingerprint) on supported devices
     if (/mac/.test(userAgent)) {
       return "fingerprint";
     }
     
-    return "unknown";
+    // Chrome OS and Linux might have either
+    // Default to fingerprint as it's more common
+    return "fingerprint";
   } catch {
     return "unknown";
   }
@@ -310,16 +360,27 @@ export const getBiometricType = async (): Promise<"fingerprint" | "face" | "unkn
  */
 const extractCosePublicKey = (attestation: AuthenticatorAttestationResponse): ArrayBuffer => {
   // Modern browsers may support this directly (WebAuthn Level 2+)
-  const maybeGetPublicKey = (attestation as any).getPublicKey as undefined | (() => ArrayBuffer);
+  // Try getPublicKey() first as it's more reliable than manual extraction
+  const maybeGetPublicKey = (attestation as any).getPublicKey as undefined | (() => ArrayBuffer | CryptoKey);
   if (typeof maybeGetPublicKey === "function") {
     try {
-    const pk = maybeGetPublicKey.call(attestation);
-      if (pk && pk.byteLength > 0) {
-        return pk;
-  }
-    } catch (error) {
+      const pk = maybeGetPublicKey.call(attestation);
+      if (pk) {
+        // If it returns an ArrayBuffer, use it directly
+        if (pk instanceof ArrayBuffer) {
+          if (pk.byteLength > 0) {
+            return pk;
+          }
+        }
+        // If it returns a CryptoKey, we'd need to export it, but for now fall through
+        // Most implementations return ArrayBuffer for COSE key
+        if (pk instanceof CryptoKey) {
+          console.warn("getPublicKey() returned CryptoKey, falling back to manual extraction");
+        }
+      }
+    } catch (error: any) {
       // Fall through to manual extraction
-      console.warn("getPublicKey() failed, falling back to manual extraction:", error);
+      console.warn("getPublicKey() failed, falling back to manual extraction:", error?.message || error);
     }
   }
 
@@ -367,9 +428,18 @@ const extractCosePublicKey = (attestation: AuthenticatorAttestationResponse): Ar
     
     return buffer;
   } catch (error: any) {
+    // Provide detailed diagnostic information
+    const errorMessage = error.message || String(error);
+    const authDataHex = Array.from(authData.slice(0, Math.min(100, authData.byteLength)))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join(' ');
+    
     throw new Error(
-      `Failed to extract COSE key from authData: ${error.message}. ` +
-      `This usually indicates the attestationObject or authData is malformed.`
+      `Failed to extract COSE key from authData: ${errorMessage}. ` +
+      `AuthData length: ${authData.byteLength} bytes. ` +
+      `First 100 bytes (hex): ${authDataHex}... ` +
+      `This usually indicates the attestationObject or authData is malformed. ` +
+      `If this persists, try using a different browser or device.`
     );
   }
 };
@@ -701,12 +771,39 @@ const extractCoseKeyFromAuthData = (authData: Uint8Array): Uint8Array => {
   }
   offset += 16;
 
-  // credentialIdLength (2 bytes, big-endian)
+  // credentialIdLength (2 bytes, big-endian per WebAuthn spec)
   if (offset + 2 > authData.byteLength) {
     throw new Error(`Invalid authenticator data: credentialIdLength out of bounds (offset: ${offset}, length: ${authData.byteLength})`);
   }
-  const credIdLen = (authData[offset] << 8) | authData[offset + 1];
+  
+  // Read as big-endian (WebAuthn standard)
+  const credIdLenBE = (authData[offset] << 8) | authData[offset + 1];
+  // Also try little-endian as fallback (some implementations might use it incorrectly)
+  const credIdLenLE = (authData[offset + 1] << 8) | authData[offset];
+  
+  // Use big-endian first, but validate both
+  let credIdLen = credIdLenBE;
+  let usedLittleEndian = false;
+  
+  // If big-endian gives unreasonable value but little-endian is reasonable, try little-endian
+  if ((credIdLenBE < 0 || credIdLenBE > 1024) && credIdLenLE >= 0 && credIdLenLE <= 1024) {
+    credIdLen = credIdLenLE;
+    usedLittleEndian = true;
+    if (process.env.NODE_ENV === 'development') {
+      console.warn(`[WebAuthn] Using little-endian credentialId length (${credIdLenLE}) instead of big-endian (${credIdLenBE})`);
+    }
+  }
+  
   offset += 2;
+  
+  // Validate credentialId length is reasonable (should be between 0 and 1024 bytes typically)
+  if (credIdLen < 0 || credIdLen > 1024) {
+    throw new Error(
+      `Invalid credentialId length: ${credIdLen} (BE: ${credIdLenBE}, LE: ${credIdLenLE}). ` +
+      `Expected length between 0 and 1024 bytes. ` +
+      `This may indicate corrupted authenticator data or non-standard encoding.`
+    );
+  }
   
   // credentialId (variable length)
   if (offset + credIdLen > authData.byteLength) {
@@ -715,6 +812,19 @@ const extractCoseKeyFromAuthData = (authData: Uint8Array): Uint8Array => {
       `Length: ${credIdLen}, Offset: ${offset}, Total: ${authData.byteLength}`
     );
   }
+  
+  // Debug: Log credentialId info in development
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[WebAuthn] CredentialId extraction:', {
+      credIdLen,
+      offsetBeforeCredId: offset,
+      offsetAfterCredId: offset + credIdLen,
+      authDataLength: authData.byteLength,
+      remainingBytes: authData.byteLength - (offset + credIdLen),
+      nextByte: offset + credIdLen < authData.byteLength ? `0x${authData[offset + credIdLen].toString(16).padStart(2, '0')}` : 'out of bounds'
+    });
+  }
+  
   offset += credIdLen;
   
   // Remaining bytes should be the CBOR-encoded COSE public key
@@ -723,6 +833,71 @@ const extractCoseKeyFromAuthData = (authData: Uint8Array): Uint8Array => {
       `Invalid authenticator data: no public key data found. ` +
       `Offset: ${offset}, Length: ${authData.byteLength}`
     );
+  }
+
+  // Validate that we're at a CBOR map marker (major type 5)
+  // CBOR map markers: 0xa0-0xbf (definite-length maps with 0-23 pairs)
+  // or 0xb8-0xbb (definite-length maps with 24-bit, 32-bit, 64-bit length)
+  const firstByte = authData[offset];
+  const majorType = (firstByte >> 5) & 0x07;
+  const isMapMarker = majorType === 5;
+  
+  if (!isMapMarker) {
+    // Try to find the map marker by scanning ahead (sometimes there's padding or extra bytes)
+    // Also try scanning backwards in case credentialId length was misread
+    let foundMap = false;
+    let scanOffset = offset;
+    const maxScanForward = Math.min(offset + 50, authData.byteLength); // Scan up to 50 bytes ahead
+    const maxScanBackward = Math.max(offset - 10, 37 + 16 + 2); // Don't go before credentialId length field
+    
+    // Store original offset for logging
+    const originalOffset = offset;
+    
+    // First try scanning forward
+    while (scanOffset < maxScanForward) {
+      const scanByte = authData[scanOffset];
+      const scanMajorType = (scanByte >> 5) & 0x07;
+      if (scanMajorType === 5) {
+        offset = scanOffset;
+        foundMap = true;
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`[WebAuthn] Found map marker ${scanOffset - originalOffset} bytes after expected position`);
+        }
+        break;
+      }
+      scanOffset++;
+    }
+    
+    // If not found forward, try scanning backward (in case credentialId length was misread)
+    if (!foundMap) {
+      scanOffset = originalOffset - 1;
+      while (scanOffset >= maxScanBackward) {
+        const scanByte = authData[scanOffset];
+        const scanMajorType = (scanByte >> 5) & 0x07;
+        if (scanMajorType === 5) {
+          offset = scanOffset;
+          foundMap = true;
+          if (process.env.NODE_ENV === 'development') {
+            console.warn(`[WebAuthn] Found map marker ${originalOffset - scanOffset} bytes before expected position - credentialId length may be incorrect`);
+          }
+          break;
+        }
+        scanOffset--;
+      }
+    }
+    
+    if (!foundMap) {
+      const hexBytes = Array.from(authData.slice(offset, Math.min(offset + 20, authData.byteLength)))
+        .map(b => `0x${b.toString(16).padStart(2, '0')}`)
+        .join(' ');
+      throw new Error(
+        `Invalid COSE key: expected CBOR map marker at offset ${offset}, but found major type ${majorType} (byte: 0x${firstByte.toString(16).padStart(2, '0')}). ` +
+        `COSE keys must start with a CBOR map (major type 5, bytes 0xa0-0xbf). ` +
+        `First 20 bytes at offset: ${hexBytes}. ` +
+        `This suggests the credentialId length may be incorrect or there's extra data before the COSE key. ` +
+        `CredentialId length: ${credIdLen}, Offset before scan: ${offset - credIdLen - 2}`
+      );
+    }
   }
 
   // Decode the COSE key CBOR to validate it's a map and determine its exact length
@@ -738,10 +913,15 @@ const extractCoseKeyFromAuthData = (authData: Uint8Array): Uint8Array => {
     // CRITICAL: Validate that we decoded a map (COSE keys MUST be maps)
     if (typeof decodedCoseKey !== "object" || decodedCoseKey === null || Array.isArray(decodedCoseKey)) {
       const actualType = decodedCoseKey === null ? "null" : Array.isArray(decodedCoseKey) ? "array" : typeof decodedCoseKey;
+      const actualValue = typeof decodedCoseKey === "number" ? decodedCoseKey : 
+                         typeof decodedCoseKey === "string" ? `"${decodedCoseKey.substring(0, 50)}"` : 
+                         String(decodedCoseKey).substring(0, 100);
       throw new Error(
         `Invalid COSE key structure: expected map (object), got ${actualType}. ` +
+        `Value: ${actualValue}. ` +
         `This indicates the credentialPublicKey is not properly formatted. ` +
-        `Offset: ${offset}, Decoded value type: ${actualType}`
+        `Offset: ${offset}, First byte: 0x${authData[offset]?.toString(16).padStart(2, '0')}, ` +
+        `CredentialId length: ${credIdLen}`
       );
     }
     

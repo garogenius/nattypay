@@ -1,9 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  eslint: {
-    // Allows production builds to complete even if there are ESLint errors
-    ignoreDuringBuilds: true,
-  },
   images: {
     remotePatterns: [
       {
@@ -19,6 +15,81 @@ const nextConfig = {
         pathname: "/**",
       },
     ],
+  },
+  // Security Headers
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          {
+            key: "X-DNS-Prefetch-Control",
+            value: "on",
+          },
+          {
+            key: "Strict-Transport-Security",
+            value: "max-age=63072000; includeSubDomains; preload",
+          },
+          {
+            key: "X-Content-Type-Options",
+            value: "nosniff",
+          },
+          {
+            key: "X-Frame-Options",
+            value: "DENY",
+          },
+          {
+            key: "X-XSS-Protection",
+            value: "1; mode=block",
+          },
+          {
+            key: "Referrer-Policy",
+            value: "strict-origin-when-cross-origin",
+          },
+          {
+            key: "Permissions-Policy",
+            value: "camera=(), microphone=(), geolocation=(), interest-cohort=()",
+          },
+          {
+            key: "Content-Security-Policy",
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
+              "style-src 'self' 'unsafe-inline'",
+              "img-src 'self' data: https: blob:",
+              "font-src 'self' data:",
+              "connect-src 'self' https: wss:",
+              "frame-ancestors 'none'",
+              "base-uri 'self'",
+              "form-action 'self'",
+              "frame-src 'self'",
+              "object-src 'none'",
+              "upgrade-insecure-requests",
+            ].join("; "),
+          },
+        ],
+      },
+    ];
+  },
+  // Force HTTPS in production
+  async redirects() {
+    if (process.env.NODE_ENV === "production") {
+      return [
+        {
+          source: "/:path*",
+          has: [
+            {
+              type: "header",
+              key: "x-forwarded-proto",
+              value: "http",
+            },
+          ],
+          destination: "https://:path*",
+          permanent: true,
+        },
+      ];
+    }
+    return [];
   },
 };
 

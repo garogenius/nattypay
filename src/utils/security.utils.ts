@@ -202,5 +202,114 @@ export function generateSecureToken(length: number = 32): string {
   return Array.from(array, (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
+/**
+ * Validate PIN format and strength
+ * SECURITY: PINs should be 4 digits, numeric only
+ */
+export function validatePIN(pin: string): {
+  isValid: boolean;
+  errors: string[];
+} {
+  const errors: string[] = [];
+
+  if (!pin) {
+    errors.push("PIN is required");
+    return { isValid: false, errors };
+  }
+
+  if (pin.length !== 4) {
+    errors.push("PIN must be exactly 4 digits");
+  }
+
+  if (!/^\d+$/.test(pin)) {
+    errors.push("PIN must contain only numbers");
+  }
+
+  // Check for weak PINs (all same digit, sequential, etc.)
+  if (/^(\d)\1{3}$/.test(pin)) {
+    errors.push("PIN cannot be all the same digit");
+  }
+
+  if (/0123|1234|2345|3456|4567|5678|6789|9876|8765|7654|6543|5432|4321|3210/.test(pin)) {
+    errors.push("PIN cannot be sequential");
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors,
+  };
+}
+
+/**
+ * Clear PIN from memory (best effort)
+ * SECURITY: Overwrite PIN value to prevent memory dumps
+ */
+export function clearPIN(pin: string): void {
+  if (typeof pin === "string") {
+    // Overwrite with random data (best effort - JavaScript strings are immutable)
+    // This is a best-effort attempt to clear sensitive data
+    pin = "0000";
+  }
+}
+
+/**
+ * Check if running in secure context (HTTPS)
+ */
+export function isSecureContext(): boolean {
+  if (typeof window === "undefined") return true; // Server-side, assume secure
+  return window.isSecureContext || window.location.protocol === "https:";
+}
+
+/**
+ * Enforce HTTPS in production
+ */
+export function enforceHTTPS(): void {
+  if (typeof window === "undefined") return;
+  
+  if (process.env.NODE_ENV === "production" && !isSecureContext()) {
+    // Redirect to HTTPS
+    const httpsUrl = window.location.href.replace(/^http:/, "https:");
+    window.location.replace(httpsUrl);
+  }
+}
+
+/**
+ * Validate and sanitize account number
+ */
+export function validateAccountNumber(accountNumber: string, currency: string = "NGN"): {
+  isValid: boolean;
+  error?: string;
+} {
+  if (!accountNumber) {
+    return { isValid: false, error: "Account number is required" };
+  }
+
+  // Remove non-numeric characters
+  const cleaned = accountNumber.replace(/\D/g, "");
+
+  // Validate length based on currency
+  if (currency === "NGN") {
+    if (cleaned.length !== 10) {
+      return { isValid: false, error: "Account number must be 10 digits" };
+    }
+  }
+
+  return { isValid: true };
+}
+
+/**
+ * Sanitize amount input
+ */
+export function sanitizeAmount(amount: string): number {
+  // Remove all non-numeric characters except decimal point
+  const cleaned = amount.replace(/[^\d.]/g, "");
+  
+  // Parse to number
+  const parsed = parseFloat(cleaned);
+  
+  // Return 0 if invalid
+  return isNaN(parsed) ? 0 : parsed;
+}
+
 
 

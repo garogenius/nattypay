@@ -58,16 +58,34 @@ const ChangeTransactionPinModal: React.FC<ChangeTransactionPinModalProps> = ({ i
   const handleSubmit = async () => {
     if (!valid || changing) return;
 
-    if (newPin !== confirmPin) {
+    // Additional validation with specific error messages
+    if (!/^\d{4}$/.test(currentPin)) {
       ErrorToast({
         title: "Validation Error",
-        descriptions: ["PINs do not match"],
+        descriptions: ["Current PIN must be exactly 4 digits"],
       });
       return;
     }
 
+    if (!/^\d{4}$/.test(newPin)) {
+      ErrorToast({
+        title: "Validation Error",
+        descriptions: ["New PIN must be exactly 4 digits"],
+      });
+      return;
+    }
+
+    if (newPin !== confirmPin) {
+      ErrorToast({
+        title: "Validation Error",
+        descriptions: ["New PIN and confirmation PIN do not match"],
+      });
+      return;
+    }
+
+    // Call API with oldPin (not currentPin) as expected by backend
     changePin({
-      currentPin,
+      oldPin: currentPin,
       newPin,
     });
   };
@@ -102,7 +120,12 @@ const ChangeTransactionPinModal: React.FC<ChangeTransactionPinModalProps> = ({ i
                   placeholder={f.placeholder}
                   className="w-full bg-transparent outline-none border-none text-white placeholder:text-white/50 text-sm"
                   value={f.value}
-                  onChange={(e) => f.set(e.target.value)}
+                  onChange={(e) => {
+                    // Only allow numeric input and limit to 4 digits
+                    const value = e.target.value.replace(/\D/g, '').slice(0, 4);
+                    f.set(value);
+                  }}
+                  maxLength={4}
                 />
               </div>
             </div>

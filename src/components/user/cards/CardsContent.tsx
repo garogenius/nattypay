@@ -775,8 +775,8 @@ const CardsContent: React.FC = () => {
               </div>
             )}
           </div>
-          </div>
-          <p className="text-white/60 text-xs sm:text-sm">Manage your virtual cards</p>
+        </div>
+        <p className="text-white/60 text-xs sm:text-sm">Manage your virtual cards</p>
         </div>
 
         <div className="flex flex-col gap-6">

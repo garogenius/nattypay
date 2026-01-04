@@ -76,7 +76,7 @@ export interface IVerifyWalletPin {
 }
 
 export interface IChangePin {
-  currentPin: string;
+  oldPin: string;
   newPin: string;
 }
 

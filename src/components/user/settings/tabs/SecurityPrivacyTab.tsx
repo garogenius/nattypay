@@ -68,7 +68,7 @@ const SecurityPrivacyTab: React.FC<Props> = ({
       <div className="w-full bg-bg-600 dark:bg-bg-1100 border border-white/10 rounded-2xl p-4 sm:p-5">
         <p className="text-white font-semibold mb-3">Privacy</p>
         <div className="divide-y divide-white/10">
-          <button onClick={onOpenLinked} className="w-full flex items-center justify-between gap-3 py-3 text-left">
+          <div className="w-full flex items-center justify-between gap-3 py-3 opacity-60 cursor-not-allowed">
             <div className="flex items-start gap-3">
               <div className="w-8 h-8 rounded-md bg-white/5 grid place-items-center text-white"><FiCreditCard className="text-[#D4B139]" /></div>
               <div>
@@ -76,8 +76,8 @@ const SecurityPrivacyTab: React.FC<Props> = ({
                 <p className="text-white/60 text-xs sm:text-sm">View, add, or remove your linked accounts and cards</p>
               </div>
             </div>
-            <FiChevronRight className="text-white/60" />
-          </button>
+            <span className="px-2 py-1 rounded-full bg-[#D4B139]/20 text-[#D4B139] text-xs font-medium">Coming Soon</span>
+          </div>
 
           <div className="w-full flex items-center justify-between gap-3 py-3">
             <div className="flex items-start gap-3">

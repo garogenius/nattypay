@@ -27,6 +27,7 @@ interface Actions {
   setCurrency: (currency: string) => void;
   setSelectedAccountType: (type: "PERSONAL" | "BUSINESS") => void;
   clearRegistrationData: () => void;
+  clearPassword: () => void; // SECURITY: Clear password immediately after use
 }
 
 const useRegistrationStore = create<States & Actions>()((set) => ({
@@ -58,6 +59,22 @@ const useRegistrationStore = create<States & Actions>()((set) => ({
       currency: null,
       selectedAccountType: null,
     });
+  },
+  clearPassword: () => {
+    // SECURITY: Clear password from registration data immediately after API call
+    const currentData = useRegistrationStore.getState().registrationData;
+    if (currentData) {
+      set({
+        registrationData: {
+          ...currentData,
+          password: "", // Clear password
+        },
+      });
+      // Clear entire registration data after a short delay
+      setTimeout(() => {
+        useRegistrationStore.getState().clearRegistrationData();
+      }, 100);
+    }
   },
 }));
 

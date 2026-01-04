@@ -19,10 +19,20 @@ const useNavigate = () => {
 
   const navigate = useCallback(
     (url: string | number, type: NavigationType = "push") => {
+      // Ensure router is initialized before using it
+      if (typeof window === "undefined" || !router) {
+        return;
+      }
+
       // Handle browser back navigation
       if (typeof url === "number") {
         if (url === -1) {
-          router.back();
+          try {
+            router.back();
+          } catch (error) {
+            // Router not initialized, use window.history as fallback
+            window.history.back();
+          }
         }
         return;
       }
@@ -33,10 +43,21 @@ const useNavigate = () => {
         NProgress.start();
       }
 
-      if (type === "replace") {
-        router.replace(url);
-      } else {
-        router.push(url);
+      try {
+        if (type === "replace") {
+          router.replace(url);
+        } else {
+          router.push(url);
+        }
+      } catch (error) {
+        // Router not initialized, use window.location as fallback
+        isNavigatingRef.current = false;
+        NProgress.done();
+        if (type === "replace") {
+          window.location.replace(url);
+        } else {
+          window.location.href = url;
+        }
       }
     },
     [router]

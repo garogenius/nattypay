@@ -214,6 +214,12 @@ export const SidebarData = [
         icon: CiCreditCard1,
       },
       {
+        id: 108,
+        title: "Multi-Currency",
+        path: "/user/multi-currency",
+        icon: LiaMoneyBillWaveSolid,
+      },
+      {
         id: 105,
         title: "Transactions",
         path: "/user/transactions",

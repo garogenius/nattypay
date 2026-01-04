@@ -20,13 +20,18 @@ const PaymentsContent: React.FC = () => {
   const [transferType, setTransferType] = React.useState<"nattypay" | "bank" | "merchant" | null>("nattypay");
   const [openSettings, setOpenSettings] = React.useState(false);
   const [isQRCodeOpen, setIsQRCodeOpen] = React.useState(false);
-  const { selectedWalletIndex } = usePaymentSettingsStore();
+  const { selectedCurrency } = usePaymentSettingsStore();
 
   return (
     <div className="flex flex-col gap-6 md:gap-8 pb-10 overflow-y-auto scroll-area scroll-smooth pr-1">
       <div className="w-full flex flex-col gap-3">
         <div className="w-full flex items-center justify-between gap-3 sm:gap-4">
-          <h1 className="text-xl sm:text-2xl font-semibold text-white">Payments</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl sm:text-2xl font-semibold text-white">Payments</h1>
+            <span className="px-2 py-1 rounded-lg bg-white/10 text-white/80 text-xs font-medium border border-white/20">
+              {selectedCurrency}
+            </span>
+          </div>
           <div className="flex items-center gap-1.5 sm:gap-2">
             <button
               className="flex items-center gap-1 sm:gap-2 rounded-xl border border-[#2C3947] px-2 sm:px-3 py-1.5 sm:py-2 text-white/80 hover:bg-white/5 transition-colors"
@@ -75,7 +80,10 @@ const PaymentsContent: React.FC = () => {
         onClose={() => setIsQRCodeOpen(false)}
         onQRDecoded={(data) => {
           // Handle decoded QR data - could pre-fill transfer form
-          console.log("QR Decoded:", data);
+          // SECURITY: Only log in development
+          if (process.env.NODE_ENV === "development") {
+            console.log("QR Decoded:", data);
+          }
         }}
       />
 

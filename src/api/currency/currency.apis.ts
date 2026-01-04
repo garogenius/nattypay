@@ -6,6 +6,12 @@ import {
   ISetCardLimits,
   IWithdrawCard,
   IConvertCurrency,
+  IUpdateCurrencyAccount,
+  ICloseCurrencyAccount,
+  IUpdateCard,
+  IBlockCard,
+  ICloseCard,
+  IGetTransferFee,
 } from "./currency.types";
 
 // Currency Accounts APIs
@@ -32,6 +38,28 @@ export const getCurrencyAccountByCurrencyRequest = async (
   return request({
     url: `/currency/accounts/${currency}`,
     method: "get",
+  });
+};
+
+export const updateCurrencyAccountRequest = async (
+  currency: string,
+  formdata: IUpdateCurrencyAccount
+) => {
+  return request({
+    url: `/currency/accounts/${currency}`,
+    method: "patch",
+    data: formdata,
+  });
+};
+
+export const closeCurrencyAccountRequest = async (
+  currency: string,
+  formdata: ICloseCurrencyAccount
+) => {
+  return request({
+    url: `/currency/accounts/${currency}`,
+    method: "delete",
+    data: formdata,
   });
 };
 
@@ -109,17 +137,28 @@ export const fundCardRequest = async (cardId: string, formdata: IFundCard) => {
   });
 };
 
-export const freezeCardRequest = async (cardId: string) => {
+export const freezeCardRequest = async (cardId: string, freeze: boolean = true) => {
   return request({
-    url: `/currency/cards/${cardId}/freeze`,
+    url: `/currency/cards/${cardId}/freeze?freeze=${freeze}`,
     method: "patch",
   });
 };
 
 export const unfreezeCardRequest = async (cardId: string) => {
   return request({
-    url: `/currency/cards/${cardId}/unfreeze`,
+    url: `/currency/cards/${cardId}/freeze?freeze=false`,
     method: "patch",
+  });
+};
+
+export const updateCardRequest = async (
+  cardId: string,
+  formdata: IUpdateCard
+) => {
+  return request({
+    url: `/currency/cards/${cardId}`,
+    method: "patch",
+    data: formdata,
   });
 };
 
@@ -134,17 +173,25 @@ export const setCardLimitsRequest = async (
   });
 };
 
-export const blockCardRequest = async (cardId: string) => {
+export const blockCardRequest = async (
+  cardId: string,
+  formdata: IBlockCard
+) => {
   return request({
     url: `/currency/cards/${cardId}/block`,
     method: "post",
+    data: formdata,
   });
 };
 
-export const closeCardRequest = async (cardId: string) => {
+export const closeCardRequest = async (
+  cardId: string,
+  formdata: ICloseCard
+) => {
   return request({
     url: `/currency/cards/${cardId}/close`,
     method: "post",
+    data: formdata,
   });
 };
 
@@ -200,6 +247,96 @@ export const getSupportedCurrenciesRequest = async () => {
   return request({
     url: "/currency/supported",
     method: "get",
+  });
+};
+
+// Currency-specific Payment APIs
+export const getBanksByCurrencyRequest = async (currency: string) => {
+  return request({
+    url: `/wallet/get-banks/${currency}`,
+    method: "get",
+  });
+};
+
+export const getTransferFeeRequest = async (params: IGetTransferFee) => {
+  const queryParams = new URLSearchParams();
+  queryParams.set("currency", params.currency);
+  queryParams.set("amount", params.amount.toString());
+  queryParams.set("accountNumber", params.accountNumber);
+  return request({
+    url: `/wallet/get-transfer-fee?${queryParams.toString()}`,
+    method: "get",
+  });
+};
+
+export const getCurrencyAccountTransactionsRequest = async (
+  currency: string,
+  params?: { limit?: number; offset?: number }
+) => {
+  const queryParams = new URLSearchParams();
+  if (params?.limit) queryParams.set("limit", params.limit.toString());
+  if (params?.offset) queryParams.set("offset", params.offset.toString());
+  const queryString = queryParams.toString();
+  return request({
+    url: `/currency/accounts/${currency}/transactions${queryString ? `?${queryString}` : ""}`,
+    method: "get",
+  });
+};
+
+export const getCurrencyAccountDepositsRequest = async (
+  currency: string,
+  params?: { limit?: number; offset?: number }
+) => {
+  const queryParams = new URLSearchParams();
+  if (params?.limit) queryParams.set("limit", params.limit.toString());
+  if (params?.offset) queryParams.set("offset", params.offset.toString());
+  const queryString = queryParams.toString();
+  return request({
+    url: `/currency/accounts/${currency}/deposits${queryString ? `?${queryString}` : ""}`,
+    method: "get",
+  });
+};
+
+export const getCurrencyAccountPayoutsRequest = async (
+  currency: string,
+  params?: { limit?: number; offset?: number }
+) => {
+  const queryParams = new URLSearchParams();
+  if (params?.limit) queryParams.set("limit", params.limit.toString());
+  if (params?.offset) queryParams.set("offset", params.offset.toString());
+  const queryString = queryParams.toString();
+  return request({
+    url: `/currency/accounts/${currency}/payouts${queryString ? `?${queryString}` : ""}`,
+    method: "get",
+  });
+};
+
+export const getCurrencyAccountPayoutDestinationsRequest = async (currency: string) => {
+  return request({
+    url: `/currency/accounts/${currency}/payout-destinations`,
+    method: "get",
+  });
+};
+
+export const createCurrencyAccountPayoutDestinationRequest = async (
+  currency: string,
+  formdata: any
+) => {
+  return request({
+    url: `/currency/accounts/${currency}/payout-destinations`,
+    method: "post",
+    data: formdata,
+  });
+};
+
+export const createCurrencyAccountPayoutRequest = async (
+  currency: string,
+  formdata: any
+) => {
+  return request({
+    url: `/currency/accounts/${currency}/payouts`,
+    method: "post",
+    data: formdata,
   });
 };
 

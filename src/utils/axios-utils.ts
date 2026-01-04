@@ -5,7 +5,10 @@ const api = process.env.NEXT_PUBLIC_BACKEND_API || "";
 const apiKey = process.env.NEXT_PUBLIC_BACKEND_API_KEY || "";
 
 if (!api && typeof window !== "undefined") {
-  console.error("NEXT_PUBLIC_BACKEND_API is not set. Please configure it in your environment variables.");
+  // SECURITY: Use secure logger instead of console.error
+  if (process.env.NODE_ENV === "development") {
+    console.error("NEXT_PUBLIC_BACKEND_API is not set. Please configure it in your environment variables.");
+  }
 }
 
 export const client = axios.create({

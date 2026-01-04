@@ -37,6 +37,7 @@ import ChangePasscodeModal from "@/components/modals/settings/ChangePasscodeModa
 import SetSecurityQuestionsModal from "@/components/modals/settings/SetSecurityQuestionsModal";
 import LinkedAccountsModal from "@/components/modals/settings/LinkedAccountsModal";
 import DeleteAccountModal from "@/components/modals/settings/DeleteAccountModal";
+import BiometricTypeSelectionModal from "@/components/modals/settings/BiometricTypeSelectionModal";
 import PersonalTab from "@/components/user/settings/tabs/PersonalTab";
 import SecurityPrivacyTab from "@/components/user/settings/tabs/SecurityPrivacyTab";
 import PreferencesTab from "@/components/user/settings/tabs/PreferencesTab";
@@ -418,6 +419,8 @@ const ProfileContent = () => {
   const [isFingerprintAvailable, setIsFingerprintAvailable] = useState(false);
   const [isBiometricLoginAvailable, setIsBiometricLoginAvailable] = useState(false);
   const [openDisableBiometricLogin, setOpenDisableBiometricLogin] = useState(false);
+  const [openBiometricTypeSelection, setOpenBiometricTypeSelection] = useState(false);
+  const [selectedBiometricType, setSelectedBiometricType] = useState<"fingerprint" | "faceid" | null>(null);
   const [biometricDeviceId] = useState(() => getDeviceId());
   
   // Document upload modal states
@@ -474,6 +477,81 @@ const ProfileContent = () => {
     onBiometricEnrollError,
     onBiometricEnrollSuccess
   );
+
+  const handleBiometricTypeSelection = async (type: "fingerprint" | "faceid") => {
+    // Validate prerequisites
+    if (!user?.id) {
+      ErrorToast({
+        title: "Error",
+        descriptions: ["User ID not found. Please refresh the page and try again."],
+      });
+      setOpenBiometricTypeSelection(false);
+      setSelectedBiometricType(null);
+      return;
+    }
+
+    if (!biometricDeviceId || biometricDeviceId.trim().length === 0) {
+      ErrorToast({
+        title: "Error",
+        descriptions: ["Device ID is not available. Please refresh the page and try again."],
+      });
+      setOpenBiometricTypeSelection(false);
+      setSelectedBiometricType(null);
+      return;
+    }
+
+    setOpenBiometricTypeSelection(false);
+    setSelectedBiometricType(type);
+
+    try {
+      const deviceInfo = getDeviceInfo();
+      
+      // Register the biometric credential (this will prompt user for their biometric)
+      // Note: The actual biometric used will be determined by the device/browser
+      // We're just specifying which type we want to register it as
+      const credential = await registerBiometric({
+        userId: user.id,
+        username: user?.email || user?.phoneNumber || user?.username || "user",
+        displayName:
+          (user as any)?.businessName ||
+          user?.fullname ||
+          user?.username ||
+          "NattyPay User",
+      });
+
+      // Validate credential was created successfully
+      if (!credential || !credential.publicKey) {
+        throw new Error("Failed to create biometric credential");
+      }
+
+      // Enroll with the selected type
+      enrollBiometric({
+        deviceId: biometricDeviceId,
+        publicKey: credential.publicKey, // Already in PEM format from webauthn.service
+        biometricType: type,
+        deviceName: deviceInfo?.deviceName || "Web Browser",
+      });
+    } catch (e: any) {
+      // Handle user cancellation specifically
+      const errorMessage = e?.message || "Unable to enable biometric login";
+      const isUserCancellation = 
+        errorMessage.toLowerCase().includes("notallowed") ||
+        errorMessage.toLowerCase().includes("abort") ||
+        errorMessage.toLowerCase().includes("cancel") ||
+        errorMessage.toLowerCase().includes("user cancelled") ||
+        e?.name === "NotAllowedError" ||
+        e?.name === "AbortError";
+
+      if (!isUserCancellation) {
+        ErrorToast({
+          title: "Biometric Setup Failed",
+          descriptions: [errorMessage],
+        });
+      }
+      // If user cancelled, silently reset state (no error toast needed)
+      setSelectedBiometricType(null);
+    }
+  };
 
   const onBiometricDisableError = (error: any) => {
     const errorMessage = error?.response?.data?.message;
@@ -2734,31 +2812,17 @@ const ProfileContent = () => {
                       }
 
                       try {
-                        const deviceInfo = getDeviceInfo();
-                        const credential = await registerBiometric({
-                          userId: user.id,
-                          username: user?.email || user?.phoneNumber || user?.username || "user",
-                          displayName:
-                            (user as any)?.businessName ||
-                            user?.fullname ||
-                            user?.username ||
-                            "NattyPay User",
-                        });
-
-                        const type = await getBiometricType();
-                        const biometricType =
-                          type === "face" ? ("faceid" as const) : ("fingerprint" as const);
-
-                        enrollBiometric({
-                          deviceId: biometricDeviceId,
-                          publicKey: credential.publicKey, // Already in PEM format from webauthn.service
-                          biometricType,
-                          deviceName: deviceInfo?.deviceName || "Web Browser",
-                        });
+                        // First, detect the biometric type
+                        const detectedType = await getBiometricType();
+                        const defaultBiometricType = detectedType === "face" ? ("faceid" as const) : ("fingerprint" as const);
+                        
+                        // Show selection modal to let user choose or confirm the type
+                        setSelectedBiometricType(defaultBiometricType);
+                        setOpenBiometricTypeSelection(true);
                       } catch (e: any) {
                         ErrorToast({
                           title: "Biometric Setup Failed",
-                          descriptions: [e?.message || "Unable to enable biometric login"],
+                          descriptions: [e?.message || "Unable to detect biometric type"],
                         });
                       }
                     }}
@@ -2791,7 +2855,7 @@ const ProfileContent = () => {
             <div className="w-full bg-bg-600 dark:bg-bg-1100 border border-white/10 rounded-2xl p-4 sm:p-5">
               <p className="text-white font-semibold mb-3">Privacy</p>
               <div className="divide-y divide-white/10">
-                <button onClick={()=> setOpenLinked(true)} className="w-full flex items-center justify-between gap-3 py-3 text-left">
+                <div className="w-full flex items-center justify-between gap-3 py-3 opacity-60 cursor-not-allowed">
                   <div className="flex items-start gap-3">
                     <div className="w-8 h-8 rounded-md bg-white/5 grid place-items-center text-white"><FiCreditCard className="text-[#D4B139]" /></div>
                     <div>
@@ -2799,8 +2863,8 @@ const ProfileContent = () => {
                       <p className="text-white/60 text-xs sm:text-sm">View, add, or remove your linked accounts and cards</p>
                     </div>
                   </div>
-                  <FiChevronRight className="text-white/60" />
-                </button>
+                  <span className="px-2 py-1 rounded-full bg-[#D4B139]/20 text-[#D4B139] text-xs font-medium">Coming Soon</span>
+                </div>
 
                 <div className="w-full flex items-center justify-between gap-3 py-3">
                   <div className="flex items-start gap-3">
@@ -2873,7 +2937,10 @@ const ProfileContent = () => {
         <ChangeTransactionPinModal isOpen={openChangePin} onClose={()=> setOpenChangePin(false)} />
         <ChangePasswordModal isOpen={openChangePassword} onClose={()=> setOpenChangePassword(false)} />
         <ChangePasscodeModal isOpen={openChangePasscode} onClose={()=> setOpenChangePasscode(false)} />
-        <SetSecurityQuestionsModal isOpen={openSetSecurity} onClose={()=> setOpenSetSecurity(false)} onSubmit={()=> { setOpenSetSecurity(false); SuccessToast({ title: "Security questions saved", description: "Your security questions have been successfully saved." }); }} />
+        <SetSecurityQuestionsModal 
+          isOpen={openSetSecurity} 
+          onClose={()=> setOpenSetSecurity(false)} 
+        />
         <LinkedAccountsModal isOpen={openLinked} onClose={()=> setOpenLinked(false)} />
         <DeleteAccountModal isOpen={openDelete} onClose={()=> setOpenDelete(false)} />
         
@@ -2939,6 +3006,22 @@ const ProfileContent = () => {
             clearBiometricCredentials();
           }}
         />
+        
+        {/* Biometric Type Selection Modal */}
+        {selectedBiometricType && (
+          <BiometricTypeSelectionModal
+            isOpen={openBiometricTypeSelection}
+            onClose={() => {
+              if (!enrollingBiometric) {
+                setOpenBiometricTypeSelection(false);
+                setSelectedBiometricType(null);
+              }
+            }}
+            onSelect={handleBiometricTypeSelection}
+            detectedType={selectedBiometricType}
+            isLoading={enrollingBiometric}
+          />
+        )}
       </div>
     </div>
     </>

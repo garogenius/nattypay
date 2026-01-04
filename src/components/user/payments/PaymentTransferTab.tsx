@@ -5,11 +5,13 @@ import Image from "next/image";
 import images from "../../../../public/images";
 import TransferTypeCards from "@/components/shared/TransferTypeCards";
 import PaymentTransferForm from "./PaymentTransferForm";
+import { useGetCurrencyAccountTransactions } from "@/api/currency/currency.queries";
 import { useGetTransactions } from "@/api/wallet/wallet.queries";
 import { useGetBeneficiaries } from "@/api/user/user.queries";
 import { BENEFICIARY_TYPE, TRANSFER_TYPE } from "@/constants/types";
 import CustomButton from "@/components/shared/Button";
 import useTransactionViewModalStore from "@/store/transactionViewModal.store";
+import usePaymentSettingsStore from "@/store/paymentSettings.store";
 import { format } from "date-fns";
 import { FiClock, FiUser } from "react-icons/fi";
 
@@ -19,7 +21,26 @@ interface PaymentTransferTabProps {
 }
 
 const PaymentTransferTab: React.FC<PaymentTransferTabProps> = ({ transferType, setTransferType }) => {
-  const { transactionsData } = useGetTransactions({ page: 1, limit: 8 });
+  const { selectedCurrency } = usePaymentSettingsStore();
+  
+  // For NGN, use wallet transactions API; for other currencies, use currency account transactions API
+  const { transactionsData: ngnTransactionsData, isPending: ngnTransactionsLoading } = useGetTransactions({
+    page: 1,
+    limit: 8,
+  });
+  const { transactions: currencyTransactions, isPending: currencyTransactionsLoading } = useGetCurrencyAccountTransactions(
+    selectedCurrency !== "NGN" ? selectedCurrency : "",
+    { limit: 8, offset: 0 }
+  );
+  
+  // Determine which transactions to use based on selected currency
+  const transactions = selectedCurrency === "NGN" 
+    ? (ngnTransactionsData?.transactions || [])
+    : (currencyTransactions || []);
+  const transactionsLoading = selectedCurrency === "NGN"
+    ? ngnTransactionsLoading
+    : currencyTransactionsLoading;
+  
   const [recentTab, setRecentTab] = React.useState<"recent" | "saved">("recent");
   const { beneficiaries } = useGetBeneficiaries({
     category: BENEFICIARY_TYPE.TRANSFER,
@@ -120,9 +141,13 @@ const PaymentTransferTab: React.FC<PaymentTransferTabProps> = ({ transferType, s
             </div>
           )
         ) : (
-          transactionsData?.transactions && transactionsData.transactions.length > 0 ? (
+          transactionsLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="w-8 h-8 border-2 border-[#D4B139] border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : transactions && transactions.length > 0 ? (
             <div className="flex flex-col divide-y divide-white/10">
-              {transactionsData.transactions.slice(0, 8).map((tx) => (
+              {transactions.slice(0, 8).map((tx) => (
                 <div key={tx.id} className="flex items-center justify-between py-3 hover:bg-white/5 rounded px-2 transition-colors">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-secondary grid place-items-center">
@@ -130,7 +155,9 @@ const PaymentTransferTab: React.FC<PaymentTransferTabProps> = ({ transferType, s
                     </div>
                     <div>
                       <p className="text-white text-sm font-medium">{tx.description || "Transfer"}</p>
-                      <p className="text-white/50 text-xs">{format(new Date(tx.createdAt), "MMM d, yyyy")}</p>
+                      <p className="text-white/50 text-xs">
+                        {format(new Date(tx.created_at || tx.createdAt || Date.now()), "MMM d, yyyy")}
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">

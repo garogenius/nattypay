@@ -138,7 +138,10 @@ export const registerToken = async (): Promise<void> => {
     };
 
     await registerFCMToken(payload);
-    console.log("FCM token registered successfully");
+    // SECURITY: Only log in development
+    if (process.env.NODE_ENV === "development") {
+      console.log("FCM token registered successfully");
+    }
   } catch (error: any) {
     const statusCode = error?.response?.status;
     
