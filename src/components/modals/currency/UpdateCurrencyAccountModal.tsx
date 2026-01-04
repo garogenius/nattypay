@@ -21,16 +21,16 @@ const UpdateCurrencyAccountModal: React.FC<UpdateCurrencyAccountModalProps> = ({
   account,
   onSuccess,
 }) => {
-  const [label, setLabel] = React.useState(account.accountName || account.label || "");
+  const [label, setLabel] = React.useState(account.label || "");
 
   React.useEffect(() => {
     if (isOpen && account) {
-      setLabel(account.accountName || account.label || "");
+      setLabel(account.label || "");
     }
   }, [isOpen, account]);
 
   const handleClose = () => {
-    setLabel(account.accountName || account.label || "");
+    setLabel(account.label || "");
     onClose();
   };
 

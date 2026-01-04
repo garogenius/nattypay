@@ -115,7 +115,7 @@ const CurrencyAccountDetailsModal: React.FC<CurrencyAccountDetailsModalProps> = 
             />
             <div>
               <h2 className="text-white text-base sm:text-lg font-semibold">
-                {account.accountName || account.label || `${currency} Account`}
+                {account.label || `${currency} Account`}
               </h2>
               <p className="text-white/60 text-sm">{account.accountNumber || "N/A"}</p>
             </div>
