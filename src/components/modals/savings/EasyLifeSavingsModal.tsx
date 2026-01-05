@@ -131,6 +131,7 @@ const EasyLifeSavingsModal: React.FC<EasyLifeSavingsModalProps> = ({ isOpen, onC
       return;
     }
 
+    // For both manual and auto mode, require start and end dates
     if (!startDate || !endDate) {
       setValidationError({
         title: "Validation Error",
@@ -238,18 +239,14 @@ const EasyLifeSavingsModal: React.FC<EasyLifeSavingsModalProps> = ({ isOpen, onC
                 <input className="w-full bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-3 px-3 text-white text-sm placeholder:text-white/50 outline-none" placeholder="NGN" value={amount} onChange={(e)=> setAmount(e.target.value)} />
               </div>
 
-              {mode === 'manual' && (
-                <>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-white/70 text-xs">Start Date</label>
-                    <input type="date" className="w-full bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-3 px-3 text-white text-sm outline-none" value={startDate} onChange={(e)=> setStartDate(e.target.value)} />
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-white/70 text-xs">End Date</label>
-                    <input type="date" className="w-full bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-3 px-3 text-white text-sm outline-none" value={endDate} onChange={(e)=> setEndDate(e.target.value)} />
-                  </div>
-                </>
-              )}
+              <div className="flex flex-col gap-1">
+                <label className="text-white/70 text-xs">Start Date</label>
+                <input type="date" className="w-full bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-3 px-3 text-white text-sm outline-none" value={startDate} onChange={(e)=> setStartDate(e.target.value)} />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-white/70 text-xs">End Date</label>
+                <input type="date" className="w-full bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-3 px-3 text-white text-sm outline-none" value={endDate} onChange={(e)=> setEndDate(e.target.value)} />
+              </div>
 
               {mode === 'manual' && (
                 <div className="flex flex-col gap-1">
