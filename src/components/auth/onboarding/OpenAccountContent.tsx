@@ -10,6 +10,7 @@ import useNavigate from "@/hooks/useNavigate";
 import BvnInfoModal from "@/components/modals/BvnInfoModal";
 import BvnFaceCaptureModal from "@/components/modals/BvnFaceCaptureModal";
 import SessionExpiredModal from "@/components/modals/SessionExpiredModal";
+import VerificationErrorModal from "@/components/modals/VerificationErrorModal";
 import { FiInfo } from "react-icons/fi";
 import ErrorToast from "@/components/toast/ErrorToast";
 import SuccessToast from "@/components/toast/SuccessToast";
@@ -53,6 +54,12 @@ const OpenAccountContent = () => {
   const [showBvnInfo, setShowBvnInfo] = useState(false);
   const [showFaceCaptureModal, setShowFaceCaptureModal] = useState(false);
   const [showSessionExpiredModal, setShowSessionExpiredModal] = useState(false);
+  const [showVerificationErrorModal, setShowVerificationErrorModal] = useState(false);
+  const [verificationError, setVerificationError] = useState<{
+    title: string;
+    descriptions: string[];
+    type?: "BVN" | "NIN";
+  } | null>(null);
   const [verificationStep, setVerificationStep] = useState<VerificationStep>("enter-details");
   const [bvnVerificationMethod, setBvnVerificationMethod] = useState<BvnVerificationMethod>("face"); // Default to face
   const [bvnDetails, setBvnDetails] = useState<{ bvn: string; verificationId: string }>({
@@ -94,7 +101,7 @@ const OpenAccountContent = () => {
     } else if (errorMessage) {
       descriptions = [errorMessage];
     } else {
-      descriptions = ["Failed to verify NIN"];
+      descriptions = ["Failed to verify NIN. Please check your NIN and try again."];
     }
 
     // Check if error is JWT expired (401)
@@ -114,19 +121,21 @@ const OpenAccountContent = () => {
           const newToken = Cookies.get("accessToken");
           if (newToken && !isTokenExpired(newToken)) {
             // Token refreshed successfully - show message and let user retry
-            ErrorToast({
+            setVerificationError({
               title: "Session Refreshed",
               descriptions: [
                 "Your session has been refreshed. Please try verifying your NIN again.",
               ],
+              type: "NIN",
             });
+            setShowVerificationErrorModal(true);
             return;
           }
         } catch (refreshError) {
           console.warn("Failed to refresh user data:", refreshError);
         }
         
-        // If refresh didn't work, show modal
+        // If refresh didn't work, show session expired modal
         setShowSessionExpiredModal(true);
         return;
       }
@@ -141,7 +150,7 @@ const OpenAccountContent = () => {
 
     if (isRegistrationError) {
       // Provide more helpful guidance
-      ErrorToast({
+      setVerificationError({
         title: "Verification Required",
         descriptions: [
           "Please ensure you have completed all previous verification steps:",
@@ -149,13 +158,16 @@ const OpenAccountContent = () => {
           "2. Two-Factor Authentication (2FA)",
           "If you've completed these steps, please try refreshing the page and try again."
         ],
+        type: "NIN",
       });
     } else {
-      ErrorToast({
+      setVerificationError({
         title: "NIN Verification Failed",
         descriptions,
+        type: "NIN",
       });
     }
+    setShowVerificationErrorModal(true);
   };
 
   const onNinSuccess = async (data: any) => {
@@ -193,12 +205,14 @@ const OpenAccountContent = () => {
     const errorMessage = error?.response?.data?.message;
     const descriptions = Array.isArray(errorMessage)
       ? errorMessage
-      : [errorMessage || "Failed to initiate BVN verification"];
+      : [errorMessage || "Failed to initiate BVN verification. Please check your BVN and try again."];
 
-    ErrorToast({
+    setVerificationError({
       title: "BVN Verification Failed",
       descriptions,
+      type: "BVN",
     });
+    setShowVerificationErrorModal(true);
   };
 
   const onBvnInitiateSuccess = (data: any) => {
@@ -226,12 +240,14 @@ const OpenAccountContent = () => {
     const errorMessage = error?.response?.data?.message;
     const descriptions = Array.isArray(errorMessage)
       ? errorMessage
-      : [errorMessage || "Failed to validate BVN verification"];
+      : [errorMessage || "Failed to validate BVN verification. Please try again."];
 
-    ErrorToast({
-      title: "Verification Failed",
+    setVerificationError({
+      title: "BVN Verification Failed",
       descriptions,
+      type: "BVN",
     });
+    setShowVerificationErrorModal(true);
   };
 
   const onBvnValidateSuccess = (data: any) => {
@@ -254,15 +270,18 @@ const OpenAccountContent = () => {
     const errorMessage = error?.response?.data?.message;
     const descriptions = Array.isArray(errorMessage)
       ? errorMessage
-      : [errorMessage || "Face verification failed"];
+      : [errorMessage || "Face verification failed. Please ensure your face is clearly visible and try again."];
 
-    ErrorToast({
+    setVerificationError({
       title: "Face Verification Failed",
       descriptions,
+      type: "BVN",
     });
+    setShowVerificationErrorModal(true);
     
-    // Keep modal open so user can retry
-    // Don't close modal on error - let user try again
+    // Close face capture modal on error
+    setShowFaceCaptureModal(false);
+    setSelfieImage("");
   };
 
   const onBvnFaceSuccess = (data: any) => {
@@ -347,6 +366,18 @@ const OpenAccountContent = () => {
     }
 
     // Validate token format
+    if (!token) {
+      setIsSubmitting(false);
+      ErrorToast({
+        title: "Authentication Required",
+        descriptions: [
+          "Please complete your registration and verification first.",
+          "Make sure you have verified your email or phone number before proceeding."
+        ],
+      });
+      return;
+    }
+
     const tokenParts = token.trim().split(".");
     if (tokenParts.length !== 3) {
       setIsSubmitting(false);
@@ -813,6 +844,22 @@ const OpenAccountContent = () => {
           }
           navigate("/login", "replace");
         }}
+      />
+      <VerificationErrorModal
+        isOpen={showVerificationErrorModal}
+        onClose={() => {
+          setShowVerificationErrorModal(false);
+          setVerificationError(null);
+        }}
+        onRetry={() => {
+          setShowVerificationErrorModal(false);
+          setVerificationError(null);
+          // Reset form to allow retry
+          form.reset();
+        }}
+        title={verificationError?.title || "Verification Failed"}
+        descriptions={verificationError?.descriptions || ["An error occurred during verification."]}
+        verificationType={verificationError?.type}
       />
     </>
   );
