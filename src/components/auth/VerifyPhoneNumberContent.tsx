@@ -8,11 +8,12 @@ import CustomButton from "@/components/shared/Button";
 import ErrorToast from "@/components/toast/ErrorToast";
 import SuccessToast from "@/components/toast/SuccessToast";
 import useNavigate from "@/hooks/useNavigate";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import OtpInput from "react-otp-input";
 
 import useAuthEmailStore from "@/store/authEmail.store";
 import useTimerStore from "@/store/timer.store";
+import useUserStore from "@/store/user.store";
 import { useRouter } from "next/navigation";
 import SpinnerLoader from "../Loader/SpinnerLoader";
 import icons from "../../../public/icons";
@@ -28,10 +29,22 @@ const VerifyPhoneNumberContent = () => {
   const navigate = useNavigate();
   const router = useRouter();
 
-  const { authEmail, authPhoneNumber } = useAuthEmailStore();
+  const { authEmail, authPhoneNumber, setAuthPhoneNumber } = useAuthEmailStore();
+  const { user } = useUserStore();
   const [token, setToken] = useState("");
+  const hasAutoVerifiedRef = useRef(false);
 
   const isValid = token.length === 6; // Changed to 6 digits to match verify-contact API
+
+  // Use phone number from user store if available, otherwise use authPhoneNumber from store
+  const phoneNumber = user?.phoneNumber || authPhoneNumber;
+
+  useEffect(() => {
+    // If user has phone number but it's not in authPhoneNumber store, set it
+    if (user?.phoneNumber && !authPhoneNumber) {
+      setAuthPhoneNumber(user.phoneNumber);
+    }
+  }, [user?.phoneNumber, authPhoneNumber, setAuthPhoneNumber]);
 
   const onVerificationSuccess = (data: any) => {
     // Store access token if returned from verification
@@ -52,6 +65,7 @@ const VerifyPhoneNumberContent = () => {
     // Navigate to open account page for BVN/NIN verification
     navigate("/open-account", "replace");
     setToken("");
+    hasAutoVerifiedRef.current = false; // Reset ref after successful verification
   };
 
   const onVerificationError = (error: any) => {
@@ -65,6 +79,12 @@ const VerifyPhoneNumberContent = () => {
       title: "Verification Failed",
       descriptions,
     });
+
+    // Clear the token to stop auto-verification from retrying
+    setToken("");
+    
+    // Reset the ref on error so user can retry
+    hasAutoVerifiedRef.current = false;
   };
 
   const {
@@ -177,6 +197,27 @@ const VerifyPhoneNumberContent = () => {
   }, [authEmail, authPhoneNumber, router, navigate]);
 
   const loadingStatus = verificationPending && !verificationError;
+
+  // Auto-verify when 6 digits are entered
+  useEffect(() => {
+    // Reset the ref when token changes (user is typing)
+    if (token.length < 6) {
+      hasAutoVerifiedRef.current = false;
+      return;
+    }
+
+    // Auto-verify when 6 digits are entered and not already verifying
+    if (token.length === 6 && !verificationPending && !loadingStatus && !hasAutoVerifiedRef.current) {
+      hasAutoVerifiedRef.current = true;
+      // Small delay to ensure token state is fully updated
+      const timeoutId = setTimeout(() => {
+        handleVerify();
+      }, 100);
+      
+      return () => clearTimeout(timeoutId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, verificationPending, loadingStatus]);
   const resendLoadingStatus =
     resendVerificationCodePending && !resendVerificationCodeError;
 
@@ -217,7 +258,7 @@ const VerifyPhoneNumberContent = () => {
           <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-lg">
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Verify Phone Number</h2>
             <p className="text-sm text-gray-600 mb-6">
-              Enter the code sent to {authPhoneNumber || "+234000000000"}
+              Enter the code sent to <span className="font-medium">{phoneNumber || "+234000000000"}</span>
             </p>
 
             {/* OTP Input */}
@@ -288,15 +329,15 @@ const VerifyPhoneNumberContent = () => {
             </div>
 
             {/* Footer */}
-            <div className="text-center text-xs text-gray-500 mt-8">
-              <p className="flex items-center justify-center gap-2 flex-wrap">
+            <div className="text-center text-[9px] xs:text-xs text-gray-500 mt-8 px-2">
+              <p className="flex items-center justify-center gap-1 xs:gap-1.5 sm:gap-2 flex-nowrap whitespace-nowrap">
                 <span>Licenced by CBN</span>
                 <Image
                   src={images.cbnLogo}
                   alt="CBN Logo"
                   width={40}
                   height={20}
-                  className="h-5 w-auto object-contain"
+                  className="h-3 xs:h-4 sm:h-5 w-auto object-contain"
                 />
                 <span>Deposits Insured by</span>
                 <span className="text-blue-600 underline">NDIC</span>

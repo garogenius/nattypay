@@ -9,6 +9,7 @@ import CustomButton from "@/components/shared/Button";
 import useNavigate from "@/hooks/useNavigate";
 import BvnInfoModal from "@/components/modals/BvnInfoModal";
 import BvnFaceCaptureModal from "@/components/modals/BvnFaceCaptureModal";
+import SessionExpiredModal from "@/components/modals/SessionExpiredModal";
 import { FiInfo } from "react-icons/fi";
 import ErrorToast from "@/components/toast/ErrorToast";
 import SuccessToast from "@/components/toast/SuccessToast";
@@ -22,6 +23,8 @@ import useUserStore from "@/store/user.store";
 import OtpInput from "react-otp-input";
 import useTimerStore from "@/store/timer.store";
 import Cookies from "js-cookie";
+import { useQueryClient } from "@tanstack/react-query";
+import { isTokenExpired } from "@/utils/tokenChecker";
 import images from "../../../../public/images";
 
 const schema = yup.object().shape({
@@ -45,9 +48,11 @@ type BvnVerificationMethod = "face" | "otp";
 
 const OpenAccountContent = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { user } = useUserStore();
   const [showBvnInfo, setShowBvnInfo] = useState(false);
   const [showFaceCaptureModal, setShowFaceCaptureModal] = useState(false);
+  const [showSessionExpiredModal, setShowSessionExpiredModal] = useState(false);
   const [verificationStep, setVerificationStep] = useState<VerificationStep>("enter-details");
   const [bvnVerificationMethod, setBvnVerificationMethod] = useState<BvnVerificationMethod>("face"); // Default to face
   const [bvnDetails, setBvnDetails] = useState<{ bvn: string; verificationId: string }>({
@@ -78,15 +83,79 @@ const OpenAccountContent = () => {
   const verificationType = watch("verificationType");
 
   // NIN Verification
-  const onNinError = (error: any) => {
+  const onNinError = async (error: any) => {
     setIsSubmitting(false);
     const errorMessage = error?.response?.data?.message;
-    const descriptions = Array.isArray(errorMessage) ? errorMessage : [errorMessage || "Failed to verify NIN"];
+    const statusCode = error?.response?.status;
+    let descriptions: string[] = [];
+    
+    if (Array.isArray(errorMessage)) {
+      descriptions = errorMessage;
+    } else if (errorMessage) {
+      descriptions = [errorMessage];
+    } else {
+      descriptions = ["Failed to verify NIN"];
+    }
 
-    ErrorToast({
-      title: "NIN Verification Failed",
-      descriptions,
-    });
+    // Check if error is JWT expired (401)
+    if (statusCode === 401) {
+      const errorText = typeof errorMessage === 'string' ? errorMessage.toLowerCase() : '';
+      const isJwtExpired = errorText.includes('jwt expired') || 
+                          errorText.includes('token expired') ||
+                          errorText.includes('unauthorized');
+      
+      if (isJwtExpired) {
+        // Token expired - try to refresh user data to get a new token
+        try {
+          await queryClient.invalidateQueries({ queryKey: ["user"] });
+          await queryClient.refetchQueries({ queryKey: ["user"] });
+          
+          // Check if we got a new token
+          const newToken = Cookies.get("accessToken");
+          if (newToken && !isTokenExpired(newToken)) {
+            // Token refreshed successfully - show message and let user retry
+            ErrorToast({
+              title: "Session Refreshed",
+              descriptions: [
+                "Your session has been refreshed. Please try verifying your NIN again.",
+              ],
+            });
+            return;
+          }
+        } catch (refreshError) {
+          console.warn("Failed to refresh user data:", refreshError);
+        }
+        
+        // If refresh didn't work, show modal
+        setShowSessionExpiredModal(true);
+        return;
+      }
+    }
+
+    // Check if error is about incomplete registration/verification
+    const errorText = typeof errorMessage === 'string' ? errorMessage.toLowerCase() : '';
+    const isRegistrationError = errorText.includes('complete your registration') || 
+                                errorText.includes('complete registration') ||
+                                errorText.includes('verification first') ||
+                                errorText.includes('verify first');
+
+    if (isRegistrationError) {
+      // Provide more helpful guidance
+      ErrorToast({
+        title: "Verification Required",
+        descriptions: [
+          "Please ensure you have completed all previous verification steps:",
+          "1. Email or Phone Number verification",
+          "2. Two-Factor Authentication (2FA)",
+          "If you've completed these steps, please try refreshing the page and try again."
+        ],
+      });
+    } else {
+      ErrorToast({
+        title: "NIN Verification Failed",
+        descriptions,
+      });
+    }
   };
 
   const onNinSuccess = (data: any) => {
@@ -254,6 +323,30 @@ const OpenAccountContent = () => {
       return;
     }
 
+    // Check if token is expired
+    if (isTokenExpired(token)) {
+      setIsSubmitting(false);
+      // Try to refresh user data which might get a new token
+      try {
+        await queryClient.invalidateQueries({ queryKey: ["user"] });
+        await queryClient.refetchQueries({ queryKey: ["user"] });
+        
+        // Check if we got a new token
+        const newToken = Cookies.get("accessToken");
+        if (newToken && !isTokenExpired(newToken)) {
+          // Token refreshed successfully - continue with verification
+          // Don't show modal, just proceed
+        } else {
+          // Token still expired - show modal
+          setShowSessionExpiredModal(true);
+        }
+      } catch (error) {
+        console.warn("Failed to refresh user data:", error);
+        setShowSessionExpiredModal(true);
+      }
+      return;
+    }
+
     if (data.verificationType === "NIN") {
       // Direct NIN verification
       if (!data.nin) {
@@ -264,6 +357,33 @@ const OpenAccountContent = () => {
         });
         return;
       }
+
+      // Check if user has completed email or phone verification
+      // Backend requires this before NIN verification
+      // Refresh user data first to ensure we have the latest verification status
+      try {
+        await queryClient.invalidateQueries({ queryKey: ["user"] });
+        await queryClient.refetchQueries({ queryKey: ["user"] });
+        
+        // Get updated user from store after refetch
+        const updatedUser = useUserStore.getState().user;
+        
+        if (updatedUser && !updatedUser.isEmailVerified && !updatedUser.isPhoneVerified) {
+          setIsSubmitting(false);
+          ErrorToast({
+            title: "Verification Required",
+            descriptions: [
+              "Please complete your email or phone number verification first before verifying your NIN.",
+              "The backend requires contact verification before NIN verification can proceed."
+            ],
+          });
+          return;
+        }
+      } catch (error) {
+        // If refetch fails, proceed anyway - backend will handle the validation
+        console.warn("Failed to refresh user data:", error);
+      }
+
       verifyNin({ nin: data.nin });
     } else {
       // BVN: Check verification method
@@ -598,15 +718,15 @@ const OpenAccountContent = () => {
               ) : null}
 
               {/* Footer */}
-              <div className="text-center text-xs text-gray-500 mt-8">
-                <p className="flex items-center justify-center gap-2 flex-wrap">
+              <div className="text-center text-[9px] xs:text-xs text-gray-500 mt-8 px-2">
+                <p className="flex items-center justify-center gap-1 xs:gap-1.5 sm:gap-2 flex-nowrap whitespace-nowrap">
                   <span>Licenced by CBN</span>
                   <Image
                     src={images.cbnLogo}
                     alt="CBN Logo"
                     width={40}
                     height={20}
-                    className="h-5 w-auto object-contain"
+                    className="h-3 xs:h-4 sm:h-5 w-auto object-contain"
                   />
                   <span>Deposits Insured by</span>
                   <span className="text-blue-600 underline">NDIC</span>
@@ -633,6 +753,19 @@ const OpenAccountContent = () => {
         onCapture={handleFaceCapture}
         bvn={bvnDetails.bvn}
         isVerifying={bvnFacePending}
+      />
+      <SessionExpiredModal
+        isOpen={showSessionExpiredModal}
+        onClose={() => setShowSessionExpiredModal(false)}
+        onLogin={() => {
+          setShowSessionExpiredModal(false);
+          // Clear session data
+          if (typeof window !== "undefined") {
+            sessionStorage.clear();
+            Cookies.remove("accessToken");
+          }
+          navigate("/login", "replace");
+        }}
       />
     </>
   );

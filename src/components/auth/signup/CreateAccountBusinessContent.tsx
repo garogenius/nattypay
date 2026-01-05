@@ -369,7 +369,14 @@ const CreateAccountBusinessContent = () => {
                   {...register("termsAccepted")}
                 />
                 <label htmlFor="terms" className="text-xs text-gray-600">
-                  I have read, understand, and agreed to Terms & Conditions and Privacy Policy
+                  I have read, understand, and agreed to{" "}
+                  <Link href="/terms&condition" className="text-[#D4B139] hover:underline">
+                    Terms & Conditions
+                  </Link>
+                  {" "}and{" "}
+                  <Link href="/privacyPolicy" className="text-[#D4B139] hover:underline">
+                    Privacy Policy
+                  </Link>
                 </label>
               </div>
               {errors.termsAccepted && (
@@ -396,20 +403,18 @@ const CreateAccountBusinessContent = () => {
             </form>
 
             {/* Footer */}
-            <div className="text-center text-xs text-gray-500 mt-8">
-              <p>
-                <span className="flex items-center justify-center gap-2 flex-wrap">
-                  <span>Licenced by CBN</span>
-                  <Image
-                    src={images.cbnLogo}
-                    alt="CBN Logo"
-                    width={40}
-                    height={20}
-                    className="h-5 w-auto object-contain"
-                  />
-                  <span>Deposits Insured by</span>
+            <div className="text-center text-[9px] xs:text-xs text-gray-500 mt-8 px-2">
+              <p className="flex items-center justify-center gap-1 xs:gap-1.5 sm:gap-2 flex-nowrap whitespace-nowrap">
+                <span>Licenced by CBN</span>
+                <Image
+                  src={images.cbnLogo}
+                  alt="CBN Logo"
+                  width={40}
+                  height={20}
+                  className="h-3 xs:h-4 sm:h-5 w-auto object-contain"
+                />
+                <span>Deposits Insured by</span>
                 <span className="text-blue-600 underline">NDIC</span>
-                </span>
               </p>
             </div>
           </div>
