@@ -16,6 +16,7 @@ import useTimerStore from "@/store/timer.store";
 import useUserStore from "@/store/user.store";
 import { useRouter } from "next/navigation";
 import SpinnerLoader from "../Loader/SpinnerLoader";
+import AccountCreatedSuccessModal from "@/components/modals/AccountCreatedSuccessModal";
 import icons from "../../../public/icons";
 import images from "../../../public/images";
 
@@ -32,6 +33,7 @@ const VerifyPhoneNumberContent = () => {
   const { authEmail, authPhoneNumber, setAuthPhoneNumber } = useAuthEmailStore();
   const { user } = useUserStore();
   const [token, setToken] = useState("");
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const hasAutoVerifiedRef = useRef(false);
 
   const isValid = token.length === 6; // Changed to 6 digits to match verify-contact API
@@ -56,16 +58,21 @@ const VerifyPhoneNumberContent = () => {
         sameSite: "lax",
         secure: process.env.NODE_ENV === "production",
       });
+      
+      // If token exists, navigate to open account page
+      SuccessToast({
+        title: "Phone verified",
+        description: "Your phone number verification successful",
+      });
+      navigate("/open-account", "replace");
+      setToken("");
+      hasAutoVerifiedRef.current = false; // Reset ref after successful verification
+    } else {
+      // No token - show success modal and redirect to login
+      setShowSuccessModal(true);
+      setToken("");
+      hasAutoVerifiedRef.current = false;
     }
-
-    SuccessToast({
-      title: "Phone verified",
-      description: "Your phone number verification successful",
-    });
-    // Navigate to open account page for BVN/NIN verification
-    navigate("/open-account", "replace");
-    setToken("");
-    hasAutoVerifiedRef.current = false; // Reset ref after successful verification
   };
 
   const onVerificationError = (error: any) => {
@@ -346,6 +353,21 @@ const VerifyPhoneNumberContent = () => {
           </div>
         </div>
       </div>
+
+      {/* Account Created Success Modal */}
+      <AccountCreatedSuccessModal
+        isOpen={showSuccessModal}
+        onClose={() => setShowSuccessModal(false)}
+        onLogin={() => {
+          setShowSuccessModal(false);
+          // Clear any session data
+          if (typeof window !== "undefined") {
+            sessionStorage.clear();
+          }
+          navigate("/login", "replace");
+        }}
+        autoRedirectDelay={10}
+      />
     </div>
   );
 };

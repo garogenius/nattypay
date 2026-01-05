@@ -18,22 +18,23 @@ const UnverifiedDashboard = ({
 }) => {
   const navigate = useNavigate();
   const { user } = useUserStore();
-  const isBvnVerified =
-    user?.tierLevel !== TIER_LEVEL.notSet && user?.isBvnVerified;
+  // Check if user has verified with either BVN or NIN
+  const isBvnOrNinVerified =
+    user?.tierLevel !== TIER_LEVEL.notSet && (user?.isBvnVerified || user?.isNinVerified);
   const isPinCreated = user?.isWalletPinSet;
 
-  const isVerified = isBvnVerified && isPinCreated;
+  const isVerified = isBvnOrNinVerified && isPinCreated;
 
   const [steps, setSteps] = useState([
     {
       value: 1,
       clickable: true,
-      completed: isBvnVerified || false,
+      completed: isBvnOrNinVerified || false,
     },
     {
       value: 2,
       clickable: false,
-      completed: isBvnVerified || false,
+      completed: isBvnOrNinVerified || false,
     },
     {
       value: 3,
@@ -42,10 +43,10 @@ const UnverifiedDashboard = ({
     },
   ]);
   const [currentStep, setCurrentStep] = useState(
-    (isBvnVerified && !isPinCreated) || isVerified ? 3 : 1
+    (isBvnOrNinVerified && !isPinCreated) || isVerified ? 3 : 1
   );
   const [verificationStatus, setVerificationStatus] = useState(
-    isBvnVerified ? true : false
+    isBvnOrNinVerified ? true : false
   );
   const [bvnDetails, setBvnDetails] = useState({
     bvn: "",

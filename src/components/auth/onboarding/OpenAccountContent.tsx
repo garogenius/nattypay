@@ -158,12 +158,30 @@ const OpenAccountContent = () => {
     }
   };
 
-  const onNinSuccess = (data: any) => {
+  const onNinSuccess = async (data: any) => {
     setIsSubmitting(false);
+    
+    // Update user data to reflect NIN verification
+    const updatedUser = data?.data?.user;
+    if (updatedUser) {
+      const { setUser } = useUserStore.getState();
+      setUser(updatedUser);
+    }
+    
+    // Refresh user data to ensure latest verification status
+    try {
+      await queryClient.invalidateQueries({ queryKey: ["user"] });
+      await queryClient.refetchQueries({ queryKey: ["user"] });
+    } catch (error) {
+      console.warn("Failed to refresh user data after NIN verification:", error);
+    }
+    
     SuccessToast({
       title: "NIN Verified Successfully!",
       description: data?.data?.message || "Your NIN has been verified successfully.",
     });
+    
+    // Navigate to transaction pin page
     navigate("/transaction-pin");
   };
 
@@ -296,18 +314,36 @@ const OpenAccountContent = () => {
   const onSubmit = async (data: OpenAccountFormData) => {
     setIsSubmitting(true);
     
-    // Check if user is authenticated
-    const token = Cookies.get("accessToken");
+    // First, try to refresh user data to get the latest token and user info
+    // This is important during onboarding as the token might have just been set
+    try {
+      await queryClient.invalidateQueries({ queryKey: ["user"] });
+      await queryClient.refetchQueries({ queryKey: ["user"] });
+    } catch (error) {
+      console.warn("Failed to refresh user data:", error);
+    }
     
+    // Check if user is authenticated - check both token and user store
+    const token = Cookies.get("accessToken");
+    const currentUser = useUserStore.getState().user;
+    
+    // If no token, check if user exists in store (might be in onboarding flow)
     if (!token) {
-      setIsSubmitting(false);
-      ErrorToast({
-        title: "Authentication Required",
-        descriptions: ["Please complete your registration and verification first."],
-      });
-      // Don't redirect to login during signup flow - user is on /open-account which is part of signup
-      // The axios interceptor will handle redirects for non-auth pages
-      return;
+      // If user exists in store, they've completed some verification steps
+      // Try to proceed anyway - the API will handle authentication
+      if (!currentUser) {
+        setIsSubmitting(false);
+        ErrorToast({
+          title: "Authentication Required",
+          descriptions: [
+            "Please complete your registration and verification first.",
+            "Make sure you have verified your email or phone number before proceeding."
+          ],
+        });
+        return;
+      }
+      // If user exists but no token, continue - might be a timing issue
+      // The API call will handle the authentication error
     }
 
     // Validate token format
@@ -358,32 +394,24 @@ const OpenAccountContent = () => {
         return;
       }
 
+      // Get updated user from store (already refreshed above)
+      const updatedUser = useUserStore.getState().user;
+      
       // Check if user has completed email or phone verification
       // Backend requires this before NIN verification
-      // Refresh user data first to ensure we have the latest verification status
-      try {
-        await queryClient.invalidateQueries({ queryKey: ["user"] });
-        await queryClient.refetchQueries({ queryKey: ["user"] });
-        
-        // Get updated user from store after refetch
-        const updatedUser = useUserStore.getState().user;
-        
-        if (updatedUser && !updatedUser.isEmailVerified && !updatedUser.isPhoneVerified) {
-          setIsSubmitting(false);
-          ErrorToast({
-            title: "Verification Required",
-            descriptions: [
-              "Please complete your email or phone number verification first before verifying your NIN.",
-              "The backend requires contact verification before NIN verification can proceed."
-            ],
-          });
-          return;
-        }
-      } catch (error) {
-        // If refetch fails, proceed anyway - backend will handle the validation
-        console.warn("Failed to refresh user data:", error);
+      if (updatedUser && !updatedUser.isEmailVerified && !updatedUser.isPhoneVerified) {
+        setIsSubmitting(false);
+        ErrorToast({
+          title: "Verification Required",
+          descriptions: [
+            "Please complete your email or phone number verification first before verifying your NIN.",
+            "The backend requires contact verification before NIN verification can proceed."
+          ],
+        });
+        return;
       }
 
+      // Proceed with NIN verification
       verifyNin({ nin: data.nin });
     } else {
       // BVN: Check verification method
@@ -431,6 +459,25 @@ const OpenAccountContent = () => {
   const resendTimer = timerStore.resendTimer;
   const decrementTimer = timerStore.decrementTimer;
   const expireAt = timerStore.expireAt;
+
+  // Refresh user data on mount to ensure we have the latest token
+  useEffect(() => {
+    const refreshUserData = async () => {
+      try {
+        await queryClient.invalidateQueries({ queryKey: ["user"] });
+        await queryClient.refetchQueries({ queryKey: ["user"] });
+      } catch (error) {
+        console.warn("Failed to refresh user data on mount:", error);
+      }
+    };
+    
+    // Small delay to ensure cookies are set after navigation
+    const timer = setTimeout(() => {
+      refreshUserData();
+    }, 100);
+    
+    return () => clearTimeout(timer);
+  }, [queryClient]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;

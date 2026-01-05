@@ -12,11 +12,12 @@ import ErrorToast from "@/components/toast/ErrorToast";
 
 const MainSidebar = () => {
   const { user } = useUserStore();
-  const isBvnVerified =
-    user?.tierLevel !== TIER_LEVEL.notSet && user?.isBvnVerified;
+  // Check if user has verified with either BVN or NIN
+  const isBvnOrNinVerified =
+    user?.tierLevel !== TIER_LEVEL.notSet && (user?.isBvnVerified || user?.isNinVerified);
   const isPinCreated = user?.isWalletPinSet;
 
-  const isVerified = isBvnVerified && isPinCreated;
+  const isVerified = isBvnOrNinVerified && isPinCreated;
 
   const navigate = useNavigate();
   const pathname = usePathname();

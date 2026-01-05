@@ -16,6 +16,7 @@ import useAuthEmailStore from "@/store/authEmail.store";
 import useTimerStore from "@/store/timer.store";
 import { useRouter } from "next/navigation";
 import SpinnerLoader from "../Loader/SpinnerLoader";
+import AccountCreatedSuccessModal from "@/components/modals/AccountCreatedSuccessModal";
 import icons from "../../../public/icons";
 import Cookies from "js-cookie";
 import {
@@ -30,6 +31,7 @@ const VerifyEmailContent = () => {
 
   const { authEmail, authPhoneNumber, registrationMethod } = useAuthEmailStore();
   const [token, setToken] = useState("");
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   const isValid = token.length === 6;
   
@@ -46,18 +48,22 @@ const VerifyEmailContent = () => {
         sameSite: "lax",
         secure: process.env.NODE_ENV === "production",
       });
+      
+      // If token exists, navigate to open account page
+      SuccessToast({
+        title: "Contact verified",
+        description: registrationMethod === "phone" 
+          ? "Your phone number verification successful"
+          : "Your email address verification successful",
+      });
+      
+      navigate("/open-account", "replace");
+      setToken("");
+    } else {
+      // No token - show success modal and redirect to login
+      setShowSuccessModal(true);
+      setToken("");
     }
-
-    SuccessToast({
-      title: "Contact verified",
-      description: registrationMethod === "phone" 
-        ? "Your phone number verification successful"
-        : "Your email address verification successful",
-    });
-    
-    // Navigate to open account page for BVN/NIN verification
-    navigate("/open-account", "replace");
-    setToken("");
   };
 
   const onVerificationError = (error: any) => {
@@ -307,6 +313,21 @@ const VerifyEmailContent = () => {
           </div>
         </div>
       </div>
+
+      {/* Account Created Success Modal */}
+      <AccountCreatedSuccessModal
+        isOpen={showSuccessModal}
+        onClose={() => setShowSuccessModal(false)}
+        onLogin={() => {
+          setShowSuccessModal(false);
+          // Clear any session data
+          if (typeof window !== "undefined") {
+            sessionStorage.clear();
+          }
+          navigate("/login", "replace");
+        }}
+        autoRedirectDelay={10}
+      />
     </div>
   );
 };
