@@ -132,7 +132,10 @@ const EasyLifeSavingsModal: React.FC<EasyLifeSavingsModalProps> = ({ isOpen, onC
     }
 
     // For both manual and auto mode, require start and end dates
-    if (!startDate || !endDate) {
+    const trimmedStartDate = startDate?.trim() || "";
+    const trimmedEndDate = endDate?.trim() || "";
+    
+    if (!trimmedStartDate || !trimmedEndDate) {
       setValidationError({
         title: "Validation Error",
         descriptions: ["Start date and end date are required"],
@@ -141,8 +144,8 @@ const EasyLifeSavingsModal: React.FC<EasyLifeSavingsModalProps> = ({ isOpen, onC
       return;
     }
 
-    const start = new Date(startDate);
-    const end = new Date(endDate);
+    const start = new Date(trimmedStartDate);
+    const end = new Date(trimmedEndDate);
     if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end <= start) {
       setValidationError({
         title: "Validation Error",
@@ -291,7 +294,49 @@ const EasyLifeSavingsModal: React.FC<EasyLifeSavingsModalProps> = ({ isOpen, onC
 
               <div className="flex items-center justify-between gap-3 mt-3">
                 <CustomButton type="button" className="flex-1 bg-transparent border border-[#D4B139] text-white rounded-lg px-5 py-2.5 text-sm" onClick={resetAndClose}>Back</CustomButton>
-                <CustomButton type="button" className="flex-1 bg-[#D4B139] hover:bg-[#c7a42f] text-black rounded-lg px-5 py-2.5 text-sm font-medium" onClick={()=> setStep(2)}>Next</CustomButton>
+                <CustomButton 
+                  type="button" 
+                  className="flex-1 bg-[#D4B139] hover:bg-[#c7a42f] text-black rounded-lg px-5 py-2.5 text-sm font-medium" 
+                  onClick={() => {
+                    // Validate dates before proceeding to step 2
+                    const trimmedStartDate = startDate?.trim() || "";
+                    const trimmedEndDate = endDate?.trim() || "";
+                    
+                    if (!trimmedStartDate || !trimmedEndDate) {
+                      setValidationError({
+                        title: "Validation Error",
+                        descriptions: ["Please fill in both start date and end date before proceeding"],
+                      });
+                      setShowValidationModal(true);
+                      return;
+                    }
+
+                    const start = new Date(trimmedStartDate);
+                    const end = new Date(trimmedEndDate);
+                    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end <= start) {
+                      setValidationError({
+                        title: "Validation Error",
+                        descriptions: ["Please select valid start and end dates. End date must be after start date."],
+                      });
+                      setShowValidationModal(true);
+                      return;
+                    }
+
+                    const durationDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+                    if (durationDays < 20) {
+                      setValidationError({
+                        title: "Validation Error",
+                        descriptions: ["EasyLife duration must be at least 20 days"],
+                      });
+                      setShowValidationModal(true);
+                      return;
+                    }
+
+                    setStep(2);
+                  }}
+                >
+                  Next
+                </CustomButton>
               </div>
             </div>
           )}
@@ -313,6 +358,27 @@ const EasyLifeSavingsModal: React.FC<EasyLifeSavingsModalProps> = ({ isOpen, onC
                   />
                 </div>
               )}
+
+              <div className="flex flex-col gap-1">
+                <label className="text-white/70 text-xs">Start Date</label>
+                <input 
+                  type="date" 
+                  className="w-full bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-3 px-3 text-white text-sm outline-none" 
+                  value={startDate} 
+                  onChange={(e)=> setStartDate(e.target.value)} 
+                  min={new Date().toISOString().split('T')[0]}
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-white/70 text-xs">End Date</label>
+                <input 
+                  type="date" 
+                  className="w-full bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-3 px-3 text-white text-sm outline-none" 
+                  value={endDate} 
+                  onChange={(e)=> setEndDate(e.target.value)} 
+                  min={startDate || new Date().toISOString().split('T')[0]}
+                />
+              </div>
 
               <div className="flex flex-col gap-1">
                 <label className="text-white/70 text-xs">Select Funding Method</label>
