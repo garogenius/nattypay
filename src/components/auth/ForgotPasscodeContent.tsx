@@ -102,10 +102,10 @@ const ForgotPasscodeContent = () => {
       </div>
 
       {/* Right Panel - White Background with Form */}
-      <div className="w-full lg:w-[60%] bg-white flex flex-col items-center justify-center px-6 sm:px-8 py-12">
+      <div className="w-full lg:w-[60%] bg-white flex flex-col items-center justify-center px-4 sm:px-6 md:px-8 py-8 sm:py-12">
         <div className="w-full max-w-md">
           {/* Form Card */}
-          <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-lg">
+          <div className="bg-white rounded-2xl p-4 sm:p-6 md:p-8 shadow-lg w-full overflow-hidden">
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Forgot Passcode</h2>
             <p className="text-sm text-gray-600 mb-6">
               {activeTab === "email" ? "Enter your email address" : "Enter your phone number"}
@@ -143,7 +143,7 @@ const ForgotPasscodeContent = () => {
               </button>
             </div>
 
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 w-full">
               {activeTab === "email" ? (
                 <div className="flex flex-col gap-1">
                   <label className="text-sm font-medium text-gray-700">Email</label>
@@ -160,15 +160,15 @@ const ForgotPasscodeContent = () => {
               ) : (
                 <div className="flex flex-col gap-1">
                   <label className="text-sm font-medium text-gray-700">Phone Number</label>
-                  <div className="flex gap-2">
-                    <div className="flex items-center gap-2 border border-gray-300 rounded-lg px-3 bg-gray-50">
-                      <span className="text-2xl">🇳🇬</span>
-                      <span className="text-gray-700">+234</span>
+                  <div className="flex gap-2 w-full min-w-0">
+                    <div className="flex items-center gap-1.5 sm:gap-2 border border-gray-300 rounded-lg px-2 sm:px-3 bg-gray-50 flex-shrink-0">
+                      <span className="text-lg sm:text-2xl">🇳🇬</span>
+                      <span className="text-gray-700 text-sm sm:text-base whitespace-nowrap">+234</span>
                     </div>
                     <input
                       type="tel"
                       placeholder="Enter phone number"
-                      className="flex-1 border border-gray-300 rounded-lg py-3 px-4 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#D4B139] focus:border-transparent"
+                      className="flex-1 min-w-0 border border-gray-300 rounded-lg py-3 px-3 sm:px-4 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#D4B139] focus:border-transparent text-sm sm:text-base"
                     />
                   </div>
                 </div>
