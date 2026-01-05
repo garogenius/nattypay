@@ -64,7 +64,11 @@ const SavingsContent: React.FC = () => {
     let filtered: Array<SavingsPlan | EasyLifePlan | FixedDeposit> = [];
 
     if (tab === "target") {
-      filtered = savingsPlans.filter((p) => (p.type || p.planType) === "FLEX_SAVE");
+      // Include both FLEX_SAVE (manual top-up) and NATTY_AUTO_SAVE (auto-save) target savings plans
+      filtered = savingsPlans.filter((p) => {
+        const planType = p.type || p.planType;
+        return planType === "FLEX_SAVE" || planType === "NATTY_AUTO_SAVE";
+      });
     } else if (tab === "fixed") {
       filtered = fixedDeposits;
     } else if (tab === "easylife") {

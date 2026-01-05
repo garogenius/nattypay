@@ -4,7 +4,7 @@
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import CustomButton from "@/components/shared/Button";
@@ -51,7 +51,7 @@ const CreateAccountPersonalContent = () => {
   const navigate = useNavigate();
   const authEmailStore = useAuthEmailStore();
   const { setAuthEmail, setRegistrationMethod } = authEmailStore;
-  const { setRegistrationData } = useRegistrationStore();
+  const { registrationData, setRegistrationData } = useRegistrationStore();
   const [activeTab, setActiveTab] = useState<"mobile" | "email">("mobile");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -64,19 +64,51 @@ const CreateAccountPersonalContent = () => {
     setShowDatePicker(false)
   );
 
-  const form = useForm<CreateAccountFormData>({
-    defaultValues: {
-      tab: "mobile",
-      mobileNumber: "",
-      email: "",
-      username: "",
-      fullname: "",
-      password: "",
-      confirmPassword: "",
-      dateOfBirth: "",
-      invitationCode: "",
+  // Determine initial tab and form values from registration data
+  const getInitialTab = (): "mobile" | "email" => {
+    if (registrationData?.email) return "email";
+    if (registrationData?.phoneNumber) return "mobile";
+    return "mobile";
+  };
+
+  const getInitialValues = () => {
+    if (!registrationData) {
+      return {
+        tab: "mobile" as const,
+        mobileNumber: "",
+        email: "",
+        username: "",
+        fullname: "",
+        password: "",
+        confirmPassword: "",
+        dateOfBirth: "",
+        invitationCode: "",
+        termsAccepted: false,
+      };
+    }
+
+    // Extract phone number without country code for display
+    let mobileNumber = "";
+    if (registrationData.phoneNumber) {
+      mobileNumber = registrationData.phoneNumber.replace(/^\+234/, "");
+    }
+
+    return {
+      tab: getInitialTab(),
+      mobileNumber: mobileNumber,
+      email: registrationData.email || "",
+      username: registrationData.username || "",
+      fullname: registrationData.fullname || "",
+      password: "", // Don't restore password for security
+      confirmPassword: "", // Don't restore password for security
+      dateOfBirth: registrationData.dateOfBirth || "",
+      invitationCode: registrationData.invitationCode || "",
       termsAccepted: false,
-    },
+    };
+  };
+
+  const form = useForm<CreateAccountFormData>({
+    defaultValues: getInitialValues(),
     resolver: yupResolver(schema) as any,
     mode: "onChange",
   });
@@ -86,11 +118,43 @@ const CreateAccountPersonalContent = () => {
     handleSubmit,
     setValue,
     watch,
+    reset,
     formState: { errors, isSubmitting },
   } = form;
 
   const watchedDateOfBirth = watch("dateOfBirth");
   const watchedTerms = watch("termsAccepted");
+
+  // Restore form data when component mounts or registration data changes
+  useEffect(() => {
+    if (registrationData) {
+      const initialValues = getInitialValues();
+      reset(initialValues);
+      setActiveTab(initialValues.tab);
+      
+      // Restore date picker if dateOfBirth exists
+      if (registrationData.dateOfBirth) {
+        try {
+          // Parse date format: "day-month-year" (e.g., "15-Jan-2000")
+          const dateParts = registrationData.dateOfBirth.split("-");
+          if (dateParts.length === 3) {
+            const day = parseInt(dateParts[0]);
+            const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+            const month = monthNames.indexOf(dateParts[1]);
+            const year = parseInt(dateParts[2]);
+            if (month !== -1 && !isNaN(day) && !isNaN(year)) {
+              const date = new Date(year, month, day);
+              if (!isNaN(date.getTime())) {
+                setStartDate(date);
+              }
+            }
+          }
+        } catch (error) {
+          console.warn("Failed to parse date:", error);
+        }
+      }
+    }
+  }, [registrationData, reset]);
 
   const handleDateChange = (date: Date | null) => {
     if (date) {
