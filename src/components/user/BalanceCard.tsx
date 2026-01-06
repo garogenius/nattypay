@@ -9,6 +9,7 @@ import { useRef } from "react";
 import useOnClickOutside from "@/hooks/useOnClickOutside";
 import { Wallet } from "@/constants/types";
 import { ICurrencyAccount } from "@/api/currency/currency.types";
+import AddMoneyModal from "@/components/modals/AddMoneyModal";
 
 interface AccountOption {
   currency: string;
@@ -110,6 +111,9 @@ const BalanceCard = ({
   const menuRef = useRef<HTMLDivElement>(null);
   useOnClickOutside(menuRef, () => setOpen(false));
 
+  // Add Money Modal
+  const [isAddMoneyModalOpen, setIsAddMoneyModalOpen] = useState(false);
+
   const currencySymbol = getCurrencySymbol(currentCurrency);
 
   const getCurrencyFlag = (currency: string): string => {
@@ -199,11 +203,18 @@ const BalanceCard = ({
         <button
           type="button"
           aria-label="add"
-          className="shrink-0 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-secondary text-black font-bold grid place-items-center"
+          onClick={() => setIsAddMoneyModalOpen(true)}
+          className="shrink-0 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-secondary text-black font-bold grid place-items-center hover:bg-[#c7a42f] transition-colors cursor-pointer"
         >
           +
         </button>
       </div>
+
+      {/* Add Money Modal */}
+      <AddMoneyModal 
+        isOpen={isAddMoneyModalOpen} 
+        onClose={() => setIsAddMoneyModalOpen(false)} 
+      />
     </div>
   );
 };
