@@ -42,27 +42,38 @@ const BalanceCard = ({
   currencyAccounts?: ICurrencyAccount[];
 }) => {
   // Combine wallets and currency accounts into account options
+  // Only include unique accounts - if only NGN wallet exists, don't show dropdown
   const accountOptions: AccountOption[] = useMemo(() => {
     const options: AccountOption[] = [];
+    const seenCurrencies = new Set<string>();
     
-    // Add wallets (NGN accounts)
+    // Add wallets (NGN accounts) - only add one NGN account
     wallets.forEach((wallet) => {
-      options.push({
-        currency: wallet.currency.toUpperCase(),
-        balance: wallet.balance || 0,
-        label: `${wallet.currency.toUpperCase()} Account`,
-        type: "wallet",
-      });
+      const currency = wallet.currency.toUpperCase();
+      // Only add NGN wallet if not already added
+      if (currency === "NGN" && !seenCurrencies.has("NGN")) {
+        options.push({
+          currency: currency,
+          balance: wallet.balance || 0,
+          label: `${currency} Account`,
+          type: "wallet",
+        });
+        seenCurrencies.add("NGN");
+      }
     });
     
-    // Add currency accounts (USD, EUR, GBP)
+    // Add currency accounts (USD, EUR, GBP) - only add unique currencies
     currencyAccounts.forEach((account) => {
-      options.push({
-        currency: (account.currency || "").toUpperCase(),
-        balance: account.balance || 0,
-        label: account.label || `${account.currency?.toUpperCase()} Account`,
-        type: "currencyAccount",
-      });
+      const currency = (account.currency || "").toUpperCase();
+      if (currency && !seenCurrencies.has(currency)) {
+        options.push({
+          currency: currency,
+          balance: account.balance || 0,
+          label: account.label || `${currency} Account`,
+          type: "currencyAccount",
+        });
+        seenCurrencies.add(currency);
+      }
     });
     
     return options;
@@ -148,10 +159,11 @@ const BalanceCard = ({
         <p className="text-sm sm:text-base font-semibold uppercase">
           {selectedAccount?.label || `${currentCurrency.toUpperCase()} Account`}
         </p>
+        {/* Only show dropdown if there are 2 or more accounts (i.e., at least one currency account besides NGN) */}
         {accountOptions.length > 1 && (
           <MdKeyboardArrowDown 
             onClick={() => setOpen((v) => !v)} 
-            className="ml-auto cursor-pointer" 
+            className="ml-auto cursor-pointer hover:opacity-70 transition-opacity" 
           />
         )}
 
