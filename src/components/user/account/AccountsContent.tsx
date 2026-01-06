@@ -385,26 +385,30 @@ const AccountsContent: React.FC = () => {
   );
 
   const handleCreateCard = () => {
-    // Only allow cards for USD, EUR, and GBP (not NGN)
+    // Only allow cards for USD and NGN
+    const supportedCardCurrencies: Array<"USD" | "NGN"> = ["USD", "NGN"];
+    if (!supportedCardCurrencies.includes(selectedCurrency as "USD" | "NGN")) {
+      ErrorToast({
+        title: "Card Not Available",
+        descriptions: [`${selectedCurrency} virtual cards are not available. Only USD and NGN virtual cards are available.`],
+      });
+      return;
+    }
+
+    // For NGN, check wallet; for USD, check currency account
     if (selectedCurrency === "NGN") {
-      ErrorToast({
-        title: "Card Not Available",
-        descriptions: ["NGN virtual cards are not available. You can create virtual cards for USD, EUR, or GBP."],
+      const hasNGNWallet = user?.wallet?.some(w => {
+        const walletCurrency = String(w?.currency || "").toUpperCase().trim();
+        return walletCurrency === "NGN";
       });
-      return;
-    }
-
-    // Check if currency is one of the supported card currencies
-    const supportedCardCurrencies: Array<"USD" | "EUR" | "GBP"> = ["USD", "EUR", "GBP"];
-    if (!supportedCardCurrencies.includes(selectedCurrency as "USD" | "EUR" | "GBP")) {
-      ErrorToast({
-        title: "Card Not Available",
-        descriptions: [`${selectedCurrency} virtual cards are not available. You can create virtual cards for USD, EUR, or GBP.`],
-      });
-      return;
-    }
-
-    if (!currencyAccount) {
+      if (!hasNGNWallet) {
+        ErrorToast({
+          title: "NGN Wallet Required",
+          descriptions: ["You must have a NGN wallet before creating a virtual card. Please contact support if you don't have a NGN wallet."],
+        });
+        return;
+      }
+    } else if (!currencyAccount) {
       ErrorToast({
         title: `${selectedCurrency} Account Required`,
         descriptions: [`You must have a ${selectedCurrency} account before creating a virtual card. Please create a ${selectedCurrency} account first.`],
@@ -422,7 +426,7 @@ const AccountsContent: React.FC = () => {
 
     createCard({
       label: cardLabel.trim(),
-      currency: selectedCurrency as "USD" | "EUR" | "GBP",
+      currency: selectedCurrency as "USD" | "NGN",
     });
   };
 
@@ -727,10 +731,22 @@ const AccountsContent: React.FC = () => {
                 )}
               </div>
 
-              {/* Virtual Cards - For non-NGN currencies (USD, EUR, GBP) */}
+              {/* Virtual Cards - For non-NGN currencies (USD only) */}
               {selectedCurrency !== "NGN" && (
                 <div className="mt-5">
-                  <h4 className="text-white font-medium mb-3">Virtual Cards</h4>
+                  <h4 className="text-white font-medium mb-3 flex items-center gap-2">
+                    Virtual Cards
+                    {selectedCurrency === "USD" && (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                        Available
+                      </span>
+                    )}
+                    {(selectedCurrency === "EUR" || selectedCurrency === "GBP") && (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-yellow-500/10 text-yellow-400 border border-yellow-500/20">
+                        Not Available
+                      </span>
+                    )}
+                  </h4>
                   {cardsLoading ? (
                     <div className="flex items-center justify-center py-8">
                       <div className="w-8 h-8 border-2 border-[#D4B139] border-t-transparent rounded-full animate-spin"></div>
@@ -741,19 +757,29 @@ const AccountsContent: React.FC = () => {
                         <FiCreditCard className="text-2xl text-white/40" />
                       </div>
                       <div className="text-center">
-                        <p className="text-white/60 text-sm mb-2">No virtual {selectedCurrency} card created</p>
-                        {!currencyAccount ? (
-                          <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3 mt-3">
-                            <p className="text-yellow-400 text-xs font-medium mb-1">{selectedCurrency} Account Required</p>
-                            <p className="text-white/80 text-xs">You must have a {selectedCurrency} account before creating a virtual card. Please create a {selectedCurrency} account above first.</p>
+                        {(selectedCurrency === "EUR" || selectedCurrency === "GBP") ? (
+                          <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3">
+                            <p className="text-yellow-400 text-xs font-medium mb-1">{selectedCurrency} Cards Not Available</p>
+                            <p className="text-white/80 text-xs mb-1">• Only USD and NGN virtual cards are available</p>
+                            <p className="text-white/80 text-xs">• Switch to USD or NGN to create a virtual card</p>
                           </div>
                         ) : (
-                          <CustomButton
-                            onClick={() => navigate("/user/cards")}
-                            className="bg-[#D4B139] hover:bg-[#c7a42f] text-black px-6 py-2 rounded-lg text-sm font-medium"
-                          >
-                            Create Virtual Card
-                          </CustomButton>
+                          <>
+                            <p className="text-white/60 text-sm mb-2">No virtual {selectedCurrency} card created</p>
+                            {!currencyAccount ? (
+                              <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3 mt-3">
+                                <p className="text-yellow-400 text-xs font-medium mb-1">{selectedCurrency} Account Required</p>
+                                <p className="text-white/80 text-xs">You must have a {selectedCurrency} account before creating a virtual card. Please create a {selectedCurrency} account above first.</p>
+                              </div>
+                            ) : (
+                              <CustomButton
+                                onClick={() => navigate("/user/cards")}
+                                className="bg-[#D4B139] hover:bg-[#c7a42f] text-black px-6 py-2 rounded-lg text-sm font-medium"
+                              >
+                                Create Virtual Card
+                              </CustomButton>
+                            )}
+                          </>
                         )}
                       </div>
                     </div>
@@ -810,13 +836,78 @@ const AccountsContent: React.FC = () => {
               {/* Virtual Cards - For NGN */}
               {selectedCurrency === "NGN" && (
                 <div className="mt-5">
-                  <h4 className="text-white font-medium mb-3">Virtual Cards</h4>
-                  <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4 mb-4">
-                    <p className="text-yellow-400 text-sm font-medium mb-2">NGN Cards Not Available</p>
-                    <p className="text-white/80 text-xs mb-1">• NGN virtual cards are not available at this time</p>
-                    <p className="text-white/80 text-xs mb-1">• You can create virtual cards for USD, EUR, or GBP</p>
-                    <p className="text-white/80 text-xs">• Switch to a USD, EUR, or GBP account to create a virtual card</p>
-                  </div>
+                  <h4 className="text-white font-medium mb-3 flex items-center gap-2">
+                    Virtual Cards
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                      Available
+                    </span>
+                  </h4>
+                  {cardsLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <div className="w-8 h-8 border-2 border-[#D4B139] border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                  ) : currencyCards.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-8 gap-4 border border-white/10 rounded-xl bg-white/5">
+                      <div className="w-16 h-12 rounded-lg bg-white/5 flex items-center justify-center border border-white/10">
+                        <FiCreditCard className="text-2xl text-white/40" />
+                      </div>
+                      <div className="text-center">
+                        <p className="text-white/60 text-sm mb-2">No virtual NGN card created</p>
+                        <CustomButton
+                          onClick={() => navigate("/user/cards")}
+                          className="bg-[#D4B139] hover:bg-[#c7a42f] text-black px-6 py-2 rounded-lg text-sm font-medium"
+                        >
+                          Create Virtual Card
+                        </CustomButton>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-3">
+                      {currencyCards.map((card: IVirtualCard) => (
+                        <div key={card.id} className="border border-white/10 rounded-xl p-4 bg-white/5">
+                          <CardPreview
+                            variant="dark"
+                            brand={card.brand || "visa"}
+                            cardholder={card.cardholder || cardHolderOnly}
+                            maskedNumber={card.maskedNumber}
+                            expiry={formatExpiry(card)}
+                            issuerName="NattyPay"
+                            status={card.status === "ACTIVE" ? "active" : card.status === "FROZEN" ? "frozen" : "frozen"}
+                            isVirtual={true}
+                            className="h-44 sm:h-48 max-w-sm w-full"
+                          />
+                          <div className="mt-3 flex items-center justify-between">
+                            <div>
+                              <p className="text-white/60 text-xs">Balance</p>
+                              <p className="text-white text-lg font-semibold">{card.currency} {card.balance.toLocaleString()}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-white/60 text-xs">Status</p>
+                              <p className={`text-xs font-medium capitalize ${
+                                card.status === "ACTIVE" ? "text-green-400" :
+                                card.status === "FROZEN" ? "text-yellow-400" :
+                                card.status === "BLOCKED" ? "text-red-400" :
+                                "text-gray-400"
+                              }`}>
+                                {card.status.toLowerCase()}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="mt-3 flex gap-2">
+                            <CustomButton
+                              onClick={() => {
+                                setSelectedCard(card);
+                                setOpenDetails(true);
+                              }}
+                              className="flex-1 bg-white/5 hover:bg-white/10 border border-white/10 text-white py-2 rounded-lg text-sm"
+                            >
+                              View Details
+                            </CustomButton>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </React.Fragment>

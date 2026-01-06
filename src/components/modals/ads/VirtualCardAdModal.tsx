@@ -15,7 +15,7 @@ interface VirtualCardAdModalProps {
 const VirtualCardAdModal: React.FC<VirtualCardAdModalProps> = ({ isOpen, onClose, onComplete }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [cardTilt, setCardTilt] = useState({ x: 0, y: 0 });
-  const [cardCurrency, setCardCurrency] = useState<"USD" | "EUR">("USD");
+  const [cardCurrency, setCardCurrency] = useState<"USD" | "NGN">("USD");
 
   useEffect(() => {
     if (isOpen) {
@@ -26,9 +26,9 @@ const VirtualCardAdModal: React.FC<VirtualCardAdModalProps> = ({ isOpen, onClose
         handleClose();
       }, 25000);
 
-      // Rotate between USD and EUR every 3 seconds
+      // Rotate between USD and NGN every 3 seconds
       const currencyTimer = setInterval(() => {
-        setCardCurrency((prev) => (prev === "USD" ? "EUR" : "USD"));
+        setCardCurrency((prev) => (prev === "USD" ? "NGN" : "USD"));
       }, 3000);
 
       return () => {
@@ -68,7 +68,7 @@ const VirtualCardAdModal: React.FC<VirtualCardAdModalProps> = ({ isOpen, onClose
 
   const cardGradient = cardCurrency === "USD" 
     ? "bg-gradient-to-br from-blue-600 via-blue-500 to-indigo-600"
-    : "bg-gradient-to-br from-purple-600 via-purple-500 to-pink-600";
+    : "bg-gradient-to-br from-[#8B6914] via-[#A67C1A] to-[#6E5A1E]";
 
   return (
     <div
@@ -85,18 +85,22 @@ const VirtualCardAdModal: React.FC<VirtualCardAdModalProps> = ({ isOpen, onClose
         onClick={(e) => e.stopPropagation()}
       >
         {/* Animated background */}
-        <div className="absolute inset-0 opacity-20">
+          <div className="absolute inset-0 opacity-20">
           <div className={`absolute top-0 left-0 w-96 h-96 rounded-full blur-3xl transition-colors duration-1000 ${
-            cardCurrency === "USD" ? "bg-blue-500/30" : "bg-purple-500/30"
+            cardCurrency === "USD" ? "bg-blue-500/30" : "bg-[#D4B139]/30"
           }`} />
           <div className={`absolute bottom-0 right-0 w-96 h-96 rounded-full blur-3xl transition-colors duration-1000 ${
-            cardCurrency === "USD" ? "bg-indigo-500/30" : "bg-pink-500/30"
+            cardCurrency === "USD" ? "bg-indigo-500/30" : "bg-[#8B6914]/30"
           }`} />
         </div>
 
         {/* Close button */}
         <button
-          onClick={handleClose}
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleClose();
+          }}
           className="absolute top-4 right-4 z-10 p-2 hover:bg-white/10 rounded-full transition-colors"
         >
           <CgClose className="text-xl text-white" />
@@ -109,7 +113,7 @@ const VirtualCardAdModal: React.FC<VirtualCardAdModalProps> = ({ isOpen, onClose
               Get Your Free {cardCurrency} Virtual Card! 🎁
             </h2>
             <p className="text-white/70 text-[9px] sm:text-[10px] md:text-xs lg:text-sm">
-              Create instant virtual cards for USD or EUR - No fees, instant activation
+              Create instant virtual cards for USD or NGN - No fees, instant activation
             </p>
           </div>
 
@@ -127,50 +131,60 @@ const VirtualCardAdModal: React.FC<VirtualCardAdModalProps> = ({ isOpen, onClose
               <div
                 className={`relative overflow-hidden rounded-xl sm:rounded-2xl ${cardGradient} p-2.5 sm:p-3 md:p-4 lg:p-5 h-32 sm:h-40 md:h-52 lg:h-60 border border-white/20 shadow-2xl transition-all duration-1000`}
               >
+                {/* Swirling white lines pattern on the right */}
+                <div className="absolute inset-0 opacity-20 pointer-events-none">
+                  <svg className="absolute right-0 top-0 w-3/5 h-full" viewBox="0 0 200 120" preserveAspectRatio="none">
+                    <path
+                      d="M0,20 Q50,10 100,30 T200,25 M0,50 Q50,40 100,60 T200,55 M0,80 Q50,70 100,90 T200,85"
+                      stroke="white"
+                      strokeWidth="0.5"
+                      fill="none"
+                      opacity="0.3"
+                    />
+                  </svg>
+                </div>
+
                 {/* Card shine effect */}
                 <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-transparent" />
                 
-                {/* Animated particles */}
-                <div className="absolute inset-0 overflow-hidden">
-                  {[...Array(6)].map((_, i) => (
-                    <div
-                      key={i}
-                      className="absolute w-1.5 h-1.5 sm:w-2 sm:h-2 bg-white/30 rounded-full animate-float"
-                      style={{
-                        left: `${20 + i * 15}%`,
-                        top: `${30 + (i % 3) * 20}%`,
-                        animationDelay: `${i * 0.5}s`,
-                        animationDuration: `${3 + (i % 2)}s`,
-                      }}
-                    />
-                  ))}
-                </div>
+                {/* Left dark gradient overlay */}
+                <div className="absolute inset-y-0 left-0 w-2/5 bg-gradient-to-r from-black/30 via-black/15 to-transparent pointer-events-none" />
 
                 {/* Card content */}
                 <div className="relative z-10 h-full flex flex-col justify-between">
-                  {/* Top row */}
+                  {/* Top row - SmartBank and Logo */}
                   <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-1 sm:gap-2">
-                      <Image alt="NattyPay" src={images.singleLogo} className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 rounded-full" />
-                      <span className="text-white/95 text-[10px] sm:text-xs md:text-sm font-semibold tracking-wide">NattyPay</span>
+                    <div className="flex flex-col gap-1">
+                      <span className="text-white text-[9px] sm:text-[10px] font-medium tracking-wide">SmartBank</span>
+                      {/* Golden Globe Icon */}
+                      <div className="relative w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12">
+                        <svg viewBox="0 0 100 100" className="w-full h-full">
+                          <circle cx="50" cy="50" r="45" fill="none" stroke="#D4B139" strokeWidth="1" opacity="0.3" />
+                          <circle cx="50" cy="50" r="35" fill="none" stroke="#D4B139" strokeWidth="0.5" opacity="0.2" />
+                          <path d="M30,50 Q35,40 40,50 Q45,60 50,50" stroke="#D4B139" strokeWidth="1.5" fill="none" opacity="0.6" />
+                          <path d="M50,50 Q55,40 60,50 Q65,60 70,50" stroke="#D4B139" strokeWidth="1.5" fill="none" opacity="0.6" />
+                          <path d="M35,60 Q45,55 55,60 Q65,65 70,60" stroke="#D4B139" strokeWidth="1" fill="none" opacity="0.4" />
+                        </svg>
+                      </div>
                     </div>
                     <div className="flex items-center gap-1 sm:gap-2">
+                      <Image alt="NattyPay" src={images.singleLogo} className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 rounded-full" />
+                      <span className="text-white/95 text-[9px] sm:text-[10px] md:text-xs font-bold tracking-wide uppercase">NATTYPAY</span>
                       <FiWifi className="text-white/90 rotate-90 text-sm sm:text-base md:text-lg" />
-                      {cardCurrency === "USD" ? (
-                        <div className="text-white font-bold text-[10px] sm:text-xs md:text-sm">USD</div>
-                      ) : (
-                        <div className="text-white font-bold text-[10px] sm:text-xs md:text-sm">EUR</div>
-                      )}
                     </div>
                   </div>
 
                   {/* Chip and number */}
                   <div className="flex items-center gap-2 sm:gap-3">
-                    <svg width="30" height="20" viewBox="0 0 54 40" className="sm:w-10 sm:h-7 md:w-[40px] md:h-[28px] drop-shadow" aria-hidden>
-                      <rect x="1" y="1" rx="6" ry="6" width="52" height="38" fill="#d9d9d9" stroke="#b5b5b5" />
+                    <svg width="30" height="20" viewBox="0 0 54 40" className="sm:w-10 sm:h-7 md:w-[40px] md:h-[28px] drop-shadow flex-shrink-0" aria-hidden>
+                      <rect x="1" y="1" rx="4" ry="4" width="52" height="38" fill="#d9d9d9" stroke="#b5b5b5" strokeWidth="1" />
                       <path d="M14 1 v38 M40 1 v38 M1 20 h52" stroke="#b5b5b5" strokeWidth="1" fill="none" />
+                      <rect x="8" y="8" width="6" height="4" fill="#999" rx="0.5" />
+                      <rect x="16" y="8" width="4" height="4" fill="#999" rx="0.5" />
+                      <rect x="8" y="28" width="6" height="4" fill="#999" rx="0.5" />
+                      <rect x="16" y="28" width="4" height="4" fill="#999" rx="0.5" />
                     </svg>
-                    <p className="tracking-widest text-white text-xs sm:text-sm md:text-lg lg:text-xl font-semibold">
+                    <p className="tracking-[0.15em] text-white text-xs sm:text-sm md:text-lg lg:text-xl font-semibold flex-1">
                       •••• •••• •••• 1234
                     </p>
                   </div>
@@ -178,13 +192,28 @@ const VirtualCardAdModal: React.FC<VirtualCardAdModalProps> = ({ isOpen, onClose
                   {/* Bottom row */}
                   <div className="flex items-end justify-between">
                     <div className="flex flex-col">
-                      <span className="text-[8px] sm:text-[10px] text-white/70 uppercase">Card Holder</span>
-                      <span className="text-[10px] sm:text-xs md:text-sm lg:text-base text-white font-medium tracking-wide">YOUR NAME</span>
+                      <span className="text-[8px] sm:text-[9px] text-white/70 uppercase mb-0.5">Card Holder</span>
+                      <span className="text-[9px] sm:text-[10px] md:text-xs text-white font-semibold tracking-wide uppercase">YOUR NAME</span>
                     </div>
                     <div className="flex flex-col items-end">
-                      <span className="text-[8px] sm:text-[10px] text-white/70 uppercase">Valid Thru</span>
-                      <span className="text-[10px] sm:text-xs md:text-sm lg:text-base text-white font-medium">12/28</span>
+                      <span className="text-[8px] sm:text-[9px] text-white/70 uppercase mb-0.5">Valid Thru</span>
+                      <span className="text-[9px] sm:text-[10px] md:text-xs text-white font-semibold">12/28</span>
                     </div>
+                  </div>
+
+                  {/* Verve Logo at bottom right */}
+                  <div className="absolute bottom-2 right-3 sm:bottom-3 sm:right-4">
+                    <div className="flex items-center gap-1">
+                      <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-white flex items-center justify-center">
+                        <span className="text-[#EB001B] font-bold text-[8px] sm:text-[10px]">V</span>
+                      </div>
+                      <span className="text-white text-[8px] sm:text-[9px] font-semibold">Verve</span>
+                    </div>
+                  </div>
+
+                  {/* Currency badge */}
+                  <div className="absolute top-2 right-2 sm:top-3 sm:right-3 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md bg-white/10 backdrop-blur-sm border border-white/20">
+                    <span className="text-white text-[8px] sm:text-[9px] font-semibold">{cardCurrency}</span>
                   </div>
                 </div>
               </div>

@@ -11,6 +11,7 @@ import FixedDepositCard from "../FixedDepositCard";
 import { useGetCurrencyAccounts } from "@/api/currency/currency.queries";
 import { useGetSavingsPlans } from "@/api/savings/savings.queries";
 import { useGetInvestments } from "@/api/investments/investments.queries";
+import StatsPlaceholderCard from "./StatsPlaceholderCard";
 
 const DashboardContent = () => {
   const { user } = useUserStore();
@@ -37,24 +38,50 @@ const DashboardContent = () => {
   const { investments } = useGetInvestments();
 
   // Fixed Savings - FLEX_SAVE plans (target savings)
-  const totalSavingsInterest = useMemo(() => {
-    return savingsPlans
-      .filter((plan) => plan.planType === "FLEX_SAVE")
-      .reduce((total, plan) => total + (plan.interestEarned || 0), 0);
+  const fixedSavingsPlans = useMemo(() => {
+    return savingsPlans.filter((plan) => plan.planType === "FLEX_SAVE");
   }, [savingsPlans]);
 
+  const totalSavingsInterest = useMemo(() => {
+    return fixedSavingsPlans.reduce((total, plan) => total + (plan.interestEarned || 0), 0);
+  }, [fixedSavingsPlans]);
+
   // Fixed deposits - NATTY_AUTO_SAVE plans (fixed savings/auto-save)
-  const totalFixedDepositInterest = useMemo(() => {
-    return savingsPlans
-      .filter((plan) => plan.planType === "NATTY_AUTO_SAVE")
-      .reduce((total, plan) => total + (plan.interestEarned || 0), 0);
+  const fixedDepositPlans = useMemo(() => {
+    return savingsPlans.filter((plan) => plan.planType === "NATTY_AUTO_SAVE");
   }, [savingsPlans]);
+
+  const totalFixedDepositInterest = useMemo(() => {
+    return fixedDepositPlans.reduce((total, plan) => total + (plan.interestEarned || 0), 0);
+  }, [fixedDepositPlans]);
 
   const totalInvestmentInterest = useMemo(() => {
     return investments.reduce((total, investment) => {
       return total + (investment.interestAmount || 0);
     }, 0);
   }, [investments]);
+
+  // Check if user has created each type
+  const hasFixedSavings = fixedSavingsPlans.length > 0;
+  const hasFixedDeposits = fixedDepositPlans.length > 0;
+  const hasInvestments = investments.length > 0;
+
+  // Count visible stats cards (excluding BalanceCard)
+  const visibleStatsCardsCount = useMemo(() => {
+    let count = 0;
+    if (hasFixedSavings) count++;
+    if (hasFixedDeposits) count++;
+    if (hasInvestments) count++;
+    return count;
+  }, [hasFixedSavings, hasFixedDeposits, hasInvestments]);
+
+  // Calculate placeholder span: if 1 card visible, span 2; if 2 cards visible, span 1; if 3 cards visible, don't show placeholder
+  const placeholderSpan = useMemo(() => {
+    if (visibleStatsCardsCount === 0) return 3; // If no cards, placeholder takes all 3 spaces
+    if (visibleStatsCardsCount === 1) return 2; // If 1 card, placeholder takes 2 spaces
+    if (visibleStatsCardsCount === 2) return 1; // If 2 cards, placeholder takes 1 space
+    return 0; // If 3 cards, no placeholder
+  }, [visibleStatsCardsCount]);
 
   return (
     <div className="flex flex-col gap-6 md:gap-8 pb-10">
@@ -74,15 +101,16 @@ const DashboardContent = () => {
         </p>
       </div>
 
-      {/* Four top cards */}
+      {/* Stats cards - conditionally displayed */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
         <BalanceCard
           wallets={user?.wallet || []}
           currencyAccounts={currencyAccounts}
         />
-        <FixedSavingsCard />
-        <FixedDepositCard amount={totalFixedDepositInterest} />
-        <InvestCard amount={totalInvestmentInterest} />
+        {hasFixedSavings && <FixedSavingsCard />}
+        {hasFixedDeposits && <FixedDepositCard amount={totalFixedDepositInterest} />}
+        {hasInvestments && <InvestCard amount={totalInvestmentInterest} />}
+        {placeholderSpan > 0 && <StatsPlaceholderCard spanCols={placeholderSpan} />}
       </div>
       {verificationStatus ? (
         <VerifiedDashboard />

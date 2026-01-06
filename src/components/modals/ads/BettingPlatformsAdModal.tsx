@@ -91,7 +91,11 @@ const BettingPlatformsAdModal: React.FC<BettingPlatformsAdModalProps> = ({ isOpe
 
         {/* Close button */}
         <button
-          onClick={handleClose}
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleClose();
+          }}
           className="absolute top-4 right-4 z-10 p-2 hover:bg-white/10 rounded-full transition-colors"
         >
           <CgClose className="text-xl text-white" />

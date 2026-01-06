@@ -38,9 +38,9 @@ const faqs = [
 ];
 
 const quickLinks = [
-  { label: "Terms & Conditions", href: "/home/terms" },
-  { label: "Privacy Policy", href: "/home/privacy-policy" },
-  { label: "About NattyPay", href: "/home/about" },
+  { label: "Terms & Conditions", href: "/terms&condition" },
+  { label: "Privacy Policy", href: "/privacyPolicy" },
+  { label: "About NattyPay", href: "/about" },
 ];
 
 const SupportContent: React.FC = () => {
@@ -80,7 +80,7 @@ const SupportContent: React.FC = () => {
           </div>
           <p className="text-white font-semibold">Phone Support</p>
           <p className="text-white/70 text-sm mt-1">Speak directly with our support team for faster assistance</p>
-          <Link href="tel:+2340000000000" className="inline-flex items-center gap-1.5 text-[#D4B139] font-semibold text-sm mt-3">
+          <Link href="tel:+2348134146906" className="inline-flex items-center gap-1.5 text-[#D4B139] font-semibold text-sm mt-3">
             <span>Call Now</span>
             <FiChevronRight />
           </Link>
@@ -127,15 +127,18 @@ const SupportContent: React.FC = () => {
 
       <div className="w-full bg-bg-600 dark:bg-bg-1100 border border-white/10 rounded-2xl p-4 sm:p-5">
         <p className="text-white font-semibold mb-3">Quick Links</p>
-        <div className="flex flex-col">
-          {quickLinks.map((l) => (
+        <div className="flex flex-col gap-1">
+          {quickLinks.map((l, index) => (
             <Link
               key={l.href}
               href={l.href}
-              className="w-full flex items-center justify-between px-3 sm:px-4 py-3 rounded-xl hover:bg-white/5 text-white/90 border border-transparent hover:border-white/10"
+              className="w-full flex items-center justify-between px-3 sm:px-4 py-3 rounded-xl hover:bg-white/5 active:bg-white/10 text-white/90 border border-transparent hover:border-white/10 transition-colors"
             >
-              <span className="text-sm sm:text-base">{l.label}</span>
-              <FiChevronRight />
+              <span className="text-sm sm:text-base font-medium">{l.label}</span>
+              <div className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-[#D4B139]" />
+                <FiChevronRight className="text-[#D4B139] text-sm" />
+              </div>
             </Link>
           ))}
         </div>

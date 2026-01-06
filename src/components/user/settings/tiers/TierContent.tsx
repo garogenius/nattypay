@@ -56,11 +56,9 @@ const TierContent = () => {
           </h2>
 
           <p className="text-sm 2xs:text-base sm:text-lg w-full">
-            Upgrade your tier to unlock higher transaction limits, increased
-            balance capacity, and exclusive benefits. Enjoy lower fees, priority
-            support, and special discounts as you move up the tiers.
+            Upgrade your tier to unlock higher transaction limits and increased balance capacity.
           </p>
-        </div>{" "}
+        </div>
         <div className="w-full flex flex-col justify-center items-center gap-4">
           <p className="text-base xs:text-lg text-center font-bold text-text-200 dark:text-text-400">
             Tier Levels{" "}

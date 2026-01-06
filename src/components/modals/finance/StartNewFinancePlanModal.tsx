@@ -59,7 +59,7 @@ const StartNewFinancePlanModal: React.FC<StartNewFinancePlanModalProps> = ({ isO
                 <div className="w-2 h-2 rounded-full bg-primary"></div>
                 <div className="flex-1">
                   <p className="text-white text-sm font-medium">Return on Investment</p>
-                  <p className="text-white/60 text-xs">15% ROI</p>
+                  <p className="text-white/60 text-xs">10% ROI</p>
                 </div>
               </div>
               <div className="flex items-center gap-3 rounded-lg border border-white/10 bg-white/5 p-3">
