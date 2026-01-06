@@ -27,7 +27,7 @@ const StartNewPlanModal: React.FC<StartNewPlanModalProps> = ({ isOpen, onClose, 
         </div>
 
         <div className="px-5 sm:px-6 pb-6 flex flex-col gap-3">
-          {[{k:"target",t:"Target Savings",d:"Achieve your financial goals faster with scheduled contributions"},{k:"fixed",t:"Fixed Savings",d:"Earn consistent interest on your savings while keeping your funds secure"},{k:"easylife",t:"Easy-life Savings",d:"Enjoy flexible savings that fit your lifestyle while earning steady interest on your balance"}].map((it:any)=> (
+          {[{k:"target",t:"Target Savings",d:"Achieve your financial goals faster with scheduled contributions"},{k:"fixed",t:"Fixed Deposit",d:"Earn consistent interest on your savings while keeping your funds secure"},{k:"easylife",t:"Easy-life Savings",d:"Enjoy flexible savings that fit your lifestyle while earning steady interest on your balance"}].map((it:any)=> (
             <button key={it.k} onClick={()=> onSelect(it.k)} className="w-full text-left rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors p-4">
               <p className="text-white font-medium">{it.t}</p>
               <p className="text-white/60 text-sm mt-1">{it.d}</p>

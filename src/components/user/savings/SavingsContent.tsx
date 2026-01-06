@@ -197,7 +197,7 @@ const SavingsContent: React.FC = () => {
         <div className="w-full bg-white/10 rounded-full p-1.5 sm:p-2 grid grid-cols-3 gap-1.5 sm:gap-2">
           {(
             [
-              { key: "fixed", label: "Fixed Savings" },
+              { key: "fixed", label: "Fixed Deposit" },
               { key: "target", label: "Target Savings" },
               { key: "easylife", label: "Easy-life Savings" },
             ] as const
