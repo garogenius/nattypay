@@ -22,7 +22,7 @@ export interface ICurrencyAccount {
 // Card Types
 export interface ICreateCard {
   label: string;
-  currency: "USD" | "EUR" | "GBP"; // Virtual cards are available for USD, EUR, and GBP (required)
+  currency: "USD" | "NGN"; // Virtual cards are available for USD and NGN (required)
   initialBalance?: number; // Optional initial balance for the card
 }
 
