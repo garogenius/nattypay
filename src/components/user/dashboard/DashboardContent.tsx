@@ -90,7 +90,7 @@ const DashboardContent = () => {
             if (isBusiness && user?.businessName) {
               return `Welcome Back, ${user.businessName}`;
             }
-            return `Welcome Back, ${user?.fullname?.split(" ")?.[0] || "User"}`;
+            return `Welcome Back, ${user?.username || "User"}`;
           })()}
         </h1>
         <p className="text-text-200 dark:text-text-400 text-sm md:text-base">

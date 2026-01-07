@@ -198,14 +198,9 @@ const StatsPlaceholderCard = ({ spanCols = 1 }: StatsPlaceholderCardProps) => {
         <p className="text-sm sm:text-base font-semibold">Transaction Overview</p>
       </div>
       
-      {/* Chart - Hidden on mobile, visible on larger screens */}
-      <div className="hidden md:block w-full" style={{ height: "160px" }}>
+      {/* Chart - Visible on all screens */}
+      <div className="w-full" style={{ height: "160px" }}>
         <BarChart chartData={chartDataConfig} chartOption={chartOptions} />
-      </div>
-      
-      {/* Mobile placeholder */}
-      <div className="md:hidden text-text-400 dark:text-text-600 text-xs text-center py-2">
-        Chart available on larger screens
       </div>
     </div>
   );
