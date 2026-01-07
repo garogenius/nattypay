@@ -161,7 +161,7 @@ const MultiCurrencyContent: React.FC = () => {
                 {[...Array(3)].map((_, index) => (
                   <div
                     key={index}
-                    className="bg-bg-600 dark:bg-bg-1100 rounded-xl px-4 py-5 2xs:py-6 flex flex-col gap-3 sm:gap-4 animate-pulse min-w-[calc(100vw-2rem)] snap-start"
+                    className="bg-bg-600 dark:bg-bg-1100 rounded-xl px-4 py-5 2xs:py-6 flex flex-col gap-3 sm:gap-4 animate-pulse w-[calc(100vw-2rem)] flex-shrink-0 snap-start"
                   >
                     <div className="flex items-center gap-2">
                       <div className="w-8 h-8 rounded bg-white/10" />
@@ -191,7 +191,7 @@ const MultiCurrencyContent: React.FC = () => {
                       <div
                         key={account.id || account.currency}
                         onClick={() => setSelectedCurrency(currency)}
-                        className={`rounded-xl px-4 py-5 2xs:py-6 flex flex-col gap-3 sm:gap-4 cursor-pointer transition-all min-w-[calc(100vw-2rem)] snap-start ${
+                        className={`rounded-xl px-4 py-5 2xs:py-6 flex flex-col gap-3 sm:gap-4 cursor-pointer transition-all w-[calc(100vw-2rem)] flex-shrink-0 snap-start ${
                           isActive 
                             ? "bg-[#D4B139] text-black" 
                             : "bg-bg-600 dark:bg-bg-1100"
@@ -249,7 +249,7 @@ const MultiCurrencyContent: React.FC = () => {
                   {currencyAccounts.length < 3 && (
                     <div
                       onClick={() => setOpenCreate(true)}
-                      className="bg-bg-600 dark:bg-bg-1100 rounded-xl px-4 py-5 2xs:py-6 flex flex-col items-center justify-center gap-3 sm:gap-4 cursor-pointer border-2 border-dashed border-white/20 hover:border-white/40 hover:bg-white/5 transition-all min-h-[140px] min-w-[calc(100vw-2rem)] snap-start"
+                      className="bg-bg-600 dark:bg-bg-1100 rounded-xl px-4 py-5 2xs:py-6 flex flex-col items-center justify-center gap-3 sm:gap-4 cursor-pointer border-2 border-dashed border-white/20 hover:border-white/40 hover:bg-white/5 transition-all min-h-[140px] w-[calc(100vw-2rem)] flex-shrink-0 snap-start"
                     >
                       <div className="w-8 h-8 rounded-md bg-secondary/15 grid place-items-center text-secondary">
                         <FiPlus className="text-lg" />
