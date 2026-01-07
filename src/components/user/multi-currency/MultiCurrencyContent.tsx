@@ -12,8 +12,6 @@ const MultiCurrencyContent: React.FC = () => {
   const [selectedCurrency, setSelectedCurrency] = React.useState<"USD" | "EUR" | "GBP" | null>(null);
   const [openCreate, setOpenCreate] = React.useState(false);
   const [balanceVisible, setBalanceVisible] = React.useState<Record<string, boolean>>({});
-  const sliderRef = React.useRef<HTMLDivElement>(null);
-  const cardRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
 
   const { accounts, isPending, refetch } = useGetCurrencyAccounts();
 
@@ -28,25 +26,6 @@ const MultiCurrencyContent: React.FC = () => {
       setSelectedCurrency(firstCurrency);
     }
   }, [currencyAccounts, selectedCurrency]);
-
-  // Auto-scroll to active card on mobile
-  React.useEffect(() => {
-    if (selectedCurrency && cardRefs.current[selectedCurrency]) {
-      const cardElement = cardRefs.current[selectedCurrency];
-      if (cardElement && sliderRef.current) {
-        const slider = sliderRef.current;
-        const cardLeft = cardElement.offsetLeft;
-        const cardWidth = cardElement.offsetWidth;
-        const sliderWidth = slider.offsetWidth;
-        const scrollLeft = cardLeft - (sliderWidth / 2) + (cardWidth / 2);
-        
-        slider.scrollTo({
-          left: scrollLeft,
-          behavior: 'smooth'
-        });
-      }
-    }
-  }, [selectedCurrency]);
 
   const handleCreateSuccess = () => {
     setOpenCreate(false);
@@ -101,49 +80,42 @@ const MultiCurrencyContent: React.FC = () => {
         </div>
       </div>
 
-      {/* Account Cards - Slider on Mobile, Grid on Desktop */}
+      {/* Account Cards - Show only active on Mobile, Grid on Desktop */}
       <div className="w-full">
-        {/* Mobile Slider Container */}
-        <div ref={sliderRef} className="sm:hidden overflow-x-auto scrollbar-hide -mx-4 px-4 snap-x snap-mandatory">
-          <div className="flex gap-3 min-w-max">
-            {isPending ? (
-              // Show skeleton cards while loading
-              [...Array(3)].map((_, index) => (
-                <div
-                  key={index}
-                  className="bg-bg-600 dark:bg-bg-1100 rounded-xl px-4 py-5 2xs:py-6 flex flex-col gap-3 sm:gap-4 animate-pulse min-w-[280px] snap-start"
-                >
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded bg-white/10" />
-                    <div className="h-4 w-24 bg-white/10 rounded" />
-                  </div>
-                  <div className="h-3 w-20 bg-white/10 rounded" />
-                  <div className="h-8 w-32 bg-white/10 rounded" />
-                </div>
-              ))
-            ) : (
-              <>
-                {currencyAccounts.map((account: any) => {
+        {/* Mobile - Show only active card */}
+        <div className="sm:hidden">
+          {isPending ? (
+            // Show skeleton card while loading
+            <div className="mx-2 bg-bg-600 dark:bg-bg-1100 rounded-xl px-4 py-5 2xs:py-6 flex flex-col gap-3 sm:gap-4 animate-pulse">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded bg-white/10" />
+                <div className="h-4 w-24 bg-white/10 rounded" />
+              </div>
+              <div className="h-3 w-20 bg-white/10 rounded" />
+              <div className="h-8 w-32 bg-white/10 rounded" />
+            </div>
+          ) : currencyAccounts.length > 0 ? (
+            <>
+              {(() => {
+                // Find the active account or use the first one
+                const activeAccount = currencyAccounts.find((account: any) => {
                   const currency = String(account.currency).toUpperCase() as "USD" | "EUR" | "GBP";
-                  const isActive = selectedCurrency === currency;
-                  const balance = account.balance || 0;
-                  const isVisible = balanceVisible[currency] !== false;
+                  return selectedCurrency === currency;
+                }) || currencyAccounts[0];
+                
+                const currency = String(activeAccount.currency).toUpperCase() as "USD" | "EUR" | "GBP";
+                const balance = activeAccount.balance || 0;
+                const isVisible = balanceVisible[currency] !== false;
+                const isActive = selectedCurrency === currency;
 
-                  return (
+                return (
+                  <>
                     <div
-                      key={account.id || account.currency}
-                      ref={(el) => {
-                        if (el) cardRefs.current[currency] = el;
-                      }}
-                      onClick={() => setSelectedCurrency(currency)}
-                      className={`rounded-xl px-4 py-5 2xs:py-6 flex flex-col gap-3 sm:gap-4 cursor-pointer transition-all min-w-[280px] snap-start ${
-                        isActive 
-                          ? "bg-[#D4B139] text-black" 
-                          : "bg-bg-600 dark:bg-bg-1100"
-                      }`}
+                      key={activeAccount.id || activeAccount.currency}
+                      className="mx-2 rounded-xl px-4 py-5 2xs:py-6 flex flex-col gap-3 sm:gap-4 bg-[#D4B139] text-black transition-all w-[calc(100%-1rem)]"
                     >
                       {/* Header: currency icon + account label */}
-                      <div className={`flex items-center gap-2 ${isActive ? "text-black" : "text-text-200 dark:text-text-800"}`}>
+                      <div className="flex items-center gap-2 text-black">
                         <Image
                           src={getCurrencyIconByString(currency.toLowerCase()) || ""}
                           alt={currency}
@@ -151,14 +123,14 @@ const MultiCurrencyContent: React.FC = () => {
                           height={32}
                           className="w-8 h-8"
                         />
-                        <p className={`text-sm sm:text-base font-semibold uppercase flex-1 ${isActive ? "text-black" : ""}`}>
-                          {account.accountName || account.label || `${currency} Account`}
+                        <p className="text-sm sm:text-base font-semibold uppercase flex-1 text-black">
+                          {activeAccount.accountName || activeAccount.label || `${currency} Account`}
                         </p>
                       </div>
 
                       {/* Subtitle + eye toggle */}
                       <div className="flex items-center gap-2 font-semibold">
-                        <p className={`text-xs sm:text-sm ${isActive ? "text-black/80" : "text-text-200 dark:text-text-800"}`}>
+                        <p className="text-xs sm:text-sm text-black/80">
                           {currency} Balance
                         </p>
                         {isVisible ? (
@@ -167,7 +139,7 @@ const MultiCurrencyContent: React.FC = () => {
                               e.stopPropagation();
                               toggleBalanceVisibility(currency);
                             }}
-                            className={`cursor-pointer text-base ${isActive ? "text-black/80" : "text-text-200 dark:text-text-800"}`}
+                            className="cursor-pointer text-base text-black/80"
                           />
                         ) : (
                           <FiEye
@@ -175,39 +147,57 @@ const MultiCurrencyContent: React.FC = () => {
                               e.stopPropagation();
                               toggleBalanceVisibility(currency);
                             }}
-                            className={`cursor-pointer text-base ${isActive ? "text-black/80" : "text-text-200 dark:text-text-800"}`}
+                            className="cursor-pointer text-base text-black/80"
                           />
                         )}
                       </div>
 
                       {/* Amount */}
-                      <p className={`text-2xl sm:text-3xl font-semibold ${isActive ? "text-black" : "text-text-400"}`}>
+                      <p className="text-2xl sm:text-3xl font-semibold text-black">
                         {isVisible
                           ? `${getCurrencySymbol(currency)} ${formatBalance(balance, currency)}`
                           : "---"}
                       </p>
                     </div>
-                  );
-                })}
-
-                {/* Create Account Card (if less than 3 accounts) */}
-                {currencyAccounts.length < 3 && (
-                  <div
-                    onClick={() => setOpenCreate(true)}
-                    className="bg-bg-600 dark:bg-bg-1100 rounded-xl px-4 py-5 2xs:py-6 flex flex-col items-center justify-center gap-3 sm:gap-4 cursor-pointer border-2 border-dashed border-white/20 hover:border-white/40 hover:bg-white/5 transition-all min-h-[140px] min-w-[280px] snap-start"
-                  >
-                    <div className="w-8 h-8 rounded-md bg-secondary/15 grid place-items-center text-secondary">
-                      <FiPlus className="text-lg" />
-                    </div>
-                    <div className="flex flex-col items-center gap-1 text-center">
-                      <p className="text-text-200 dark:text-text-800 text-sm sm:text-base font-semibold">Create Account</p>
-                      <p className="text-text-200 dark:text-text-400 text-xs">USD, EUR, or GBP</p>
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
+                    
+                    {/* Navigation dots for switching between accounts */}
+                    {currencyAccounts.length > 1 && (
+                      <div className="flex items-center justify-center gap-2 mt-4">
+                        {currencyAccounts.map((account: any) => {
+                          const accCurrency = String(account.currency).toUpperCase() as "USD" | "EUR" | "GBP";
+                          const isDotActive = selectedCurrency === accCurrency;
+                          return (
+                            <button
+                              key={account.id || account.currency}
+                              onClick={() => setSelectedCurrency(accCurrency)}
+                              className={`h-2 rounded-full transition-all ${
+                                isDotActive ? "bg-[#D4B139] w-8" : "bg-white/30 w-2"
+                              }`}
+                              aria-label={`Switch to ${accCurrency} account`}
+                            />
+                          );
+                        })}
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
+            </>
+          ) : (
+            // No accounts - show create card
+            <div
+              onClick={() => setOpenCreate(true)}
+              className="mx-2 bg-bg-600 dark:bg-bg-1100 rounded-xl px-4 py-5 2xs:py-6 flex flex-col items-center justify-center gap-3 sm:gap-4 cursor-pointer border-2 border-dashed border-white/20 hover:border-white/40 hover:bg-white/5 transition-all min-h-[140px] w-[calc(100%-1rem)]"
+            >
+              <div className="w-8 h-8 rounded-md bg-secondary/15 grid place-items-center text-secondary">
+                <FiPlus className="text-lg" />
+              </div>
+              <div className="flex flex-col items-center gap-1 text-center">
+                <p className="text-text-200 dark:text-text-800 text-sm sm:text-base font-semibold">Create Account</p>
+                <p className="text-text-200 dark:text-text-400 text-xs">USD, EUR, or GBP</p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Desktop Grid */}

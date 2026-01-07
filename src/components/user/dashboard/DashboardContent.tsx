@@ -39,16 +39,16 @@ const DashboardContent = () => {
 
   // Fixed Savings - FLEX_SAVE plans (target savings)
   const fixedSavingsPlans = useMemo(() => {
-    return savingsPlans.filter((plan) => plan.planType === "FLEX_SAVE");
+    return savingsPlans.filter((plan) => (plan.type || plan.planType) === "FLEX_SAVE");
   }, [savingsPlans]);
 
   const totalSavingsInterest = useMemo(() => {
-    return fixedSavingsPlans.reduce((total, plan) => total + (plan.interestEarned || 0), 0);
+    return fixedSavingsPlans.reduce((total, plan) => total + (plan.interestEarned || plan.totalInterestAccrued || 0), 0);
   }, [fixedSavingsPlans]);
 
   // Fixed deposits - NATTY_AUTO_SAVE plans (fixed savings/auto-save)
   const fixedDepositPlans = useMemo(() => {
-    return savingsPlans.filter((plan) => plan.planType === "NATTY_AUTO_SAVE");
+    return savingsPlans.filter((plan) => (plan.type || plan.planType) === "NATTY_AUTO_SAVE");
   }, [savingsPlans]);
 
   const totalFixedDepositInterest = useMemo(() => {
