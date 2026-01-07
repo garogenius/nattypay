@@ -9,7 +9,7 @@ import { useGetSavingsPlans } from "@/api/savings/savings.queries";
 const FixedSavingsCard = () => {
   const [visible, setVisible] = useState(true);
   const [open, setOpen] = useState(false);
-  const [savingType, setSavingType] = useState<string>("Fixed Savings");
+  const [savingType, setSavingType] = useState<string>("Target Savings");
   const menuRef = useRef<HTMLDivElement>(null);
   useOnClickOutside(menuRef, () => setOpen(false));
   
@@ -20,13 +20,10 @@ const FixedSavingsCard = () => {
   const amount = useMemo(() => {
     let filteredPlans = [];
     switch (savingType) {
-      case "Fixed Savings":
-        filteredPlans = savingsPlans.filter((plan) => (plan.planType || plan.type) === "FLEX_SAVE");
-        break;
       case "Target Savings":
         filteredPlans = savingsPlans.filter((plan) => (plan.planType || plan.type) === "FLEX_SAVE");
         break;
-      case "Easylife Savings":
+      case "Easy Life Saving":
         filteredPlans = savingsPlans.filter((plan) => (plan.planType || plan.type) === "NATTY_AUTO_SAVE");
         break;
       default:
@@ -40,7 +37,7 @@ const FixedSavingsCard = () => {
         <div className="w-8 h-8 rounded-md bg-secondary/15 grid place-items-center text-secondary">
           <LiaPiggyBankSolid className="text-lg" />
         </div>
-        <p className="text-sm sm:text-base font-semibold">{savingType}</p>
+        <p className="text-sm sm:text-base font-semibold">Savings</p>
         <MdKeyboardArrowDown onClick={() => setOpen((v) => !v)} className="ml-auto cursor-pointer" />
 
         {open && (
@@ -50,9 +47,8 @@ const FixedSavingsCard = () => {
               <MdClose onClick={() => setOpen(false)} className="cursor-pointer" />
             </div>
             {[
-              "Fixed Savings",
               "Target Savings",
-              "Easylife Savings",
+              "Easy Life Saving",
             ].map((label, idx, arr) => (
               <button
                 key={label}
