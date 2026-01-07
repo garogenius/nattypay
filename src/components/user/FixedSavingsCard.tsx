@@ -35,7 +35,7 @@ const FixedSavingsCard = () => {
     return filteredPlans.reduce((total, plan) => total + (plan.interestEarned || plan.totalInterestAccrued || 0), 0);
   }, [savingsPlans, savingType]);
   return (
-    <div className="bg-bg-600 dark:bg-bg-1100 rounded-xl px-4 py-5 2xs:py-6 flex flex-col gap-3 sm:gap-4">
+    <div className="bg-bg-600 dark:bg-bg-1100 rounded-xl px-4 py-4 flex flex-col gap-2 sm:gap-3">
       <div className="relative flex items-center gap-2 text-text-200 dark:text-text-800">
         <div className="w-8 h-8 rounded-md bg-secondary/15 grid place-items-center text-secondary">
           <LiaPiggyBankSolid className="text-lg" />

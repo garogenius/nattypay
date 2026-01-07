@@ -96,9 +96,10 @@ const BettingPlatformsAdModal: React.FC<BettingPlatformsAdModalProps> = ({ isOpe
             e.stopPropagation();
             handleClose();
           }}
-          className="absolute top-4 right-4 z-10 p-2 hover:bg-white/10 rounded-full transition-colors"
+          className="absolute top-4 right-4 z-50 p-2 hover:bg-white/10 rounded-full transition-colors cursor-pointer"
+          aria-label="Close modal"
         >
-          <CgClose className="text-xl text-white" />
+          <CgClose className="text-xl text-white pointer-events-none" />
         </button>
 
         <div className="relative z-10 p-2.5 sm:p-3 md:p-4 lg:p-6">

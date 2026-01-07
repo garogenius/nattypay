@@ -2706,8 +2706,8 @@ const ProfileContent = () => {
                   </button>
                 ))}
 
-                {/* Fingerprint toggle */}
-                <div className="w-full flex items-center justify-between gap-3 py-3">
+                {/* Fingerprint toggle - HIDDEN FOR NOW */}
+                {/* <div className="w-full flex items-center justify-between gap-3 py-3">
                   <div className="flex items-start gap-3">
                     <div className="w-8 h-8 rounded-md bg-white/5 grid place-items-center text-white"><FiShield className="text-[#D4B139]" /></div>
                     <div>
@@ -2752,10 +2752,10 @@ const ProfileContent = () => {
                   >
                     <span className={`absolute top-0.5 ${fingerprintPaymentEnabled ? "right-0.5" : "left-0.5"} w-5 h-5 rounded-full bg-white transition-all`} />
                   </button>
-                </div>
+                </div> */}
 
-                {/* Biometric login toggle */}
-                <div className="w-full flex items-center justify-between gap-3 py-3">
+                {/* Biometric login toggle - HIDDEN FOR NOW */}
+                {/* <div className="w-full flex items-center justify-between gap-3 py-3">
                   <div className="flex items-start gap-3">
                     <div className="w-8 h-8 rounded-md bg-white/5 grid place-items-center text-white">
                       <FiShield className="text-[#D4B139]" />
@@ -2847,7 +2847,7 @@ const ProfileContent = () => {
                       } w-5 h-5 rounded-full bg-white transition-all`}
                     />
                   </button>
-                </div>
+                </div> */}
               </div>
             </div>
 

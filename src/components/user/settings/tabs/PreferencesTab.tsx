@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { BsSun, BsMoon } from "react-icons/bs";
 
 const Toggle: React.FC<{checked: boolean; onToggle: () => void}> = ({ checked, onToggle }) => (
   <button onClick={onToggle} className={`relative w-12 h-6 rounded-full ${checked ? "bg-[#D4B139]" : "bg-white/20"}`}>
@@ -88,18 +89,27 @@ const PreferencesTab: React.FC = () => {
       </div>
 
       {/* Themes */}
-      {/* <div className="w-full bg-bg-600 dark:bg-bg-1100 border border-white/10 rounded-2xl p-4 sm:p-5">
+      <div className="w-full bg-bg-600 dark:bg-bg-1100 border border-white/10 rounded-2xl p-4 sm:p-5">
         <p className="text-white font-semibold mb-3">Themes</p>
         <div className="divide-y divide-white/10">
           <div className="w-full flex items-center justify-between gap-3 py-3">
-            <div>
-              <p className="text-white text-sm sm:text-base font-medium">Dark Mode</p>
-              <p className="text-white/60 text-xs sm:text-sm">Switch to dark theme</p>
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-md bg-white/5 grid place-items-center text-white">
+                {prefs.darkMode ? (
+                  <BsMoon className="text-[#D4B139]" />
+                ) : (
+                  <BsSun className="text-[#D4B139]" />
+                )}
+              </div>
+              <div>
+                <p className="text-white text-sm sm:text-base font-medium">Dark Mode</p>
+                <p className="text-white/60 text-xs sm:text-sm">Switch between light and dark theme</p>
+              </div>
             </div>
             <Toggle checked={prefs.darkMode} onToggle={() => toggle("darkMode")} />
           </div>
         </div>
-      </div> */}
+      </div>
     </div>
   );
 };

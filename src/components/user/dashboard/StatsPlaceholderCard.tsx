@@ -18,10 +18,25 @@ const StatsPlaceholderCard = ({ spanCols = 1 }: StatsPlaceholderCardProps) => {
   // Process transactions to get monthly created (CREDIT) and debited (DEBIT) amounts
   const chartData = useMemo(() => {
     if (!transactionsData?.transactions || transactionsData.transactions.length === 0) {
+      // Return demo data when no transactions available
+      const months: string[] = [];
+      const demoCredits: number[] = [];
+      const demoDebits: number[] = [];
+      
+      for (let i = 5; i >= 0; i--) {
+        const date = new Date();
+        date.setMonth(date.getMonth() - i);
+        const monthKey = date.toLocaleDateString("en-US", { month: "short" });
+        months.push(monthKey);
+        // Demo data with some variation
+        demoCredits.push(Math.floor(Math.random() * 500000) + 100000);
+        demoDebits.push(Math.floor(Math.random() * 300000) + 50000);
+      }
+      
       return {
-        labels: [],
-        credits: [],
-        debits: [],
+        labels: months,
+        credits: demoCredits,
+        debits: demoDebits,
       };
     }
 
@@ -162,7 +177,7 @@ const StatsPlaceholderCard = ({ spanCols = 1 }: StatsPlaceholderCardProps) => {
   }, [spanCols]);
 
   return (
-    <div className={`${gridColClass} bg-bg-600 dark:bg-bg-1100 rounded-xl px-4 py-5 2xs:py-6 flex flex-col gap-3 sm:gap-4`}>
+    <div className={`${gridColClass} bg-bg-600 dark:bg-bg-1100 rounded-xl px-4 py-4 flex flex-col gap-2 sm:gap-3`}>
       <div className="flex items-center gap-2 text-text-200 dark:text-text-800">
         <div className="w-8 h-8 rounded-md bg-secondary/15 grid place-items-center text-secondary">
           <svg
@@ -184,18 +199,12 @@ const StatsPlaceholderCard = ({ spanCols = 1 }: StatsPlaceholderCardProps) => {
       </div>
       
       {/* Chart - Hidden on mobile, visible on larger screens */}
-      <div className="hidden md:block w-full" style={{ height: "200px" }}>
-        {chartData.labels.length > 0 ? (
-          <BarChart chartData={chartDataConfig} chartOption={chartOptions} />
-        ) : (
-          <div className="flex items-center justify-center h-full text-text-400 dark:text-text-600 text-sm">
-            No transaction data available
-          </div>
-        )}
+      <div className="hidden md:block w-full" style={{ height: "160px" }}>
+        <BarChart chartData={chartDataConfig} chartOption={chartOptions} />
       </div>
       
       {/* Mobile placeholder */}
-      <div className="md:hidden text-text-400 dark:text-text-600 text-xs text-center py-4">
+      <div className="md:hidden text-text-400 dark:text-text-600 text-xs text-center py-2">
         Chart available on larger screens
       </div>
     </div>

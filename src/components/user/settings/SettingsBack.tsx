@@ -50,7 +50,7 @@ const SettingsBack = () => {
   return (
     <div
       onClick={() => {
-        navigate("/user/settings");
+        navigate(-1);
       }}
       className="w-fit flex items-center gap-1 sm:gap-2 cursor-pointer text-text-200 dark:text-text-400"
     >

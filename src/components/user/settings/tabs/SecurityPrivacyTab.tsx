@@ -48,8 +48,8 @@ const SecurityPrivacyTab: React.FC<Props> = ({
             </button>
           ))}
 
-          {/* Fingerprint toggle */}
-          <div className="w-full flex items-center justify-between gap-3 py-3">
+          {/* Fingerprint toggle - HIDDEN FOR NOW */}
+          {/* <div className="w-full flex items-center justify-between gap-3 py-3">
             <div className="flex items-start gap-3">
               <div className="w-8 h-8 rounded-md bg-white/5 grid place-items-center text-white"><FiShield className="text-[#D4B139]" /></div>
               <div>
@@ -60,7 +60,7 @@ const SecurityPrivacyTab: React.FC<Props> = ({
             <button onClick={onToggleFingerprint} className={`relative w-12 h-6 rounded-full ${fingerprint ? "bg-[#D4B139]" : "bg-white/20"}`}>
               <span className={`absolute top-0.5 ${fingerprint ? "right-0.5" : "left-0.5"} w-5 h-5 rounded-full bg-white transition-all`} />
             </button>
-          </div>
+          </div> */}
         </div>
       </div>
 
