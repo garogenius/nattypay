@@ -61,7 +61,6 @@ const DashboardContent = () => {
 
   // Check if user has created each type
   const hasFixedSavings = fixedSavingsPlans.length > 0;
-  const hasFixedDeposits = fixedDepositPlans.length > 0;
   const hasInvestments = investments.length > 0;
 
   // Count visible stats cards (excluding BalanceCard)
