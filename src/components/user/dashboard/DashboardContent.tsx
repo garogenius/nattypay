@@ -11,6 +11,7 @@ import FixedDepositCard from "../FixedDepositCard";
 import { useGetCurrencyAccounts } from "@/api/currency/currency.queries";
 import { useGetSavingsPlans } from "@/api/savings/savings.queries";
 import { useGetInvestments } from "@/api/investments/investments.queries";
+import { useGetFixedDeposits } from "@/api/fixed-deposits/fixed-deposits.queries";
 import StatsPlaceholderCard from "./StatsPlaceholderCard";
 
 const DashboardContent = () => {
@@ -37,6 +38,9 @@ const DashboardContent = () => {
   // Fetch investments
   const { investments } = useGetInvestments();
 
+  // Fetch fixed deposits
+  const { fixedDeposits } = useGetFixedDeposits();
+
   // Fixed Savings - FLEX_SAVE plans (target savings)
   const fixedSavingsPlans = useMemo(() => {
     return savingsPlans.filter((plan) => (plan.type || plan.planType) === "FLEX_SAVE");
@@ -46,14 +50,8 @@ const DashboardContent = () => {
     return fixedSavingsPlans.reduce((total, plan) => total + (plan.interestEarned || plan.totalInterestAccrued || 0), 0);
   }, [fixedSavingsPlans]);
 
-  // Fixed deposits - NATTY_AUTO_SAVE plans (fixed savings/auto-save)
-  const fixedDepositPlans = useMemo(() => {
-    return savingsPlans.filter((plan) => (plan.type || plan.planType) === "NATTY_AUTO_SAVE");
-  }, [savingsPlans]);
-
-  const totalFixedDepositInterest = useMemo(() => {
-    return fixedDepositPlans.reduce((total, plan) => total + (plan.interestEarned || 0), 0);
-  }, [fixedDepositPlans]);
+  // Fixed deposits - use actual fixed deposits from API
+  const hasFixedDeposits = fixedDeposits.length > 0;
 
   const totalInvestmentInterest = useMemo(() => {
     return investments.reduce((total, investment) => {
@@ -108,7 +106,7 @@ const DashboardContent = () => {
           currencyAccounts={currencyAccounts}
         />
         {hasFixedSavings && <FixedSavingsCard />}
-        {hasFixedDeposits && <FixedDepositCard amount={totalFixedDepositInterest} />}
+        {hasFixedDeposits && <FixedDepositCard />}
         {hasInvestments && <InvestCard amount={totalInvestmentInterest} />}
         {placeholderSpan > 0 && <StatsPlaceholderCard spanCols={placeholderSpan} />}
       </div>
