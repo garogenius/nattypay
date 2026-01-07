@@ -77,7 +77,7 @@ const sections: { title: string; items: BillItem[] }[] = [
     items: [
       { name: "Betting", icon: SlTrophy, available: true },
       { name: "Convert Currency", icon: LiaRedoAltSolid, available: true },
-      { name: "Sell Giftcards", icon: MdCardGiftcard, available: true },
+      { name: "Sell Giftcards", icon: MdCardGiftcard, available: false },
       { name: "Buy Giftcards", icon: MdCardGiftcard, available: true },
     ],
   },
@@ -143,6 +143,13 @@ const Card: React.FC<BillItem & {
       return;
     }
     
+    // Disable Sell Giftcards feature
+    if (name === "Sell Giftcards") {
+      toast.dismiss();
+      toast.error("Sell Gift Card feature is currently unavailable", { duration: 2500 });
+      return;
+    }
+    
     if (itemOnClick) {
       itemOnClick();
     } else if (name === "Airtime" && onAirtimeClick) {
@@ -167,8 +174,6 @@ const Card: React.FC<BillItem & {
       onJambClick();
     } else if (name === "Buy Giftcards" && onGiftCardClick) {
       onGiftCardClick();
-    } else if (name === "Sell Giftcards" && onSellGiftCardClick) {
-      onSellGiftCardClick();
     } else if (name === "Betting") {
       navigate("/user/betting");
     } else if (name === "Convert Currency" && onConvertCurrencyClick) {
@@ -181,14 +186,15 @@ const Card: React.FC<BillItem & {
     }
   };
   const isSchoolCard = name === "School";
+  const isSellGiftCardDisabled = name === "Sell Giftcards";
   
   return (
     <button
       onClick={onClick}
       type="button"
-      disabled={isSchoolCard}
+      disabled={isSchoolCard || isSellGiftCardDisabled}
       className={`w-full flex px-2 py-3 sm:px-4 sm:py-5 flex-col gap-1.5 sm:gap-2.5 justify-center items-center bg-bg-600 dark:bg-bg-1100 rounded-lg sm:rounded-xl border border-border-600 transition-colors ${
-        isSchoolCard 
+        isSchoolCard || isSellGiftCardDisabled
           ? "cursor-not-allowed opacity-50" 
           : "cursor-pointer hover:bg-white/5"
       }`}

@@ -26,16 +26,24 @@ const validatePhone = (phone: string, currency: string) => {
   return false;
 };
 
-// Format phone number for API: convert to +234 format
-// e.g., 07043742886 -> +2347043742886 or 7043742886 -> +2347043742886
+// Format phone number for API: ensure local format with leading 0
+// e.g., +2347043742886 -> 07043742886 or 7043742886 -> 07043742886
 const formatPhoneForAPI = (phone: string): string => {
   const cleaned = phone.replace(/\D/g, "");
-  // Remove leading 0 if present (11 digits -> 10 digits)
-  const phoneWithoutLeadingZero = cleaned.startsWith("0") && cleaned.length === 11
-    ? cleaned.slice(1)
-    : cleaned;
-  // Add +234 prefix
-  return `+234${phoneWithoutLeadingZero}`;
+  
+  // If it starts with 234 (international format without +), remove it
+  let localPhone = cleaned;
+  if (cleaned.startsWith("234") && cleaned.length === 13) {
+    localPhone = cleaned.slice(3);
+  }
+  
+  // Ensure it has leading 0 (should be 11 digits total)
+  if (!localPhone.startsWith("0") && localPhone.length === 10) {
+    localPhone = `0${localPhone}`;
+  }
+  
+  // Return in local format (07043742886)
+  return localPhone;
 };
 
 export const useGetAirtimePlan = (payload: IAirtimePlan) => {

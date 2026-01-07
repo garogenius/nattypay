@@ -245,13 +245,13 @@ const BettingModal: React.FC<BettingModalProps> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="z-[999999] overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 flex justify-center items-center w-full md:inset-0 h-[100dvh]">
+    <div className="z-[999999] overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 flex justify-center items-start md:items-center w-full md:inset-0 h-[100dvh] py-4 md:py-0">
       <div className="fixed inset-0 transition-opacity" aria-hidden="true">
         <div className="absolute inset-0 bg-black/80 dark:bg-black/60" onClick={handleClose} />
       </div>
-      <div className="relative mx-4 bg-bg-600 dark:bg-bg-1100 border border-border-800 dark:border-border-700 w-full max-w-md rounded-2xl overflow-visible">
+      <div className="relative mx-4 bg-bg-600 dark:bg-bg-1100 border border-border-800 dark:border-border-700 w-full max-w-md rounded-2xl overflow-hidden max-h-[calc(100dvh-2rem)] md:max-h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 pb-2">
+        <div className="flex items-center justify-between p-4 pb-2 flex-shrink-0">
           <div>
             <h2 className="text-white text-lg font-semibold">Betting</h2>
             <p className="text-white/60 text-sm">
@@ -265,7 +265,7 @@ const BettingModal: React.FC<BettingModalProps> = ({ isOpen, onClose }) => {
 
         {/* Betting Wallet Balance */}
         {step === "form" && (
-          <div className="px-4 pb-4">
+          <div className="px-4 pb-6 md:pb-4 overflow-y-auto flex-1 min-h-0">
             <div className="bg-white/5 border border-white/10 rounded-xl p-4 mb-4">
               <p className="text-white/60 text-xs mb-1">Betting Wallet Balance</p>
               {walletLoading ? (
@@ -598,7 +598,7 @@ const BettingModal: React.FC<BettingModalProps> = ({ isOpen, onClose }) => {
 
         {/* Confirm Step */}
         {step === "confirm" && (
-          <div className="px-4 pb-4">
+          <div className="px-4 pb-6 md:pb-4 overflow-y-auto flex-1 min-h-0">
             <div className="flex flex-col gap-4">
               <div className="bg-white/5 border border-white/10 rounded-xl p-4">
                 <h3 className="text-white font-semibold mb-3">Transaction Details</h3>
@@ -714,7 +714,7 @@ const BettingModal: React.FC<BettingModalProps> = ({ isOpen, onClose }) => {
 
         {/* Result Step */}
         {step === "result" && (
-          <div className="px-4 pb-4">
+          <div className="px-4 pb-6 md:pb-4 overflow-y-auto flex-1 min-h-0">
             <div className="flex flex-col items-center gap-4">
               <div className={`w-16 h-16 rounded-full flex items-center justify-center ${
                 resultSuccess ? "bg-green-500/20" : "bg-red-500/20"

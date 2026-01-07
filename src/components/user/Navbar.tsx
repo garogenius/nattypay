@@ -297,9 +297,6 @@ const Navbar = () => {
             <Link href="/user/settings/profile" className="block px-4 py-3 text-sm text-[#E7EAEE] border-t border-[#2C3947] hover:bg-white/5">
               Profile Settings
             </Link>
-            <Link href="/user/settings" className="block px-4 py-3 text-sm text-[#E7EAEE] border-t border-[#2C3947] hover:bg-white/5">
-              Account Info
-            </Link>
             <Link href="/logout" className="block px-4 py-3 text-sm font-semibold text-red-500 border-t border-[#2C3947] hover:bg-white/5">
               Logout
             </Link>

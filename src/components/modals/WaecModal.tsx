@@ -251,16 +251,23 @@ const WaecModal: React.FC<WaecModalProps> = ({ isOpen, onClose }) => {
               {/* Customer ID */}
               <div className="flex flex-col gap-2">
                 <label className="text-white/70 text-sm">Customer ID (Registration Number)</label>
-                <input className="w-full bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-3 px-4 text-white placeholder:text-white/60 text-sm outline-none" placeholder="Enter customer ID" value={customerId} onChange={(e)=> setCustomerId(e.target.value)} />
+                <div className="relative w-full">
+                  <input 
+                    className="w-full bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-3 px-4 pr-10 text-white placeholder:text-white/60 text-sm outline-none" 
+                    placeholder="Enter customer ID" 
+                    value={customerId} 
+                    onChange={(e)=> setCustomerId(e.target.value)} 
+                  />
+                  {(verifying || billInfoLoading) && (
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                      <SpinnerLoader width={18} height={18} color="#D4B139" />
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Verification Status */}
-              {verifying || billInfoLoading ? (
-                <div className="flex items-center gap-2 p-2 text-white/70 text-sm">
-                  <SpinnerLoader width={20} height={20} color="#D4B139" />
-                  <p>Verifying customer...</p>
-                </div>
-              ) : (
+              {!verifying && !billInfoLoading && (
                 <>
                   {verificationMessage && !verificationError && selectedBiller && selectedItem && customerId ? (
                     <div className="flex flex-col">
