@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import { ThemeProvider } from "@/providers/ThemeProvider";
 import NextTopLoader from "nextjs-toploader";
@@ -31,8 +32,31 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning className="dark" data-mode="dark">
+    <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
+        <Script
+          id="theme-init"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  const savedTheme = localStorage.getItem('theme');
+                  const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+                  const isDark = savedTheme ? savedTheme === 'dark' : prefersDark;
+                  
+                  if (isDark) {
+                    document.documentElement.setAttribute("data-mode", "dark");
+                    document.documentElement.className = "dark";
+                  } else {
+                    document.documentElement.setAttribute("data-mode", "light");
+                    document.documentElement.className = "";
+                  }
+                } catch (e) {}
+              })();
+            `,
+          }}
+        />
         <ThemeProvider>
           <ReactQueryProvider>
             <UserProvider>

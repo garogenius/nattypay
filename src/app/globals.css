@@ -6,6 +6,20 @@
 @tailwind utilities;
 
 @layer base {
+  /* Base text color - dark in light mode, light in dark mode */
+  html {
+    color: #141414; /* text-200 - dark color for light mode */
+  }
+  
+  html.dark {
+    color: #ffffff; /* white for dark mode */
+  }
+  
+  /* Default text color for body */
+  body {
+    color: inherit;
+  }
+  
   input:-webkit-autofill,
   input:-webkit-autofill:hover,
   input:-webkit-autofill:focus,
@@ -13,6 +27,18 @@
     -webkit-box-shadow: 0 0 0 30px transparent inset !important;
     -webkit-text-fill-color: inherit !important;
     transition: background-color 5000s ease-in-out 0s;
+  }
+}
+
+@layer utilities {
+  /* Make text-white adapt to theme in light mode */
+  html:not(.dark) .text-white {
+    color: #141414 !important; /* text-200 - dark color for light mode */
+  }
+  
+  /* Ensure text-white stays white in dark mode */
+  html.dark .text-white {
+    color: #ffffff !important;
   }
 }
 

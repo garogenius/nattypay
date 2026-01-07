@@ -9,7 +9,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const prefersDark = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
     const isDark = savedTheme ? savedTheme === 'dark' : prefersDark;
     
-    // Apply theme
+    // Apply theme (redundant but ensures it's set)
     if (isDark) {
       document.documentElement.setAttribute("data-mode", "dark");
       document.documentElement.className = "dark";
