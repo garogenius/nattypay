@@ -328,8 +328,9 @@ const CardsContent: React.FC = () => {
     }
 
     // Check account status (only for USD, NGN uses wallet)
+    let account = null;
     if (selectedCurrency !== "NGN") {
-      const account = getCurrencyAccount(selectedCurrency);
+      account = getCurrencyAccount(selectedCurrency);
       if (account && account.status && account.status !== "ACTIVE") {
         ErrorToast({
           title: "Account Not Active",

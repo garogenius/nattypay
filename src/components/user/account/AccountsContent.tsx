@@ -424,9 +424,12 @@ const AccountsContent: React.FC = () => {
       return;
     }
 
+    // TypeScript type narrowing - we've already validated selectedCurrency is USD or NGN
+    const cardCurrency: "USD" | "NGN" = selectedCurrency === "USD" ? "USD" : "NGN";
+    
     createCard({
       label: cardLabel.trim(),
-      currency: selectedCurrency as "USD" | "NGN",
+      currency: cardCurrency,
     });
   };
 
