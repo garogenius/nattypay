@@ -176,9 +176,9 @@ const ReceiptContainer = () => {
           <Image
             src={images.logo}
             alt="NattyPay Logo"
-            width={120}
-            height={40}
-            className="h-8 w-auto object-contain dark:brightness-200"
+            width={140}
+            height={48}
+            className="h-9 w-auto object-contain dark:brightness-200"
           />
         </div>
         <div className="text-black dark:text-white text-sm font-medium">
@@ -188,7 +188,7 @@ const ReceiptContainer = () => {
 
       {/* Center Badge */}
       <div className="flex justify-center mb-8">
-        <div className="bg-[#D4B139] text-white px-8 py-2.5 rounded-lg font-semibold text-lg shadow-sm">
+        <div className="inline-flex items-center justify-center bg-[#D4B139] text-white px-7 sm:px-10 py-3 sm:py-3.5 min-h-[52px] rounded-xl font-semibold text-base sm:text-lg leading-none shadow-sm whitespace-nowrap">
           Transaction Receipt
         </div>
       </div>

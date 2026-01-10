@@ -22,6 +22,7 @@ import {
   useInitiateTransfer,
   useVerifyAccount,
 } from "@/api/wallet/wallet.queries";
+import { verifyAccountRequest } from "@/api/wallet/wallet.apis";
 import SuccessToast from "@/components/toast/SuccessToast";
 import ErrorToast from "@/components/toast/ErrorToast";
 import SpinnerLoader from "@/components/Loader/SpinnerLoader";
@@ -148,6 +149,9 @@ const TransferProcess = ({ onStepChange, compact = false, initialType, onBackFir
   const [selectedType, setSelectedType] = useState<string>(initialType || "nattypay");
   const [bankData, setBankData] = useState<BankResponseData | null>(null);
   const [bankState, setBankState] = useState(false);
+  const [isDetectingBank, setIsDetectingBank] = useState(false);
+  const [isBankAutoDetected, setIsBankAutoDetected] = useState(false);
+  const detectReqIdRef = useRef(0);
   const [screen, setScreen] = useState<number>(0);
   const goTo = (s: number) => {
     setScreen(s);
@@ -286,6 +290,66 @@ const TransferProcess = ({ onStepChange, compact = false, initialType, onBackFir
 
   const verifyLoading = verifyAccountPending && !verifyAccountError;
 
+  const tryAutoDetectBank = async (acctNumber: string) => {
+    const reqId = ++detectReqIdRef.current;
+    setIsDetectingBank(true);
+    try {
+      const normalizedBanks = (banks || [])
+        .map((b: any) => ({
+          bankCode: String(b?.bankCode ?? b?.code ?? b?.bank_code ?? ""),
+          name: String(b?.name ?? b?.bankName ?? b?.bank_name ?? ""),
+          raw: b,
+        }))
+        .filter((b: any) => !!b.bankCode);
+
+      for (const b of normalizedBanks) {
+        try {
+          const res = await verifyAccountRequest({
+            accountNumber: acctNumber,
+            bankCode: b.bankCode,
+          });
+
+          if (detectReqIdRef.current !== reqId) return;
+
+          const responseData = res?.data?.data || res?.data || {};
+          const detectedAccountName =
+            responseData?.accountName || responseData?.account_name || "";
+          const detectedSessionId =
+            responseData?.sessionId || responseData?.session_id || "";
+          if (detectedAccountName) {
+            const detectedBankCode =
+              String(responseData?.bankCode || responseData?.bank_code || b.bankCode) || b.bankCode;
+            const detectedBankName =
+              String(responseData?.bankName || responseData?.bank_name || b.name) || b.name;
+
+            setBankData(responseData);
+            setValue("sessionId", detectedSessionId);
+            setValue("bankCode", detectedBankCode);
+            clearErrors("bankCode");
+            setBankName(detectedBankName);
+            setIsBankAutoDetected(true);
+            setBankState(false);
+            const foundBank = (banks || []).find(
+              (x: any) => String(x?.bankCode ?? x?.code ?? "") === detectedBankCode
+            );
+            if (foundBank) setSelectedBank(foundBank);
+            return;
+          }
+        } catch {
+          // keep trying other banks
+        }
+      }
+
+      if (detectReqIdRef.current !== reqId) return;
+      ErrorToast({
+        title: "Unable to detect bank",
+        descriptions: ["Please select the recipient bank manually."],
+      });
+    } finally {
+      if (detectReqIdRef.current === reqId) setIsDetectingBank(false);
+    }
+  };
+
   useEffect(() => {
     if (watchedAccountNumber && watchedAccountNumber.length === 10) {
       if (selectedType === "nattypay") {
@@ -296,8 +360,16 @@ const TransferProcess = ({ onStepChange, compact = false, initialType, onBackFir
             accountNumber: watchedAccountNumber,
             bankCode: watchedBankCode,
           });
+        } else {
+          const t = setTimeout(() => {
+            tryAutoDetectBank(watchedAccountNumber);
+          }, 350);
+          return () => clearTimeout(t);
         }
       }
+    } else {
+      detectReqIdRef.current += 1;
+      setIsDetectingBank(false);
     }
   }, [watchedAccountNumber, watchedBankCode, selectedType, verifyAccount]);
 
@@ -845,6 +917,7 @@ const handleShare = async (transaction: TransactionResponse) => {
                             setBankName(bank.name);
                             setBankState(false);
                             setSelectedBank(bank);
+                            setIsBankAutoDetected(false);
                           }}
                           placeholder="Search bank..."
                           isOpen={bankState}

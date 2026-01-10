@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { CgClose } from "react-icons/cg";
 import CustomButton from "@/components/shared/Button";
 import { useGetAllBanks, useVerifyAccount } from "@/api/wallet/wallet.queries";
+import { verifyAccountRequest } from "@/api/wallet/wallet.apis";
 import useOnClickOutside from "@/hooks/useOnClickOutside";
 import SearchableDropdown from "@/components/shared/SearchableDropdown";
 import useUserStore from "@/store/user.store";
@@ -41,6 +42,9 @@ const AddMoneyModal: React.FC<AddMoneyModalProps> = ({ isOpen, onClose }) => {
   const [accountNumber, setAccountNumber] = useState("");
   const [accountName, setAccountName] = useState<string>("");
   const [sessionId, setSessionId] = useState<string>("");
+  const [isDetectingBank, setIsDetectingBank] = useState(false);
+  const [isBankAutoDetected, setIsBankAutoDetected] = useState(false);
+  const detectReqIdRef = useRef(0);
   const [fundAmount, setFundAmount] = useState<string>("");
   const [walletPin, setWalletPin] = useState<string>("");
 
@@ -74,6 +78,47 @@ const AddMoneyModal: React.FC<AddMoneyModalProps> = ({ isOpen, onClose }) => {
     setSessionId(d?.sessionId || "");
   };
   const { mutate: verifyAccount } = useVerifyAccount(onVerifyAccountError, onVerifyAccountSuccess);
+
+  const tryAutoDetectBank = async (acctNumber: string) => {
+    const reqId = ++detectReqIdRef.current;
+    setIsDetectingBank(true);
+    try {
+      const normalizedBanks = (banks || [])
+        .map((b: any) => ({
+          bankCode: String(b?.bankCode ?? b?.code ?? b?.bank_code ?? ""),
+          name: String(b?.name ?? b?.bankName ?? b?.bank_name ?? ""),
+        }))
+        .filter((b: any) => !!b.bankCode);
+
+      for (const b of normalizedBanks) {
+        try {
+          const res = await verifyAccountRequest({ accountNumber: acctNumber, bankCode: b.bankCode });
+          if (detectReqIdRef.current !== reqId) return;
+
+          const responseData = res?.data?.data || res?.data || {};
+          const detectedAccountName = responseData?.accountName || responseData?.account_name || "";
+          const detectedSessionId = responseData?.sessionId || responseData?.session_id || "";
+          if (detectedAccountName) {
+            const detectedBankCode = String(responseData?.bankCode || responseData?.bank_code || b.bankCode) || b.bankCode;
+            const detectedBankName = String(responseData?.bankName || responseData?.bank_name || b.name) || b.name;
+            setSelectedBank({ name: detectedBankName, bankCode: detectedBankCode });
+            setIsBankAutoDetected(true);
+            setAccountName(detectedAccountName);
+            setSessionId(detectedSessionId);
+            setBankOpen(false);
+            return;
+          }
+        } catch {
+          // keep trying other banks
+        }
+      }
+
+      if (detectReqIdRef.current !== reqId) return;
+      toast.error("Unable to detect bank. Please select the bank manually.");
+    } finally {
+      if (detectReqIdRef.current === reqId) setIsDetectingBank(false);
+    }
+  };
 
   // Reset to first step whenever modal opens
   useEffect(()=>{
@@ -385,6 +430,7 @@ const AddMoneyModal: React.FC<AddMoneyModalProps> = ({ isOpen, onClose }) => {
                           )}
                           onSelect={(bank: any) => {
                             setSelectedBank({ name: bank.name, bankCode: String(bank.bankCode) });
+                            setIsBankAutoDetected(false);
                             setBankOpen(false);
                           }}
                           placeholder="Search bank..."
@@ -405,12 +451,23 @@ const AddMoneyModal: React.FC<AddMoneyModalProps> = ({ isOpen, onClose }) => {
                         onChange={(e)=> {
                           const v = e.target.value.replace(/\D/g,"");
                           setAccountNumber(v);
+                          setAccountName("");
+                          setSessionId("");
+                          if (isBankAutoDetected) {
+                            setSelectedBank(null);
+                          }
                           if (selectedBank && v.length === 10) {
                             verifyAccount({ accountNumber: v, bankCode: selectedBank.bankCode });
+                          } else if (!selectedBank && v.length === 10) {
+                            // Auto-detect bank + verify
+                            tryAutoDetectBank(v);
                           }
                         }}
                       />
                     </div>
+                    {isDetectingBank ? (
+                      <div className="text-xs text-white/60">Detecting bank...</div>
+                    ) : null}
                     {accountName ? (
                       <div className="w-full rounded-lg border border-white/15 bg-white/5 px-4 py-2 text-sm text-white/90">
                         {accountName}

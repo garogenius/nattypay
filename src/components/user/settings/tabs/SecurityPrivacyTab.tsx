@@ -31,7 +31,7 @@ const SecurityPrivacyTab: React.FC<Props> = ({
         <p className="text-white font-semibold mb-3">Security</p>
         <div className="divide-y divide-white/10">
           {[
-            { icon: <FiKey className="text-[#D4B139]" />, title: "Change Transaction PIN", desc: "Secure your payments by updating your transaction PIN", onClick: onOpenChangePin },
+            { icon: <FiKey className="text-[#D4B139]" />, title: "Forget Transaction PIN", desc: "Reset your transaction PIN using an OTP sent to your registered phone number", onClick: onOpenChangePin },
             { icon: <FiLock className="text-[#D4B139]" />, title: "Change Password", desc: "Protect your account by setting a new, stronger password", onClick: onOpenChangePassword },
             ...(onOpenChangePasscode ? [{ icon: <FiLock className="text-[#D4B139]" />, title: "Change Login Passcode", desc: "Update your 6-digit login passcode", onClick: onOpenChangePasscode }] : []),
             { icon: <FiShield className="text-[#D4B139]" />, title: "Set Security Question", desc: "Add an extra layer of protection with a security question", onClick: onOpenSetSecurity },

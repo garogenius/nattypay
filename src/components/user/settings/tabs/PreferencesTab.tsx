@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import { BsSun, BsMoon } from "react-icons/bs";
 
 const Toggle: React.FC<{checked: boolean; onToggle: () => void}> = ({ checked, onToggle }) => (
   <button onClick={onToggle} className={`relative w-12 h-6 rounded-full ${checked ? "bg-[#D4B139]" : "bg-white/20"}`}>
@@ -17,43 +16,25 @@ const PreferencesTab: React.FC = () => {
     messages: false,
     email: true,
     sms: true,
-    darkMode: false,
   });
 
-  // Initialize dark mode from storage or system preference
+  // Force dark mode as default (theme toggle hidden for now)
   React.useEffect(() => {
     try {
-      const saved = typeof window !== 'undefined' ? localStorage.getItem('theme') : null;
-      const prefersDark = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-      const isDark = saved ? saved === 'dark' : prefersDark;
-      setPrefs(p => ({ ...p, darkMode: isDark }));
-      if (typeof document !== 'undefined') {
-        const root = document.documentElement;
-        root.classList.toggle('dark', isDark);
+      if (typeof document !== "undefined") {
+        document.documentElement.setAttribute("data-mode", "dark");
+        document.documentElement.className = "dark";
       }
+      try {
+        localStorage.setItem("theme", "dark");
+        window.dispatchEvent(new Event("themechange"));
+      } catch {}
     } catch {}
   }, []);
 
   const toggle = (k: keyof typeof prefs) => {
     setPrefs(p => {
       const next = { ...p, [k]: !p[k] } as typeof p;
-      if (k === 'darkMode') {
-        const isDark = next.darkMode;
-        if (typeof document !== 'undefined') {
-          if (isDark) {
-            document.documentElement.setAttribute("data-mode", "dark");
-            document.documentElement.className = "dark";
-          } else {
-            document.documentElement.setAttribute("data-mode", "light");
-            document.documentElement.className = "";
-          }
-        }
-        try { 
-          localStorage.setItem('theme', isDark ? 'dark' : 'light');
-          // Dispatch custom event to notify ThemeProvider
-          window.dispatchEvent(new Event('themechange'));
-        } catch {}
-      }
       return next;
     });
   };
@@ -85,29 +66,6 @@ const PreferencesTab: React.FC = () => {
               <Toggle checked={(prefs as any)[row.k]} onToggle={() => toggle(row.k)} />
             </div>
           ))}
-        </div>
-      </div>
-
-      {/* Themes */}
-      <div className="w-full bg-bg-600 dark:bg-bg-1100 border border-white/10 rounded-2xl p-4 sm:p-5">
-        <p className="text-white font-semibold mb-3">Themes</p>
-        <div className="divide-y divide-white/10">
-          <div className="w-full flex items-center justify-between gap-3 py-3">
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-md bg-white/5 grid place-items-center text-white">
-                {prefs.darkMode ? (
-                  <BsMoon className="text-[#D4B139]" />
-                ) : (
-                  <BsSun className="text-[#D4B139]" />
-                )}
-              </div>
-              <div>
-                <p className="text-white text-sm sm:text-base font-medium">Dark Mode</p>
-                <p className="text-white/60 text-xs sm:text-sm">Switch between light and dark theme</p>
-              </div>
-            </div>
-            <Toggle checked={prefs.darkMode} onToggle={() => toggle("darkMode")} />
-          </div>
         </div>
       </div>
     </div>

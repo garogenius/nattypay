@@ -9,7 +9,8 @@ type ThemeStore = {
 const useStore = create<ThemeStore>()(
   persist(
     (set) => ({
-      theme: "light",
+      // Default theme is DARK for now
+      theme: "dark",
       setTheme: () =>
         set((state) => ({
           theme: state.theme === "dark" ? "light" : "dark",

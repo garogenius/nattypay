@@ -2,7 +2,7 @@
 
 import React, { useEffect } from "react";
 import { CgClose } from "react-icons/cg";
-import { useChangePin } from "@/api/user/user.queries";
+import { useResetOtp, useResetPin } from "@/api/user/user.queries";
 import ErrorToast from "@/components/toast/ErrorToast";
 import SuccessToast from "@/components/toast/SuccessToast";
 import CustomButton from "@/components/shared/Button";
@@ -15,54 +15,79 @@ interface ChangeTransactionPinModalProps {
 
 const ChangeTransactionPinModal: React.FC<ChangeTransactionPinModalProps> = ({ isOpen, onClose }) => {
   const { setFingerprintPaymentEnabled } = usePaymentSettingsStore();
-  const [currentPin, setCurrentPin] = React.useState("");
+  const [step, setStep] = React.useState<"request" | "reset">("request");
+  const [otpCode, setOtpCode] = React.useState("");
   const [newPin, setNewPin] = React.useState("");
   const [confirmPin, setConfirmPin] = React.useState("");
 
   useEffect(() => {
     if (isOpen) {
-      setCurrentPin("");
+      setStep("request");
+      setOtpCode("");
       setNewPin("");
       setConfirmPin("");
     }
   }, [isOpen]);
 
-  const onError = (error: any) => {
+  if (!isOpen) return null;
+
+  const handleOtpError = (error: any) => {
     const errorMessage = error?.response?.data?.message;
     const descriptions = Array.isArray(errorMessage)
       ? errorMessage
-      : [errorMessage || "Failed to change PIN"];
+      : [errorMessage || "Failed to send OTP"];
 
     ErrorToast({
-      title: "Change Failed",
+      title: "Request Failed",
       descriptions,
     });
   };
 
-  const onSuccess = () => {
+  const handleOtpSuccess = (data: any) => {
+    SuccessToast({
+      title: "OTP Sent",
+      description: data?.data?.message || "OTP sent to your registered phone number",
+    });
+    setStep("reset");
+  };
+
+  const handleResetError = (error: any) => {
+    const errorMessage = error?.response?.data?.message;
+    const descriptions = Array.isArray(errorMessage)
+      ? errorMessage
+      : [errorMessage || "Failed to reset PIN"];
+
+    ErrorToast({
+      title: "Reset Failed",
+      descriptions,
+    });
+  };
+
+  const handleResetSuccess = (data: any) => {
     // Disable fingerprint payment when PIN changes (security measure)
     setFingerprintPaymentEnabled(false);
     SuccessToast({
-      title: "PIN Changed",
-      description: "Your transaction PIN has been changed successfully. Fingerprint payment has been disabled for security.",
+      title: "PIN Reset Successful",
+      description: data?.data?.message || "Your wallet PIN has been reset successfully.",
     });
     onClose();
   };
 
-  const { mutate: changePin, isPending: changing } = useChangePin(onError, onSuccess);
+  const { mutate: requestOtp, isPending: requestingOtp } = useResetOtp(handleOtpError, handleOtpSuccess);
+  const { mutate: resetPin, isPending: resettingPin } = useResetPin(handleResetError, handleResetSuccess);
 
-  if (!isOpen) return null;
-
-  const valid = /^\d{4}$/.test(currentPin) && /^\d{4}$/.test(newPin) && newPin === confirmPin;
+  const validReset =
+    /^\d{6}$/.test(otpCode) &&
+    /^\d{4}$/.test(newPin) &&
+    newPin === confirmPin;
 
   const handleSubmit = async () => {
-    if (!valid || changing) return;
+    if (step !== "reset" || resettingPin) return;
 
-    // Additional validation with specific error messages
-    if (!/^\d{4}$/.test(currentPin)) {
+    if (!/^\d{6}$/.test(otpCode)) {
       ErrorToast({
         title: "Validation Error",
-        descriptions: ["Current PIN must be exactly 4 digits"],
+        descriptions: ["OTP code must be exactly 6 digits"],
       });
       return;
     }
@@ -78,15 +103,15 @@ const ChangeTransactionPinModal: React.FC<ChangeTransactionPinModalProps> = ({ i
     if (newPin !== confirmPin) {
       ErrorToast({
         title: "Validation Error",
-        descriptions: ["New PIN and confirmation PIN do not match"],
+        descriptions: ["PIN and confirm PIN do not match"],
       });
       return;
     }
 
-    // Call API with oldPin (not currentPin) as expected by backend
-    changePin({
-      oldPin: currentPin,
-      newPin,
+    resetPin({
+      otpCode,
+      pin: newPin,
+      confirmPin,
     });
   };
 
@@ -101,47 +126,98 @@ const ChangeTransactionPinModal: React.FC<ChangeTransactionPinModalProps> = ({ i
         </button>
 
         <div className="px-5 sm:px-6 pt-1 pb-3">
-          <h2 className="text-white text-base sm:text-lg font-semibold">Change Transaction PIN</h2>
-          <p className="text-white/60 text-sm">Secure your payments by updating your transaction PIN</p>
+          <h2 className="text-white text-base sm:text-lg font-semibold">Forget Transaction PIN</h2>
+          <p className="text-white/60 text-sm">
+            Reset your transaction PIN using an OTP sent to your registered phone number
+          </p>
         </div>
 
-        <div className="px-5 sm:px-6 space-y-3">
-          {[
-            { label: "Current PIN", value: currentPin, set: setCurrentPin, placeholder: "Enter current PIN" },
-            { label: "New PIN", value: newPin, set: setNewPin, placeholder: "Enter new PIN" },
-            { label: "Confirm New PIN", value: confirmPin, set: setConfirmPin, placeholder: "Confirm new PIN" },
-          ].map((f, i) => (
-            <div key={i}>
-              <label className="block text-sm text-white/80 mb-1.5">{f.label}</label>
-              <div className="w-full flex items-center bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-3.5 px-3">
-                <input
-                  type="password"
-                  inputMode="numeric"
-                  placeholder={f.placeholder}
-                  className="w-full bg-transparent outline-none border-none text-white placeholder:text-white/50 text-sm"
-                  value={f.value}
-                  onChange={(e) => {
-                    // Only allow numeric input and limit to 4 digits
-                    const value = e.target.value.replace(/\D/g, '').slice(0, 4);
-                    f.set(value);
-                  }}
-                  maxLength={4}
-                />
-              </div>
+        {step === "request" ? (
+          <div className="px-5 sm:px-6 space-y-4">
+            <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+              <p className="text-white text-sm font-medium">Send OTP</p>
+              <p className="text-white/60 text-sm mt-1">
+                We will send a one-time code (OTP) to your registered phone number to reset your PIN.
+              </p>
             </div>
-          ))}
-        </div>
+            <CustomButton
+              onClick={() => {
+                if (requestingOtp) return;
+                requestOtp();
+              }}
+              disabled={requestingOtp}
+              isLoading={requestingOtp}
+              className="w-full rounded-xl py-3 font-semibold bg-[#D4B139] hover:bg-[#c7a42f] text-black"
+            >
+              Send OTP
+            </CustomButton>
+          </div>
+        ) : (
+          <>
+            <div className="px-5 sm:px-6 space-y-3">
+              <div>
+                <label className="block text-sm text-white/80 mb-1.5">OTP Code</label>
+                <div className="w-full flex items-center bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-3.5 px-3">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="Enter 6-digit OTP"
+                    className="w-full bg-transparent outline-none border-none text-white placeholder:text-white/50 text-sm"
+                    value={otpCode}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/\D/g, "").slice(0, 6);
+                      setOtpCode(value);
+                    }}
+                    maxLength={6}
+                  />
+                </div>
+              </div>
 
-        <div className="px-5 sm:px-6 pt-3">
-          <CustomButton
-            onClick={handleSubmit}
-            disabled={!valid || changing}
-            isLoading={changing}
-            className="w-full rounded-xl py-3 font-semibold bg-[#D4B139] hover:bg-[#c7a42f] text-black"
-          >
-            Update PIN
-          </CustomButton>
-        </div>
+              {[
+                { label: "New PIN", value: newPin, set: setNewPin, placeholder: "Enter new PIN" },
+                { label: "Confirm New PIN", value: confirmPin, set: setConfirmPin, placeholder: "Confirm new PIN" },
+              ].map((f, i) => (
+                <div key={i}>
+                  <label className="block text-sm text-white/80 mb-1.5">{f.label}</label>
+                  <div className="w-full flex items-center bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-3.5 px-3">
+                    <input
+                      type="password"
+                      inputMode="numeric"
+                      placeholder={f.placeholder}
+                      className="w-full bg-transparent outline-none border-none text-white placeholder:text-white/50 text-sm"
+                      value={f.value}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/\D/g, "").slice(0, 4);
+                        f.set(value);
+                      }}
+                      maxLength={4}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="px-5 sm:px-6 pt-3 space-y-2">
+              <CustomButton
+                onClick={handleSubmit}
+                disabled={!validReset || resettingPin}
+                isLoading={resettingPin}
+                className="w-full rounded-xl py-3 font-semibold bg-[#D4B139] hover:bg-[#c7a42f] text-black"
+              >
+                Reset PIN
+              </CustomButton>
+
+              <button
+                type="button"
+                disabled={requestingOtp || resettingPin}
+                onClick={() => requestOtp()}
+                className="w-full text-sm text-[#D4B139] hover:underline disabled:opacity-60"
+              >
+                Resend OTP
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

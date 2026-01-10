@@ -381,6 +381,10 @@ const InvestmentModal: React.FC<InvestmentModalProps> = ({ isOpen, onClose }) =>
                 <p className="text-white/50 text-xs mt-1">
                   Upload a PDF file or provide a URL to the legal document
                 </p>
+                <p className="text-white/60 text-xs mt-1">
+                  Need help? Call <span className="font-semibold text-white">+2348134146906</span> or email{" "}
+                  <span className="font-semibold text-white">support@nattypay.com</span>
+                </p>
               </div>
 
               <div className="flex gap-2 sm:gap-3">

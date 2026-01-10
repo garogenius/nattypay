@@ -19,6 +19,7 @@ import PaymentConfirmModal from "@/components/modals/PaymentConfirmModal";
 import PaymentResultModal from "@/components/modals/PaymentResultModal";
 import SearchableDropdown from "@/components/shared/SearchableDropdown";
 import useOnClickOutside from "@/hooks/useOnClickOutside";
+import { verifyAccountRequest } from "@/api/wallet/wallet.apis";
 
 interface PaymentTransferFormProps {
   type: "nattypay" | "bank";
@@ -69,6 +70,9 @@ const PaymentTransferForm: React.FC<PaymentTransferFormProps> = ({ type, account
   const [narration, setNarration] = useState("");
   const [bankCode, setBankCode] = useState<string>("");
   const [bankName, setBankName] = useState<string>("");
+  const [isBankAutoDetected, setIsBankAutoDetected] = useState(false);
+  const [isDetectingBank, setIsDetectingBank] = useState(false);
+  const detectReqIdRef = useRef(0);
   const [openBanks, setOpenBanks] = useState(false);
   const bankDropdownRef = useRef<HTMLDivElement | null>(null);
   useOnClickOutside(bankDropdownRef, () => setOpenBanks(false));
@@ -179,17 +183,96 @@ const PaymentTransferForm: React.FC<PaymentTransferFormProps> = ({ type, account
     // Clear previous verification when value changes
     setAccountName("");
     setSessionId("");
+    if (type === "bank" && isBankAutoDetected) {
+      setBankCode("");
+      setBankName("");
+    }
+  };
+
+  const tryAutoDetectBank = async (acctNumber: string) => {
+    const reqId = ++detectReqIdRef.current;
+    setIsDetectingBank(true);
+
+    try {
+      // Some APIs return banks as { code, name } and others as { bankCode, name }.
+      const normalizedBanks = (banks || [])
+        .map((b: any) => ({
+          bankCode: String(b?.code ?? b?.bankCode ?? b?.bank_code ?? ""),
+          bankName: String(b?.name ?? b?.bankName ?? b?.bank_name ?? ""),
+        }))
+        .filter((b: any) => !!b.bankCode);
+
+      for (const b of normalizedBanks) {
+        try {
+          const res = await verifyAccountRequest({
+            accountNumber: acctNumber,
+            bankCode: b.bankCode,
+          });
+
+          // Ignore stale request results
+          if (detectReqIdRef.current !== reqId) return;
+
+          const responseData = res?.data?.data || res?.data || {};
+          const detectedAccountName =
+            responseData?.accountName || responseData?.account_name || "";
+          const detectedSessionId =
+            responseData?.sessionId || responseData?.session_id || "";
+
+          // If we got a name back, we found the correct bank
+          if (detectedAccountName) {
+            const detectedBankCode =
+              String(responseData?.bankCode || responseData?.bank_code || b.bankCode) || b.bankCode;
+            const detectedBankName =
+              String(responseData?.bankName || responseData?.bank_name || b.bankName) || b.bankName;
+
+            setBankCode(detectedBankCode);
+            setBankName(detectedBankName);
+            setIsBankAutoDetected(true);
+            setOpenBanks(false);
+            setAccountName(detectedAccountName);
+            setSessionId(detectedSessionId);
+            return;
+          }
+        } catch {
+          // keep trying other banks
+        }
+      }
+
+      if (detectReqIdRef.current !== reqId) return;
+
+      ErrorToast({
+        title: "Unable to detect bank",
+        descriptions: ["Please select the recipient bank manually."],
+      });
+    } finally {
+      if (detectReqIdRef.current === reqId) setIsDetectingBank(false);
+    }
   };
 
   useEffect(() => {
     if (accountNumber && accountNumber.length === 10) {
       if (type === "nattypay") {
         verifyAccount({ accountNumber });
-      } else if (type === "bank" && bankCode) {
-        verifyAccount({ accountNumber, bankCode });
+      } else if (type === "bank") {
+        // If user already selected / we already detected a bank, verify with that bank code.
+        // Otherwise, attempt auto-detection by trying known bank codes until one verifies.
+        if (bankCode) {
+          // Avoid double-verification if we already have verified values.
+          if (!accountName || !sessionId) verifyAccount({ accountNumber, bankCode });
+        } else {
+          // Debounce a bit to avoid firing while user is still typing/pasting
+          const t = setTimeout(() => {
+            tryAutoDetectBank(accountNumber);
+          }, 350);
+          return () => clearTimeout(t);
+        }
       }
+    } else {
+      // Cancel any in-flight auto-detect attempt when account number becomes invalid
+      detectReqIdRef.current += 1;
+      setIsDetectingBank(false);
     }
-  }, [accountNumber, bankCode, type, verifyAccount]);
+  }, [accountNumber, bankCode, type, verifyAccount, accountName, sessionId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const canProceed = useMemo(() => {
     // Parse amount, handling commas (formatNumberWithCommas adds commas)
@@ -299,7 +382,7 @@ const PaymentTransferForm: React.FC<PaymentTransferFormProps> = ({ type, account
                   maxLength={10}
                   onChange={(e) => handleAccountChange(e.target.value)}
                 />
-                {verifyLoading && (
+                {(verifyLoading || isDetectingBank) && (
                   <div className="absolute right-2 top-1/2 -translate-y-1/2">
                     <SpinnerLoader width={18} height={18} color="#D4B139" />
                   </div>
@@ -320,14 +403,16 @@ const PaymentTransferForm: React.FC<PaymentTransferFormProps> = ({ type, account
           <>
             {/* Bank dropdown FIRST */}
             <div className="flex flex-col gap-1" ref={bankDropdownRef}>
-              <label className="text-white/80 text-sm">Select Banks</label>
+              <label className="text-white/80 text-sm">Recipient Bank (auto-detect)</label>
               <div className="relative">
                 <button
                   type="button"
                   className={`w-full flex items-center justify-between bg-bg-2400 dark:bg-bg-2100 border border-border-600 py-3 px-3 text-white/80 focus:outline-none focus:ring-1 focus:ring-[#D4B139] rounded-lg ${openBanks ? "rounded-b-none border-b-0" : ""}`}
                   onClick={(e)=>{ e.preventDefault(); setOpenBanks((o)=>!o); }}
                 >
-                  <span className="truncate text-white/80">{bankName || "Select Recipient Bank"}</span>
+                  <span className="truncate text-white/80">
+                    {isDetectingBank ? "Detecting bank..." : bankName || "Auto-detect bank (or select)"}
+                  </span>
                   <svg className={`w-4 h-4 text-white/70 transition-transform ${openBanks ? "rotate-180" : "rotate-0"}`} viewBox="0 0 24 24" fill="none" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"/></svg>
                 </button>
 
@@ -349,6 +434,7 @@ const PaymentTransferForm: React.FC<PaymentTransferFormProps> = ({ type, account
                         onSelect={(bank:any) => {
                           setBankCode(String(bank.code || bank.bankCode));
                           setBankName(bank.name);
+                          setIsBankAutoDetected(false);
                         }}
                         placeholder="Search bank..."
                         isOpen={openBanks}

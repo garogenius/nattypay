@@ -6,7 +6,6 @@ import ReceiptContainer from "@/components/user/receipt/ReceiptFields";
 import useTransactionStore from "@/store/useTransaction.store";
 import html2canvas from "html2canvas";
 import { createRoot } from "react-dom/client";
-import { TRANSACTION_STATUS } from "@/constants/types";
 import { FiShare2, FiDownload } from "react-icons/fi";
 import toast from "react-hot-toast";
 
@@ -124,7 +123,7 @@ const TransactionViewModal: React.FC = () => {
           <div className="flex items-center gap-3">
             <button
               onClick={handleDownload}
-              disabled={transaction?.status !== TRANSACTION_STATUS.success || isProcessing}
+              disabled={isProcessing}
               className="flex-1 py-3 px-4 bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed text-black dark:text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 active:scale-95"
             >
               <FiDownload className="text-lg" />
@@ -132,7 +131,7 @@ const TransactionViewModal: React.FC = () => {
             </button>
             <button
               onClick={handleShare}
-              disabled={transaction?.status !== TRANSACTION_STATUS.success || isProcessing}
+              disabled={isProcessing}
               className="flex-1 py-3 px-4 bg-[#D4B139] hover:bg-[#c7a42f] disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 active:scale-95"
             >
               <FiShare2 className="text-lg" />

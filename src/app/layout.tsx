@@ -44,8 +44,8 @@ export default function RootLayout({
               (function() {
                 try {
                   const savedTheme = localStorage.getItem('theme');
-                  const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-                  const isDark = savedTheme ? savedTheme === 'dark' : prefersDark;
+                  // Default theme is DARK for now (light mode toggle hidden in settings)
+                  const isDark = savedTheme ? savedTheme === 'dark' : true;
                   
                   if (isDark) {
                     document.documentElement.setAttribute("data-mode", "dark");
