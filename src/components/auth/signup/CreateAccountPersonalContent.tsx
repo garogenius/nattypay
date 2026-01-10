@@ -286,7 +286,7 @@ const CreateAccountPersonalContent = () => {
                   <input
                     type="text"
                     placeholder="Enter your number"
-                    className="w-full border border-gray-300 rounded-lg py-3 px-4 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#D4B139] focus:border-transparent"
+                    className="w-full border border-gray-300 rounded-lg py-3 px-4 text-black dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#D4B139] focus:border-transparent bg-transparent"
                     {...register("mobileNumber")}
                   />
                   {errors.mobileNumber && (
@@ -299,7 +299,7 @@ const CreateAccountPersonalContent = () => {
                   <input
                     type="email"
                     placeholder="Enter your email"
-                    className="w-full border border-gray-300 rounded-lg py-3 px-4 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#D4B139] focus:border-transparent"
+                    className="w-full border border-gray-300 rounded-lg py-3 px-4 text-black dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#D4B139] focus:border-transparent bg-transparent"
                     {...register("email")}
                   />
                   {errors.email && (

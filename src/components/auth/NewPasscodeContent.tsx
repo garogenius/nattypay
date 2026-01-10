@@ -146,7 +146,7 @@ const NewPasscodeContent = () => {
                       renderInput={(props) => (
                         <input
                           {...props}
-                          className="w-12 h-12 bg-transparent border-b-2 border-gray-300 text-center text-xl font-medium outline-none focus:border-[#D4B139]"
+                          className="w-12 h-12 bg-transparent border-b-2 border-gray-300 text-center text-xl font-medium outline-none focus:border-[#D4B139] text-[#141414] dark:text-white"
                         />
                       )}
                     />
@@ -174,7 +174,7 @@ const NewPasscodeContent = () => {
                       renderInput={(props) => (
                         <input
                           {...props}
-                          className="w-12 h-12 bg-transparent border-b-2 border-gray-300 text-center text-xl font-medium outline-none focus:border-[#D4B139]"
+                          className="w-12 h-12 bg-transparent border-b-2 border-gray-300 text-center text-xl font-medium outline-none focus:border-[#D4B139] text-[#141414] dark:text-white"
                         />
                       )}
                     />

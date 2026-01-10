@@ -164,7 +164,7 @@ const PreRegisterVerifyEmailContent = () => {
                   renderInput={(props) => (
                     <input
                       {...props}
-                      className="w-12 h-12 mx-1 text-center text-lg font-semibold border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4B139] focus:border-[#D4B139]"
+                      className="w-12 h-12 mx-1 text-center text-lg font-semibold border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#D4B139] focus:border-[#D4B139] text-[#141414] dark:text-white bg-transparent"
                     />
                   )}
                 />

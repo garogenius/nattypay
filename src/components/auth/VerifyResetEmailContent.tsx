@@ -204,7 +204,7 @@ const VerifyResetEmailContent = () => {
                 renderInput={(props) => (
                   <input
                     {...props}
-                    className="w-10 h-10 2xs:w-12 2xs:h-12 bg-transparent border-[1.03px] border-border-700  rounded-md text-base 2xs:text-lg text-text-700 dark:text-text-400 text-center font-medium outline-none"
+                    className="w-10 h-10 2xs:w-12 2xs:h-12 bg-transparent border-[1.03px] border-border-700  rounded-md text-base 2xs:text-lg text-text-700 dark:text-text-400 text-center font-medium outline-none focus:border-[#D4B139] text-[#141414] dark:text-white"
                   />
                 )}
               />

@@ -242,4 +242,3 @@ const ReceiptContainer = () => {
 };
 
 export default ReceiptContainer;
-export { getBillsFields };
