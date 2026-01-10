@@ -17,7 +17,7 @@ import CardPreview from "@/components/user/cards/CardPreview";
 import ShowCardDetailsModal from "@/components/modals/cards/ShowCardDetailsModal";
 import ChangePinModal from "@/components/modals/cards/ChangePinModal";
 import ConfirmActionModal from "@/components/modals/cards/ConfirmActionModal";
-import { useGetCurrencyAccounts, useGetCurrencyAccountByCurrency, useCreateCurrencyAccount, useGetCards, useCreateCard } from "@/api/currency/currency.queries";
+import { useGetCurrencyAccounts, useGetCurrencyAccountByCurrency, useCreateCurrencyAccount, useGetCards } from "@/api/currency/currency.queries";
 import { ICurrencyAccount, IVirtualCard } from "@/api/currency/currency.types";
 import ErrorToast from "@/components/toast/ErrorToast";
 import SuccessToast from "@/components/toast/SuccessToast";
@@ -357,82 +357,6 @@ const AccountsContent: React.FC = () => {
     onCreateAccountSuccess
   );
 
-  const onCreateCardError = (error: any) => {
-    const errorMessage = error?.response?.data?.message;
-    const descriptions = Array.isArray(errorMessage)
-      ? errorMessage
-      : [errorMessage || "Failed to create virtual card"];
-
-    ErrorToast({
-      title: "Creation Failed",
-      descriptions,
-    });
-  };
-
-  const onCreateCardSuccess = () => {
-    SuccessToast({
-      title: "Card Created Successfully!",
-      description: `Your virtual ${selectedCurrency} card has been created.`,
-    });
-    setOpenCreateCard(false);
-    setCardLabel("");
-    refetchCards();
-  };
-
-  const { mutate: createCard, isPending: creatingCard } = useCreateCard(
-    onCreateCardError,
-    onCreateCardSuccess
-  );
-
-  const handleCreateCard = () => {
-    // Only allow cards for USD and NGN
-    const supportedCardCurrencies: Array<"USD" | "NGN"> = ["USD", "NGN"];
-    if (!supportedCardCurrencies.includes(selectedCurrency as "USD" | "NGN")) {
-      ErrorToast({
-        title: "Card Not Available",
-        descriptions: [`${selectedCurrency} virtual cards are not available. Only USD and NGN virtual cards are available.`],
-      });
-      return;
-    }
-
-    // For NGN, check wallet; for USD, check currency account
-    if (selectedCurrency === "NGN") {
-      const hasNGNWallet = user?.wallet?.some(w => {
-        const walletCurrency = String(w?.currency || "").toUpperCase().trim();
-        return walletCurrency === "NGN";
-      });
-      if (!hasNGNWallet) {
-        ErrorToast({
-          title: "NGN Wallet Required",
-          descriptions: ["You must have a NGN wallet before creating a virtual card. Please contact support if you don't have a NGN wallet."],
-        });
-        return;
-      }
-    } else if (!currencyAccount) {
-      ErrorToast({
-        title: `${selectedCurrency} Account Required`,
-        descriptions: [`You must have a ${selectedCurrency} account before creating a virtual card. Please create a ${selectedCurrency} account first.`],
-      });
-      return;
-    }
-
-    if (!cardLabel.trim()) {
-      ErrorToast({
-        title: "Validation Error",
-        descriptions: ["Card label is required"],
-      });
-      return;
-    }
-
-    // TypeScript type narrowing - we've already validated selectedCurrency is USD or NGN
-    const cardCurrency: "USD" | "NGN" = selectedCurrency === "USD" ? "USD" : "NGN";
-    
-    createCard({
-      label: cardLabel.trim(),
-      currency: cardCurrency,
-    });
-  };
-
   const formatExpiry = (card: IVirtualCard) => {
     if (card.expiryMonth && card.expiryYear) {
       const month = String(card.expiryMonth).padStart(2, "0");
@@ -485,8 +409,6 @@ const AccountsContent: React.FC = () => {
   const [openBlock, setOpenBlock] = useState(false);
   const [openTier2Modal, setOpenTier2Modal] = useState(false);
   const [openTier3Modal, setOpenTier3Modal] = useState(false);
-  const [openCreateCard, setOpenCreateCard] = useState(false);
-  const [cardLabel, setCardLabel] = useState("");
   const [selectedCard, setSelectedCard] = useState<IVirtualCard | null>(null);
 
   // Debug: Log empty state condition (moved from JSX to useEffect)
