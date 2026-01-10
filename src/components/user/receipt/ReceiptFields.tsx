@@ -41,12 +41,9 @@ export const getTransactionDetails = (
 
   return fields
     .filter((field) => {
-      // Hide reference fields if transaction failed
-
       if (isFailedTransaction) {
         return !["Reference", "Transaction ID"].includes(field.label);
       }
-
       return true;
     })
     .map((field) => ({
@@ -55,15 +52,20 @@ export const getTransactionDetails = (
         if (key === "createdAt") {
           return format(
             new Date(transaction.createdAt),
-            "yyyy-MM-dd '|' h:mm a"
-          );
+            "dd-MM-yyyy hh:mm a"
+          ).toUpperCase();
         }
 
-        
-        if (field.label === "Category" && transaction.category === TRANSACTION_CATEGORY.TRANSFER) {
-          const isInterBank = transaction.transferDetails?.beneficiaryBankName && 
-            transaction.transferDetails.beneficiaryBankName.toLowerCase() !== 'nattypay';
-          return isInterBank ? "Inter Bank Transfer" : "Intra Bank Transfer";
+        if (field.label === "Transaction Date" && field.value === "{category}") {
+           // This is the second 'Transaction Date' row in the screenshot which shows the type/category
+           if (transaction.category === TRANSACTION_CATEGORY.TRANSFER) {
+             const isInterBank = transaction.transferDetails?.beneficiaryBankName && 
+               transaction.transferDetails.beneficiaryBankName.toLowerCase() !== 'nattypay';
+             return isInterBank ? "Inter-bank Transfer" : "Intra-bank Transfer";
+           }
+           if (transaction.category === TRANSACTION_CATEGORY.DEPOSIT) return "Merchant Deposit";
+           if (transaction.category === TRANSACTION_CATEGORY.BILL_PAYMENT) return transaction.billDetails?.type || "Bill Payment";
+           return transaction.category;
         }
 
         // Handle nested properties
@@ -81,12 +83,11 @@ export const getTransactionDetails = (
           return formatSenderName(String(value ?? ""));
         }
 
-        if (field.label === "Total Amount Paid" || 
+        if (field.label === "Amount" || 
           field.label === "Balance Before" || 
           field.label === "Balance After") {
-        return formatNumberWithCommas(String(value ?? "0"));
+        return `₦${formatNumberWithCommas(String(value ?? "0"))}`;
       }
-
 
         return String(value ?? "0");
       }),
@@ -96,257 +97,144 @@ export const getTransactionDetails = (
     }));
 };
 
-export const depositFields = [
-
-  { label: "Category", value: "{category}" },
+// Unified fields array to match the screenshot's exact order
+export const receiptFieldsSequence = [
+  { label: "Transaction Date", value: "{createdAt}" },
+  { label: "Transaction ID", value: "{transactionRef}" },
+  { label: "Amount", value: "{amount}" }, // Handled in mapping
   { label: "Currency", value: "{currency}" },
-  { label: "Transaction Type", value: "{type}" },
-
-  { label: "Total Amount Paid", value: "₦{depositDetails.amountPaid}" },
-  { label: "Sender Name", value: "{depositDetails.senderName}" },
-  { label: "Sender Bank Name", value: "{depositDetails.senderBankName}" },
-  {
-    label: "Sender Account Number",
-    value: "{depositDetails.senderAccountNumber}",
-  },
-
-  { label: "Beneficiary Name", value: "{depositDetails.beneficiaryName}" },
-  {
-    label: "Beneficiary Bank Name",
-    value: "{depositDetails.beneficiaryBankName}",
-  },
-  {
-    label: "Beneficiary Account Number",
-    value: "{depositDetails.beneficiaryAccountNumber}",
-  },
-
+  { label: "Transaction Date", value: "{category}" }, // Screenshot shows 'Transaction Date' again for the type
+  { label: "Sender Name", value: "{senderName}" },
+  { label: "Beneficiary Details", value: "{beneficiaryName}" },
+  { label: "Beneficiary Bank", value: "{beneficiaryBank}" },
+  { label: "Narration", value: "{narration}" },
   { label: "Status", value: "{status}" },
-
-  { label: "Balance Before", value: "₦{previousBalance}" },
-  { label: "Balance After", value: "₦{currentBalance}" },
-  { label: "Date & Time", value: "{createdAt}" },
-  { label: "Transaction Ref", value: "{transactionRef}" },
 ];
-
-export const transferFields = [
-
-  { label: "Category", value: "{category}" },
-  { label: "Currency", value: "{currency}" },
-  { label: "Transaction Type", value: "{type}" },
-
-  { label: "Total Amount Paid", value: "₦{transferDetails.amountPaid}" },
-  { label: "Sender Name", value: "{transferDetails.senderName}" },
- 
-
-  { label: "Beneficiary Name", value: "{transferDetails.beneficiaryName}" },
-  {
-    label: "Beneficiary Bank Name",
-    value: "{transferDetails.beneficiaryBankName}",
-  },
-  {
-    label: "Beneficiary Account Number",
-    value: "{transferDetails.beneficiaryAccountNumber}",
-  },
-
-  { label: "Status", value: "{status}" },
-
-  { label: "Balance Before", value: "₦{previousBalance}" },
-  { label: "Balance After", value: "₦{currentBalance}" },
-  { label: "Date & Time", value: "{createdAt}" },
-  { label: "Transaction Ref", value: "{transferDetails.sessionId}" },
-];
-
-export const networksFields = [
-
-  { label: "Category", value: "{category}" },
-  { label: "Currency", value: "{currency}" },
-  { label: "Transaction Type", value: "{type}" },
-
-  { label: "Total Amount Paid", value: "₦{billDetails.amountPaid}" },
-  { label: "Bill Type", value: "{billDetails.type}" },
-  { label: "Network", value: "{billDetails.network}" },
-  { label: "Recipient", value: "{billDetails.recipientPhone}" },
-
-  { label: "Status", value: "{status}" },
-
-  { label: "Balance Before", value: "₦{previousBalance}" },
-  { label: "Balance After", value: "₦{currentBalance}" },
-  { label: "Date & Time", value: "{createdAt}" },
-  { label: "Transaction Ref", value: "{transactionRef}" },
-];
-
-export const electricityFields = [
-
-  { label: "Category", value: "{category}" },
-  { label: "Currency", value: "{currency}" },
-  { label: "Transaction Type", value: "{type}" },
-
-  { label: "Total Amount Paid", value: "₦{billDetails.amountPaid}" },
-  { label: "Bill Type", value: "{billDetails.type}" },
-  { label: "Recipient", value: "{billDetails.recipientPhone}" },
-  { label: "Reference", value: "{billDetails.reference}" },
-
-  { label: "Status", value: "{status}" },
-
-  { label: "Balance Before", value: "₦{previousBalance}" },
-  { label: "Balance After", value: "₦{currentBalance}" },
-  { label: "Date & Time", value: "{createdAt}" },
-  { label: "Transaction Ref", value: "{transactionRef}" },
-];
-
-export const giftCardFields = [
-
-  { label: "Category", value: "{category}" },
-  { label: "Currency", value: "{currency}" },
-  { label: "Transaction Type", value: "{type}" },
-
-  { label: "Total Amount Paid", value: "₦{billDetails.amountPaid}" },
-  { label: "Bill Type", value: "{billDetails.type}" },
-  { label: "Transaction ID", value: "{billDetails.transactionId}" },
-
-  { label: "Status", value: "{status}" },
-
-  { label: "Balance Before", value: "₦{previousBalance}" },
-  { label: "Balance After", value: "₦{currentBalance}" },
-  { label: "Date & Time", value: "{createdAt}" },
-  { label: "Transaction Ref", value: "{transactionRef}" },
-];
-
-export const defaultBillsFields = [
-
-  { label: "Category", value: "{category}" },
-  { label: "Currency", value: "{currency}" },
-  { label: "Transaction Type", value: "{type}" },
-
-  { label: "Total Amount Paid", value: "₦{billDetails.amountPaid}" },
-  { label: "Bill Type", value: "{billDetails.type}" },
-  { label: "Recipient", value: "{billDetails.recipientPhone}" },
-
-  { label: "Status", value: "{status}" },
-
-  { label: "Balance Before", value: "₦{previousBalance}" },
-  { label: "Balance After", value: "₦{currentBalance}" },
-  { label: "Date & Time", value: "{createdAt}" },
-  { label: "Transaction Ref", value: "{transactionRef}" },
-];
-
-export const getBillsFields = (transaction: Transaction) => {
-  const billsFields =
-    transaction.billDetails?.type === BILL_TYPE.AIRTIME ||
-    transaction.billDetails?.type === BILL_TYPE.DATA
-      ? networksFields
-      : transaction.billDetails?.type === BILL_TYPE.ELECTRICITY
-      ? electricityFields
-      : transaction.billDetails?.type === BILL_TYPE.GIFTCARD
-      ? giftCardFields
-      : defaultBillsFields;
-  switch (transaction?.category) {
-    case TRANSACTION_CATEGORY.DEPOSIT:
-      return depositFields;
-    case TRANSACTION_CATEGORY.BILL_PAYMENT:
-      return billsFields;
-    case TRANSACTION_CATEGORY.TRANSFER:
-      return transferFields;
-
-    default:
-      return [];
-  }
-};
 
 const ReceiptContainer = () => {
   const { transaction } = useTransactionStore();
 
   if (!transaction) return null;
 
-  const fields = getBillsFields(transaction);
-  const formattedDate = transaction?.createdAt ? 
-    format(new Date(transaction.createdAt), "EEEE, MMMM d, yyyy h:mm a") : "";
+  // Derive values for the unified fields
+  const category = transaction.category;
+  const amount = ((): string => {
+    if (category === TRANSACTION_CATEGORY.TRANSFER) return transaction.transferDetails?.amountPaid ?? transaction.transferDetails?.amount ?? "0";
+    if (category === TRANSACTION_CATEGORY.DEPOSIT) return transaction.depositDetails?.amountPaid ?? transaction.depositDetails?.amount ?? "0";
+    if (category === TRANSACTION_CATEGORY.BILL_PAYMENT) return transaction.billDetails?.amountPaid ?? transaction.billDetails?.amount ?? "0";
+    return "0";
+  })();
+
+  const walletName = transaction.wallet?.accountName || transaction.wallet?.user?.fullname || "-";
+  const walletAccount = transaction.wallet?.accountNumber || "-";
+  const walletBank = transaction.wallet?.bankName || "NattyPay";
+
+  let senderName = "-";
+  let beneficiaryName = "-";
+  let beneficiaryBank = "-";
+  let beneficiaryAccount = "";
+
+  if (category === TRANSACTION_CATEGORY.TRANSFER) {
+    senderName = transaction.transferDetails?.senderName || walletName;
+    beneficiaryName = transaction.transferDetails?.beneficiaryName || "-";
+    beneficiaryAccount = transaction.transferDetails?.beneficiaryAccountNumber || "";
+    beneficiaryBank = transaction.transferDetails?.beneficiaryBankName || "-";
+  } else if (category === TRANSACTION_CATEGORY.DEPOSIT) {
+    senderName = transaction.depositDetails?.senderName || "-";
+    beneficiaryName = walletName;
+    beneficiaryAccount = walletAccount;
+    beneficiaryBank = walletBank;
+  } else if (category === TRANSACTION_CATEGORY.BILL_PAYMENT) {
+    senderName = walletName;
+    beneficiaryName = transaction.billDetails?.recipientPhone || transaction.billDetails?.billerName || "-";
+    beneficiaryBank = transaction.billDetails?.billerName || "-";
+  }
+
+  const narration = transaction.description || transaction.billDetails?.type || "-";
+
+  // Override transaction object temporarily for display mapping
+  const displayTx = {
+    ...transaction,
+    amount,
+    senderName,
+    beneficiaryName,
+    beneficiaryBank,
+    narration,
+    transactionRef: transaction.transactionRef || transaction.transferDetails?.sessionId || transaction.depositDetails?.reference || "-"
+  };
+
+  const details = getTransactionDetails(displayTx as any, receiptFieldsSequence);
 
   return (
-    <div id="receipt-container" className="flex flex-col max-w-md mx-auto overflow-hidden rounded-2xl shadow-lg">
-
-      <div className="bg-amber-100 p-4 rounded-b-2xl relative">
-   
-        <div className="absolute -left-3 -top-1 w-6 h-6 bg-white rounded-full"></div>
-        <div className="absolute -right-3 -top-1 w-6 h-6 bg-white rounded-full"></div>
-        
-        <div className="flex items-center justify-between mb-3">
-  <div className="flex items-center bg-white p-2 rounded-lg"> {/* Added bg-white, p-2, and rounded-lg */}
-    <Image 
-      src={images.logo} 
-      alt="logo" 
-      className="h-8 w-auto font-bold" // Added font-bold
-      style={{ objectFit: 'contain' }} // Ensures logo maintains its aspect ratio
-    />
-  </div>
-  <div className="text-gray-700 text-sm font-medium">
-    Smart Banking
-  </div>
-</div>
-        
-        <h1 className="text-xl font-bold text-center text-gray-800 mb-1">Transaction Receipt</h1>
-        <p className="text-xs text-center text-gray-500">
-          Generated by Nattypay on {formattedDate}
-        </p>
+    <div
+      id="receipt-container"
+      className="flex flex-col w-full max-w-[500px] mx-auto overflow-hidden bg-white dark:bg-[#0B0F1A] p-6 sm:p-8 transition-colors duration-200"
+    >
+      {/* Header section */}
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-2">
+          <Image
+            src={images.logo}
+            alt="NattyPay Logo"
+            width={120}
+            height={40}
+            className="h-8 w-auto object-contain dark:brightness-200"
+          />
+        </div>
+        <div className="text-black dark:text-white text-sm font-medium">
+          Smart Banking
+        </div>
       </div>
 
-      {/* Transaction details */}
-      <div className="bg-white">
-        {getTransactionDetails(transaction, fields)
-          .filter(
-            (detail) =>
-       
-              detail.label !== "Balance Before" &&
-              detail.label !== "Balance After"
-          )
-          .map((detail, index) => (
-            // <div
-            //   key={index}
-            //   className="border-b border-gray-100 px-4 py-2 w-full flex items-center justify-between"
-            // >
-            //   <p className="text-amber-100 text-xs font-medium">{detail.label}</p>
-            //   {detail.isStatus ? (
-            //     <span
-            //       className={`px-2 py-2 rounded-full text-xs font-medium ${detail.value.toLowerCase() === "success" ? "bg-green-100 text-green-600" : detail.value.toLowerCase() === "pending" ? "bg-yellow-100 text-yellow-600" : "bg-red-100 text-red-600"}`}
-            //     >
-            //       {detail.value}
-            //     </span>
-            //   ) : (
-            //     <p className="text-gray-800 text-xs font-medium text-right">{detail.value}</p>
-            //   )}
-            // </div>
+      {/* Center Badge */}
+      <div className="flex justify-center mb-8">
+        <div className="bg-[#D4B139] text-white px-8 py-2.5 rounded-lg font-semibold text-lg shadow-sm">
+          Transaction Receipt
+        </div>
+      </div>
 
-            <div
-  key={index}
-  className="border-b border-gray-100 px-4 py-2 w-full flex items-center justify-between"
->
-  <p className="text-amber-300 text-xs font-medium">{detail.label}</p>
-  {detail.isStatus ? (
-    <span
-      className={`inline-flex items-center justify-center px-3 py-1.5 rounded-full text-xs font-medium ${
-        detail.value.toLowerCase() === "success"
-          ? " text-green-600"
-          : detail.value.toLowerCase() === "pending"
-          ? " text-yellow-600"
-          : "text-red-600"
-      }`}
-    >
-      {detail.value}
-    </span>
-  ) : (
-    <p className="text-gray-800 text-xs font-medium text-right">{detail.value}</p>
-  )}
-</div>
-          ))}
+      {/* Transaction details list */}
+      <div className="flex flex-col gap-0 w-full mb-8">
+        {details.map((detail, index) => {
+          let displayValue = detail.value;
+          
+          // Format beneficiary details to include account number in brackets if it exists
+          if (detail.label === "Beneficiary Details" && beneficiaryAccount) {
+            displayValue = `${detail.value} (${beneficiaryAccount})`;
+          }
+
+          return (
+            <div key={index} className="w-full">
+              <div className="w-full border-t border-dotted border-[#D4B139] border-[1.5px] opacity-100 my-0"></div>
+              
+              <div className="flex items-center justify-between py-4 px-1">
+                <p className="text-gray-500 dark:text-gray-400 text-sm font-normal">
+                  {detail.label}
+                </p>
+                {detail.isStatus ? (
+                  <span className="text-[#068E44] dark:text-[#64D284] text-sm font-semibold">
+                    {detail.value.toLowerCase() === "success" ? "Successful" : detail.value}
+                  </span>
+                ) : (
+                  <p className="text-black dark:text-white text-sm font-semibold text-right">
+                    {displayValue}
+                  </p>
+                )}
+              </div>
+            </div>
+          );
+        })}
+        <div className="w-full border-t border-dotted border-[#D4B139] border-[1.5px] opacity-100 my-0"></div>
       </div>
 
       {/* Footer with contact info */}
-      <div className="bg-white p-3 text-center border-t border-gray-100 rounded-b-2xl">
-        <p className="text-xs text-gray-500 mb-1">
-          If You Have Questions Or You Would Like To Know More Informations About NattyPay, Please Call Our 24/7 Contact Centre On <span className="text-amber-500">+2348134146906</span> Or Send Us Mail To <a href="mailto:support@nattypay.com" className="text-amber-500">support@nattypay.com</a>
-        </p>
-        <p className="text-xs text-gray-500">
-          Thanks For Choosing Nattypay
+      <div className="mt-auto pt-4 text-left">
+        <p className="text-[11px] sm:text-[12px] text-gray-700 dark:text-gray-300 leading-relaxed font-medium">
+          Thank you for banking with NattyPay. For support, contact us at{" "}
+          <span className="font-semibold">Support@nattypay.com</span>, call{" "}
+          <span className="font-semibold">+2348134146906</span> or Head Office:
+          C3&C4 Suite 2nd Floor Ejison Plaza 9a New Market Road Main Market
+          Onitsha
         </p>
       </div>
     </div>
@@ -354,3 +242,4 @@ const ReceiptContainer = () => {
 };
 
 export default ReceiptContainer;
+export { getBillsFields };

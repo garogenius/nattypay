@@ -23,8 +23,18 @@
   input:-webkit-autofill,
   input:-webkit-autofill:hover,
   input:-webkit-autofill:focus,
-  input:-webkit-autofill:active {
+  input:-webkit-autofill:active,
+  textarea:-webkit-autofill,
+  textarea:-webkit-autofill:hover,
+  textarea:-webkit-autofill:focus,
+  textarea:-webkit-autofill:active,
+  select:-webkit-autofill,
+  select:-webkit-autofill:hover,
+  select:-webkit-autofill:focus,
+  select:-webkit-autofill:active {
     -webkit-box-shadow: 0 0 0 30px transparent inset !important;
+    /* Important: keep autofilled / OTP-pasted text readable in BOTH themes.
+       Using prefers-color-scheme breaks when user switches theme manually. */
     -webkit-text-fill-color: inherit !important;
     transition: background-color 5000s ease-in-out 0s;
   }
@@ -34,6 +44,37 @@
   /* Make text-white adapt to theme in light mode */
   html:not(.dark) .text-white {
     color: #141414 !important; /* text-200 - dark color for light mode */
+  }
+
+  /* Fix: many modals/pages use text-white/{opacity} even in light mode.
+     In light mode, map those to readable dark grays. */
+  html:not(.dark) .text-white\/95,
+  html:not(.dark) .text-white\/90,
+  html:not(.dark) .text-white\/80 {
+    color: #141414 !important; /* strong text */
+  }
+  html:not(.dark) .text-white\/70 {
+    color: #46484F !important; /* text-700 */
+  }
+  html:not(.dark) .text-white\/60 {
+    color: #707072 !important; /* text-1700 */
+  }
+  html:not(.dark) .text-white\/50,
+  html:not(.dark) .text-white\/40 {
+    color: #797B86 !important; /* text-1000 */
+  }
+
+  /* Placeholders commonly use placeholder:text-white/{opacity} */
+  html:not(.dark) .placeholder\:text-white::placeholder {
+    color: #797B86 !important;
+    opacity: 1 !important;
+  }
+  html:not(.dark) .placeholder\:text-white\/70::placeholder,
+  html:not(.dark) .placeholder\:text-white\/60::placeholder,
+  html:not(.dark) .placeholder\:text-white\/50::placeholder,
+  html:not(.dark) .placeholder\:text-white\/40::placeholder {
+    color: #797B86 !important;
+    opacity: 1 !important;
   }
   
   /* Ensure text-white stays white in dark mode */
@@ -72,14 +113,35 @@ input[type="number"] {
   -moz-appearance: textfield;
 }
 
-/* Dark mode styles for autofill */
-@media (prefers-color-scheme: dark) {
-  input:-webkit-autofill,
-  input:-webkit-autofill:hover,
-  input:-webkit-autofill:focus,
-  input:-webkit-autofill:active {
-    -webkit-text-fill-color: white !important;
-  }
+/* Autofill/OTP-paste color must follow APP THEME (not system theme). */
+html.dark input:-webkit-autofill,
+html.dark input:-webkit-autofill:hover,
+html.dark input:-webkit-autofill:focus,
+html.dark input:-webkit-autofill:active,
+html.dark textarea:-webkit-autofill,
+html.dark textarea:-webkit-autofill:hover,
+html.dark textarea:-webkit-autofill:focus,
+html.dark textarea:-webkit-autofill:active,
+html.dark select:-webkit-autofill,
+html.dark select:-webkit-autofill:hover,
+html.dark select:-webkit-autofill:focus,
+html.dark select:-webkit-autofill:active {
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+html:not(.dark) input:-webkit-autofill,
+html:not(.dark) input:-webkit-autofill:hover,
+html:not(.dark) input:-webkit-autofill:focus,
+html:not(.dark) input:-webkit-autofill:active,
+html:not(.dark) textarea:-webkit-autofill,
+html:not(.dark) textarea:-webkit-autofill:hover,
+html:not(.dark) textarea:-webkit-autofill:focus,
+html:not(.dark) textarea:-webkit-autofill:active,
+html:not(.dark) select:-webkit-autofill,
+html:not(.dark) select:-webkit-autofill:hover,
+html:not(.dark) select:-webkit-autofill:focus,
+html:not(.dark) select:-webkit-autofill:active {
+  -webkit-text-fill-color: #141414 !important;
 }
 
 @keyframes heartbeat {

@@ -1,273 +1,151 @@
 "use client";
 
-import React from "react";
-import NextImage from "next/image";
-import images from "../../../../public/images";
+import React, { useState } from "react";
 import useTransactionViewModalStore from "@/store/transactionViewModal.store";
-import { format } from "date-fns";
-import { Transaction, TRANSACTION_CATEGORY, TRANSACTION_STATUS } from "@/constants/types";
-
-const Row = ({ label, value, strong = false }: { label: string; value: React.ReactNode; strong?: boolean }) => (
-  <div className="w-full">
-    <div className="flex items-center justify-between py-3">
-      <span className="text-white/70 text-xs sm:text-sm">{label}</span>
-      <span className={`text-xs sm:text-sm ${strong ? "font-semibold text-white" : "text-white"}`}>{value || "-"}</span>
-    </div>
-    <div className="border-t border-dashed border-white/20" />
-  </div>
-);
+import ReceiptContainer from "@/components/user/receipt/ReceiptFields";
+import useTransactionStore from "@/store/useTransaction.store";
+import html2canvas from "html2canvas";
+import { createRoot } from "react-dom/client";
+import { TRANSACTION_STATUS } from "@/constants/types";
+import { FiShare2, FiDownload } from "react-icons/fi";
+import toast from "react-hot-toast";
 
 const TransactionViewModal: React.FC = () => {
   const { isOpen, transaction, close } = useTransactionViewModalStore();
-  const receiptRef = React.useRef<HTMLDivElement | null>(null);
+  const setTransaction = useTransactionStore((state) => state.setTransaction);
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  React.useEffect(() => {
+    if (isOpen && transaction) {
+      setTransaction(transaction);
+    }
+  }, [isOpen, transaction, setTransaction]);
 
   if (!isOpen || !transaction) return null;
 
-  const tx: Transaction = transaction;
-  const created = tx.createdAt ? format(new Date(tx.createdAt), "dd-MM-yyyy h:mm a") : "-";
+  const generateReceiptImage = async () => {
+    const tempDiv = document.createElement("div");
+    tempDiv.style.position = "absolute";
+    tempDiv.style.left = "-9999px";
+    tempDiv.style.width = "500px";
+    document.body.appendChild(tempDiv);
 
-  // resolve details safely
-  const category = tx.category;
-  const trxId = tx.transactionRef;
-  const amountPaid = ((): string => {
-    if (category === TRANSACTION_CATEGORY.TRANSFER) return `₦${tx.transferDetails?.amountPaid ?? tx.transferDetails?.amount ?? "-"}`;
-    if (category === TRANSACTION_CATEGORY.DEPOSIT) return `₦${tx.depositDetails?.amountPaid ?? tx.depositDetails?.amount ?? "-"}`;
-    if (category === TRANSACTION_CATEGORY.BILL_PAYMENT) return `₦${tx.billDetails?.amountPaid ?? tx.billDetails?.amount ?? "-"}`;
-    return "-";
-  })();
+    const root = createRoot(tempDiv);
+    root.render(
+      <div className="bg-white">
+        <ReceiptContainer />
+      </div>
+    );
 
-  // Derive sender/beneficiary by category with robust fallbacks
-  const walletName = tx.wallet?.accountName || tx.wallet?.user?.fullname || "-";
-  const walletAccount = tx.wallet?.accountNumber || "-";
-  const walletBank = tx.wallet?.bankName || "NattyPay";
+    // Wait for content and images to load
+    await new Promise((resolve) => setTimeout(resolve, 600));
 
-  let senderName = "-";
-  let senderAccount = "-";
-  let senderBank = "-";
-  let beneficiaryName = "-";
-  let beneficiaryAccount = "-";
-  let beneficiaryBank = "-";
-
-  if (category === TRANSACTION_CATEGORY.TRANSFER) {
-    // Our user sending money out
-    senderName = tx.transferDetails?.senderName || walletName;
-    senderAccount = tx.transferDetails?.senderAccountNumber || walletAccount;
-    senderBank = tx.transferDetails?.senderBankName || walletBank;
-
-    beneficiaryName = tx.transferDetails?.beneficiaryName || "-";
-    beneficiaryAccount = tx.transferDetails?.beneficiaryAccountNumber || "-";
-    beneficiaryBank = tx.transferDetails?.beneficiaryBankName || "-";
-  } else if (category === TRANSACTION_CATEGORY.DEPOSIT) {
-    // Money coming to our user
-    senderName = tx.depositDetails?.senderName || "-";
-    senderAccount = tx.depositDetails?.senderAccountNumber || "-";
-    senderBank = tx.depositDetails?.senderBankName || "-";
-
-    beneficiaryName = walletName;
-    beneficiaryAccount = walletAccount;
-    beneficiaryBank = walletBank;
-  } else if (category === TRANSACTION_CATEGORY.BILL_PAYMENT) {
-    // Bill purchase: sender is our user, beneficiary is bill recipient/number
-    senderName = walletName;
-    senderAccount = walletAccount;
-    senderBank = walletBank;
-
-    beneficiaryName = tx.billDetails?.recipientPhone || tx.billDetails?.billerName || "-";
-    beneficiaryAccount = tx.billDetails?.recipientPhone || "-";
-    beneficiaryBank = tx.billDetails?.billerName || "-";
-  }
-  const narration = tx.description || tx.billDetails?.type || "-";
-  const status = tx.status || "-";
-
-  const handleDownload = () => {
-    // Render receipt to a canvas directly (no DOM capture) to avoid tainted canvas
-    const scale = 2; // for sharper output
-    const width = 360; // px logical width
-    let y = 24; // cursor
-    const paddingX = 16;
-    const lineHeight = 22;
-    const sectionGap = 10;
-
-    // Estimate height: header + items + footer
-    const items = [
-      ["Transaction Date", created],
-      ["Transaction ID", trxId || "-"],
-      ["Amount", amountPaid],
-      ["Currency", "NGN"],
-      ["Transaction Type", String(category)],
-      ["Sender Name", senderName],
-      ["Sender Account", senderAccount],
-      ["Sender Bank", senderBank],
-      ["Beneficiary Details", beneficiaryName],
-      ["Beneficiary Account", beneficiaryAccount],
-      ["Beneficiary Bank", beneficiaryBank],
-      ["Narration", narration],
-      ["Status", String(status)],
-    ];
-    const estHeight = 24 + 40 + 16 + (items.length * (lineHeight + 8)) + 80 + 24;
-
-    const canvas = document.createElement("canvas");
-    canvas.width = width * scale;
-    canvas.height = estHeight * scale;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    ctx.scale(scale, scale);
-
-    // Background
-    ctx.fillStyle = "#0b0f1a"; // dark
-    ctx.fillRect(0, 0, width, estHeight);
-
-    // Header
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "600 14px Inter, Arial, sans-serif";
-    ctx.fillText("NattyPay", paddingX, y);
-    ctx.font = "400 11px Inter, Arial, sans-serif";
-    ctx.fillStyle = "rgba(255,255,255,0.7)";
-    ctx.fillText("Smart Banking", width - paddingX - 90, y);
-    y += 20;
-
-    // Gold receipt chip
-    const chipText = "Transaction Receipt";
-    const chipPaddingX = 12;
-    const chipPaddingY = 6;
-    ctx.font = "600 12px Inter, Arial, sans-serif";
-    const chipTextWidth = ctx.measureText(chipText).width;
-    const chipW = chipTextWidth + chipPaddingX * 2;
-    const chipH = 24;
-    const chipX = (width - chipW) / 2;
-    const chipY = y;
-    ctx.fillStyle = "#D4B139";
-    ctx.beginPath();
-    const r = 8;
-    ctx.moveTo(chipX + r, chipY);
-    ctx.lineTo(chipX + chipW - r, chipY);
-    ctx.quadraticCurveTo(chipX + chipW, chipY, chipX + chipW, chipY + r);
-    ctx.lineTo(chipX + chipW, chipY + chipH - r);
-    ctx.quadraticCurveTo(chipX + chipW, chipY + chipH, chipX + chipW - r, chipY + chipH);
-    ctx.lineTo(chipX + r, chipY + chipH);
-    ctx.quadraticCurveTo(chipX, chipY + chipH, chipX, chipY + chipH - r);
-    ctx.lineTo(chipX, chipY + r);
-    ctx.quadraticCurveTo(chipX, chipY, chipX + r, chipY);
-    ctx.closePath();
-    ctx.fill();
-    ctx.fillStyle = "#000000";
-    ctx.fillText(chipText, chipX + chipPaddingX, chipY + chipH - chipPaddingY - 2);
-    y += chipH + sectionGap;
-
-    // Rows
-    items.forEach(([label, value]) => {
-      ctx.font = "400 12px Inter, Arial, sans-serif";
-      ctx.fillStyle = "rgba(255,255,255,0.7)";
-      ctx.fillText(String(label), paddingX, y);
-      ctx.fillStyle = "#ffffff";
-      ctx.font = label === "Beneficiary Details" ? "600 12px Inter, Arial, sans-serif" : "400 12px Inter, Arial, sans-serif";
-      const val = String(value ?? "-");
-      // right align value
-      const valWidth = ctx.measureText(val).width;
-      ctx.fillText(val, width - paddingX - valWidth, y);
-      y += lineHeight - 4;
-      // dashed separator
-      ctx.strokeStyle = "rgba(255,255,255,0.2)";
-      ctx.setLineDash([4, 4]);
-      ctx.beginPath();
-      ctx.moveTo(paddingX, y);
-      ctx.lineTo(width - paddingX, y);
-      ctx.stroke();
-      ctx.setLineDash([]);
-      y += 8;
+    const canvas = await html2canvas(tempDiv, {
+      scale: 3,
+      useCORS: true,
+      logging: false,
+      backgroundColor: "#ffffff",
     });
 
-    // Footer
-    y += 8;
-    ctx.fillStyle = "rgba(255,255,255,0.6)";
-    ctx.font = "400 10px Inter, Arial, sans-serif";
-    const footer =
-      "Thank you for banking with NattyPay. For support, contact us at Support@nattypay.com, call +2348134146906 or Head Office: C38C4 Suite 2nd Floor Ejison Plaza 9a New Market Road Main Market Onitsha";
-    // simple wrap
-    const words = footer.split(" ");
-    let line = "";
-    const maxWidth = width - paddingX * 2;
-    words.forEach((word) => {
-      const test = line ? line + " " + word : word;
-      if (ctx.measureText(test).width > maxWidth) {
-        ctx.fillText(line, paddingX, y);
-        line = word;
-        y += 14;
+    root.unmount();
+    document.body.removeChild(tempDiv);
+    return canvas;
+  };
+
+  const handleDownload = async () => {
+    if (isProcessing) return;
+    setIsProcessing(true);
+    const toastId = toast.loading("Preparing receipt...");
+    
+    try {
+      const canvas = await generateReceiptImage();
+      const link = document.createElement("a");
+      link.download = `NattyPay_Receipt_${transaction.transactionRef || 'transaction'}.png`;
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+      toast.success("Receipt downloaded!", { id: toastId });
+    } catch (error) {
+      console.error("Error generating receipt:", error);
+      toast.error("Failed to generate receipt", { id: toastId });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleShare = async () => {
+    if (isProcessing) return;
+    
+    // Check if sharing is supported
+    if (!navigator.share) {
+      toast.error("Sharing is not supported on this browser. Try downloading instead.");
+      return;
+    }
+
+    setIsProcessing(true);
+    const toastId = toast.loading("Preparing to share...");
+
+    try {
+      const canvas = await generateReceiptImage();
+      const dataUrl = canvas.toDataURL("image/png");
+      const response = await fetch(dataUrl);
+      const blob = await response.blob();
+      const file = new File([blob], `NattyPay_Receipt_${transaction.transactionRef || 'transaction'}.png`, { type: "image/png" });
+
+      await navigator.share({
+        files: [file],
+        title: 'NattyPay Transaction Receipt',
+        text: `Transaction Receipt from NattyPay - Ref: ${transaction.transactionRef || 'N/A'}`,
+      });
+      
+      toast.success("Receipt shared successfully!", { id: toastId });
+    } catch (error) {
+      // Don't show error if user cancelled the share
+      if ((error as any).name !== 'AbortError') {
+        console.error("Error sharing receipt:", error);
+        toast.error("Failed to share receipt", { id: toastId });
       } else {
-        line = test;
+        toast.dismiss(toastId);
       }
-    });
-    if (line) ctx.fillText(line, paddingX, y);
-
-    canvas.toBlob((blob) => {
-      if (!blob) return;
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = `receipt-${trxId || "transaction"}.png`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    }, "image/png");
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4">
-      <div className="w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl bg-bg-600 dark:bg-bg-1100 border border-white/10 overflow-hidden">
-        <div ref={receiptRef} className="p-4 sm:p-5">
-          <div className="flex items-start justify-between">
-            <div className="flex items-center gap-2 export-hide">
-              <NextImage alt="logo" src={images.singleLogo} className="w-6 h-6" />
-              <span className="text-white font-semibold">NattyPay</span>
-            </div>
-            <div className="text-right">
-              <p className="text-white/70 text-xs">Smart Banking</p>
-            </div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-300">
+      <div className="w-full max-w-lg bg-white dark:bg-[#141C2B] rounded-3xl shadow-2xl overflow-hidden border border-gray-100 dark:border-gray-800 animate-in zoom-in-95 duration-300">
+        {/* Receipt content wrapper with scroll if needed */}
+        <div className="max-h-[70vh] overflow-y-auto scrollbar-hide">
+          <ReceiptContainer />
+        </div>
+
+        {/* Action Buttons */}
+        <div className="p-6 bg-gray-50 dark:bg-black/20 flex flex-col gap-3 border-t border-gray-100 dark:border-gray-800">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleDownload}
+              disabled={transaction?.status !== TRANSACTION_STATUS.success || isProcessing}
+              className="flex-1 py-3 px-4 bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed text-black dark:text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 active:scale-95"
+            >
+              <FiDownload className="text-lg" />
+              Download
+            </button>
+            <button
+              onClick={handleShare}
+              disabled={transaction?.status !== TRANSACTION_STATUS.success || isProcessing}
+              className="flex-1 py-3 px-4 bg-[#D4B139] hover:bg-[#c7a42f] disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 active:scale-95"
+            >
+              <FiShare2 className="text-lg" />
+              Share Receipt
+            </button>
           </div>
-
-          <div className="mt-4 w-full flex justify-center">
-            <span className="inline-flex rounded-lg bg-[#D4B139] text-black text-xs sm:text-sm font-semibold px-4 py-2">Transaction Receipt</span>
-          </div>
-
-          <div className="mt-4 flex flex-col">
-            <Row label="Transaction Date" value={created} />
-            <Row label="Transaction ID" value={trxId} />
-            <Row label="Amount" value={amountPaid} />
-            <Row label="Currency" value="NGN" />
-            <Row label="Transaction Type" value={category} />
-
-            <Row label="Sender Name" value={senderName} />
-            <Row label="Sender Account" value={senderAccount} />
-            <Row label="Sender Bank" value={senderBank} />
-
-            <Row label="Beneficiary Details" value={beneficiaryName} strong />
-            <Row label="Beneficiary Account" value={beneficiaryAccount} />
-            <Row label="Beneficiary Bank" value={beneficiaryBank} />
-
-            <Row label="Narration" value={narration} />
-            <Row 
-              label="Status" 
-              value={
-                <span className={`font-semibold ${
-                  status === TRANSACTION_STATUS.success 
-                    ? "text-green-400" 
-                    : status === TRANSACTION_STATUS.failed 
-                    ? "text-red-400" 
-                    : "text-yellow-400"
-                }`}>
-                  {status}
-                </span>
-              } 
-            />
-          </div>
-
-          <div className="mt-5 text-[11px] text-white/60 leading-relaxed">
-            Thank you for banking with NattyPay. For support, contact us at Support@nattypay.com, call +2348134146906 or Head Office: C38C4 Suite 2nd Floor Ejison Plaza 9a New Market Road Main Market Onitsha
-          </div>
-
-          <div className="mt-5 flex items-center justify-end gap-3">
-            <button onClick={handleDownload} className="px-4 py-2 rounded-lg bg-[#D4B139] hover:bg-[#c7a42f] text-black text-sm font-semibold">Download</button>
-            <button onClick={close} className="px-4 py-2 rounded-lg border border-white/10 text-white hover:bg-white/5 text-sm">Close</button>
-          </div>
+          <button
+            onClick={close}
+            disabled={isProcessing}
+            className="w-full py-3 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 font-semibold rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-all active:scale-95"
+          >
+            Close
+          </button>
         </div>
       </div>
     </div>
