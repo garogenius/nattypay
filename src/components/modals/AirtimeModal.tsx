@@ -14,6 +14,7 @@ import { handleNumericKeyDown, handleNumericPaste } from "@/utils/utilityFunctio
 import ErrorToast from "@/components/toast/ErrorToast";
 import useOnClickOutside from "@/hooks/useOnClickOutside";
 import SpinnerLoader from "@/components/Loader/SpinnerLoader";
+import { useTransactionProcessingStore } from "@/store/transactionProcessing.store";
 
 interface AirtimeModalProps {
   isOpen: boolean;
@@ -87,9 +88,12 @@ const AirtimeModal: React.FC<AirtimeModalProps> = ({ isOpen, onClose }) => {
     currency: "NGN",
   });
 
+  const { showProcessing, showSuccess, showError } = useTransactionProcessingStore();
+
   const onPayAirtimeSuccess = (data: any) => {
     setTransactionResult({ success: true, data });
     setStep("result");
+    showSuccess({ title: "Payment Successful", message: "Airtime purchase completed." });
   };
 
   const onPayAirtimeError = (error: any) => {
@@ -97,6 +101,10 @@ const AirtimeModal: React.FC<AirtimeModalProps> = ({ isOpen, onClose }) => {
     const descriptions = Array.isArray(errorMessage) ? errorMessage : [errorMessage];
     setTransactionResult({ success: false, error: errorMessage });
     setStep("result");
+    showError({
+      title: "Payment Failed",
+      message: descriptions?.[0] || "Airtime purchase failed.",
+    });
   };
 
   const {
@@ -193,6 +201,7 @@ const AirtimeModal: React.FC<AirtimeModalProps> = ({ isOpen, onClose }) => {
       phoneForPayment = `0${last10}`;
     }
     
+    showProcessing({ title: "Processing Payment", message: "Please wait..." });
     PayForAirtime({
       phone: phoneForPayment,
       currency: "NGN",

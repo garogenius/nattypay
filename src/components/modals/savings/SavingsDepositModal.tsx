@@ -10,6 +10,7 @@ import { useVerifyWalletPin } from "@/api/user/user.queries";
 import ErrorToast from "@/components/toast/ErrorToast";
 import SuccessToast from "@/components/toast/SuccessToast";
 import InsufficientBalanceModal from "@/components/modals/finance/InsufficientBalanceModal";
+import { useTransactionProcessingStore } from "@/store/transactionProcessing.store";
 
 interface SavingsDepositModalProps {
   isOpen: boolean;
@@ -28,6 +29,7 @@ const SavingsDepositModal: React.FC<SavingsDepositModalProps> = ({
 }) => {
   const { user } = useUserStore();
   const wallets = user?.wallet || [];
+  const { showProcessing, showSuccess, showError } = useTransactionProcessingStore();
   const [amount, setAmount] = React.useState("");
   const [selectedWalletIndex, setSelectedWalletIndex] = React.useState(0);
   const [walletPin, setWalletPin] = React.useState("");
@@ -47,6 +49,10 @@ const SavingsDepositModal: React.FC<SavingsDepositModalProps> = ({
       title: "Funding Failed",
       descriptions,
     });
+    showError({
+      title: "Transaction Failed",
+      message: descriptions?.[0] || "Failed to fund savings plan.",
+    });
     setShowPinStep(false);
     setWalletPin("");
   };
@@ -55,6 +61,10 @@ const SavingsDepositModal: React.FC<SavingsDepositModalProps> = ({
     SuccessToast({
       title: "Plan Funded Successfully!",
       description: `₦${Number(amount).toLocaleString()} has been added to ${planName}.`,
+    });
+    showSuccess({
+      title: "Successful",
+      message: "Deposit completed successfully.",
     });
     setShowPinStep(false);
     setAmount("");
@@ -73,6 +83,10 @@ const SavingsDepositModal: React.FC<SavingsDepositModalProps> = ({
       ? (errorMessage as string[])
       : [typeof errorMessage === "string" ? errorMessage : "Invalid PIN"];
     ErrorToast({ title: "Verification Failed", descriptions });
+    showError({
+      title: "Verification Failed",
+      message: descriptions?.[0] || "Invalid PIN.",
+    });
   };
 
   const onVerifyPinSuccess = () => {
@@ -160,6 +174,7 @@ const SavingsDepositModal: React.FC<SavingsDepositModalProps> = ({
     const selectedWallet = wallets[selectedWalletIndex];
     const currency = selectedWallet?.currency || "NGN";
     setPendingFund({ amount: Number(amount), currency });
+    showProcessing({ title: "Processing", message: "Completing deposit..." });
     verifyPin({ pin: walletPin });
   };
 

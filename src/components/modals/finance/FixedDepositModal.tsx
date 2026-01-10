@@ -11,6 +11,7 @@ import SuccessToast from "@/components/toast/SuccessToast";
 import CustomButton from "@/components/shared/Button";
 import InsufficientBalanceModal from "@/components/modals/finance/InsufficientBalanceModal";
 import type { FixedDepositPlan, FixedDepositPlanType } from "@/api/fixed-deposits/fixed-deposits.types";
+import { useTransactionProcessingStore } from "@/store/transactionProcessing.store";
 
 interface FixedDepositModalProps {
   isOpen: boolean;
@@ -33,6 +34,7 @@ const FixedDepositModal: React.FC<FixedDepositModalProps> = ({ isOpen, onClose }
   const [transactionResult, setTransactionResult] = useState<unknown>(null);
   const [selectedWalletId, setSelectedWalletId] = useState<string | null>(ngnWallet?.id || null);
   const [showInsufficientBalanceModal, setShowInsufficientBalanceModal] = useState(false);
+  const { showProcessing, showSuccess, showError } = useTransactionProcessingStore();
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseFloat(e.target.value.replace(/[^0-9.]/g, '')) || 0;
@@ -59,6 +61,10 @@ const FixedDepositModal: React.FC<FixedDepositModalProps> = ({ isOpen, onClose }
       title: "Creation Failed",
       descriptions,
     });
+    showError({
+      title: "Transaction Failed",
+      message: descriptions?.[0] || "Failed to create fixed deposit.",
+    });
   };
 
   const onSuccess = (data: unknown) => {
@@ -68,6 +74,10 @@ const FixedDepositModal: React.FC<FixedDepositModalProps> = ({ isOpen, onClose }
     SuccessToast({
       title: "Fixed Deposit Created Successfully!",
       description: "Your fixed deposit has been created. It will mature on the specified date.",
+    });
+    showSuccess({
+      title: "Successful",
+      message: "Fixed deposit created successfully.",
     });
   };
 
@@ -80,6 +90,10 @@ const FixedDepositModal: React.FC<FixedDepositModalProps> = ({ isOpen, onClose }
       ? (errorMessage as string[])
       : [typeof errorMessage === "string" ? errorMessage : "Invalid PIN"];
     ErrorToast({ title: "Verification Failed", descriptions });
+    showError({
+      title: "Verification Failed",
+      message: descriptions?.[0] || "Invalid PIN.",
+    });
   };
 
   const onVerifyPinSuccess = () => {
@@ -138,6 +152,7 @@ const FixedDepositModal: React.FC<FixedDepositModalProps> = ({ isOpen, onClose }
       return;
     }
 
+    showProcessing({ title: "Processing", message: "Creating fixed deposit..." });
     verifyPin({ pin: walletPin });
   };
 

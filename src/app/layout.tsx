@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import Script from "next/script";
+import Image from "next/image";
 import "./globals.css";
 import { ThemeProvider } from "@/providers/ThemeProvider";
 import NextTopLoader from "nextjs-toploader";
@@ -14,6 +15,7 @@ import ClientOnlyWelcome from "@/components/ClientOnlyWelcome";
 import TransactionViewModal from "@/components/modals/transactions/TransactionViewModal";
 import InsufficientBalanceModal from "@/components/modals/finance/InsufficientBalanceModal";
 import ClipboardDetector from "@/components/ClipboardDetector";
+import TransactionProcessingModal from "@/components/modals/TransactionProcessingModal";
 
 // Initialize Inter font
 const inter = Inter({
@@ -78,9 +80,20 @@ export default function RootLayout({
                 />
                 <NextTopLoader color="#D4B139" showSpinner={false} />
                 <ClientOnlyWelcome />
+                {/* Preload global transaction loader GIF so it appears instantly when needed */}
+                <Image
+                  src="/images/natty01.gif"
+                  alt=""
+                  width={1}
+                  height={1}
+                  priority
+                  unoptimized
+                  className="hidden"
+                />
                 <main className="w-full overflow-hidden">{children}</main>
                 <TransactionViewModal />
                 <InsufficientBalanceModal />
+                <TransactionProcessingModal />
                 <ClipboardDetector />
               </AdModalsProvider>
             </UserProvider>

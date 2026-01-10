@@ -7,6 +7,7 @@ import CustomButton from "@/components/shared/Button";
 import useOnClickOutside from "@/hooks/useOnClickOutside";
 import SpinnerLoader from "@/components/Loader/SpinnerLoader";
 import { useGetInternetPlans, useGetInternetVariations, usePayForInternet } from "@/api/internet/internet.queries";
+import { useTransactionProcessingStore } from "@/store/transactionProcessing.store";
 
 interface Props { isOpen: boolean; onClose: () => void; }
 
@@ -50,12 +51,23 @@ const InternetModal: React.FC<Props> = ({ isOpen, onClose }) => {
     onClose();
   };
 
+  const { showProcessing, showSuccess, showError } = useTransactionProcessingStore();
+
   const onSuccess = (data: any) => { 
     setTransactionData(data?.data);
     setResultSuccess(true); 
     setStep("result"); 
+    showSuccess({ title: "Payment Successful", message: "Internet payment completed." });
   };
-  const onError = () => { setResultSuccess(false); setStep("result"); };
+  const onError = (error?: any) => {
+    setResultSuccess(false);
+    setStep("result");
+    const msg = error?.response?.data?.message;
+    showError({
+      title: "Payment Failed",
+      message: Array.isArray(msg) ? msg[0] : msg || "Internet payment failed.",
+    });
+  };
   const { mutate: PayForInternet, isPending: paying, isError } = usePayForInternet(onError, onSuccess);
   const isPaying = paying && !isError;
 
@@ -169,6 +181,7 @@ const InternetModal: React.FC<Props> = ({ isOpen, onClose }) => {
                 <CustomButton onClick={()=> setStep("form")} className="flex-1 bg-transparent border border-border-600 text-white hover:bg-white/5 py-3 rounded-lg">Back</CustomButton>
                 <CustomButton onClick={()=> {
                   if (!selectedPlan || !selectedProvider) return;
+                  showProcessing({ title: "Processing Payment", message: "Please wait..." });
                   PayForInternet({ amount: selectedPlan.amount, itemCode: selectedPlan.itemCode, billerCode: selectedProvider.billerCode, billerNumber, currency: "NGN", walletPin, addBeneficiary: false });
                 }} disabled={walletPin.length!==4 || isPaying} isLoading={isPaying} className="flex-1 bg-[#D4B139] hover:bg-[#D4B139]/90 text-black py-3 rounded-lg">Pay</CustomButton>
               </div>

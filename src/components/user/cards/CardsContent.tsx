@@ -40,6 +40,7 @@ const CardsContent: React.FC = () => {
   const [openCreateCard, setOpenCreateCard] = React.useState(false);
   const [selectedCard, setSelectedCard] = React.useState<IVirtualCard | null>(null);
   const [cardLabel, setCardLabel] = React.useState("");
+  const [cardPin, setCardPin] = React.useState("");
   const [initialBalance, setInitialBalance] = React.useState<string>("");
   const [selectedCurrency, setSelectedCurrency] = React.useState<"USD" | "NGN">("USD");
   const [currencyDropdownOpen, setCurrencyDropdownOpen] = React.useState(false);
@@ -214,6 +215,7 @@ const CardsContent: React.FC = () => {
     });
     setOpenCreateCard(false);
     setCardLabel("");
+    setCardPin("");
     setInitialBalance("");
     setSelectedCurrency("USD"); // Reset to USD after creation
     refetchCards();
@@ -352,6 +354,14 @@ const CardsContent: React.FC = () => {
       return;
     }
 
+    if (cardPin.length !== 8) {
+      ErrorToast({
+        title: "Validation Error",
+        descriptions: ["Card PIN must be exactly 8 digits."],
+      });
+      return;
+    }
+
     // Parse initial balance if provided
     const parsedInitialBalance = initialBalance.trim() 
       ? parseFloat(initialBalance.trim()) 
@@ -370,6 +380,7 @@ const CardsContent: React.FC = () => {
     const payload: any = {
       label: cardLabel.trim(),
       currency: selectedCurrency === "NGN" ? "NGN" : selectedCurrency,
+      pin: cardPin,
     };
     
     if (parsedInitialBalance !== undefined && parsedInitialBalance > 0) {
@@ -843,7 +854,16 @@ const CardsContent: React.FC = () => {
       {/* Create Card Modal */}
       {openCreateCard && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/80" onClick={() => { setOpenCreateCard(false); setCardLabel(""); setInitialBalance(""); setSelectedCurrency("USD"); }} />
+          <div
+            className="absolute inset-0 bg-black/80"
+            onClick={() => {
+              setOpenCreateCard(false);
+              setCardLabel("");
+              setCardPin("");
+              setInitialBalance("");
+              setSelectedCurrency("USD");
+            }}
+          />
           <div className="relative w-full max-w-md bg-bg-600 dark:bg-bg-1100 border border-white/10 rounded-2xl p-5 z-10">
             <h2 className="text-white text-base font-semibold mb-4">Create Virtual Card</h2>
             <div className="flex flex-col gap-3">
@@ -875,6 +895,21 @@ const CardsContent: React.FC = () => {
               </div>
               <div className="flex flex-col gap-1">
                 <label className="text-white/70 text-xs">
+                  Card PIN <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="password"
+                  inputMode="numeric"
+                  maxLength={8}
+                  className="w-full bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-3 px-3 text-white text-sm placeholder:text-white/50 outline-none"
+                  placeholder="Enter 8-digit PIN"
+                  value={cardPin}
+                  onChange={(e) => setCardPin(e.target.value.replace(/\D/g, ""))}
+                />
+                <p className="text-white/50 text-[10px] mt-1">Required: 8 digits.</p>
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-white/70 text-xs">
                   Initial Balance (Optional)
                 </label>
                 <input
@@ -901,6 +936,7 @@ const CardsContent: React.FC = () => {
                   onClick={() => { 
                     setOpenCreateCard(false); 
                     setCardLabel(""); 
+                    setCardPin("");
                     setInitialBalance("");
                     setSelectedCurrency("USD"); 
                   }}
@@ -910,7 +946,7 @@ const CardsContent: React.FC = () => {
                 </CustomButton>
                                   <CustomButton
                                     onClick={handleCreateCard}
-                                    disabled={creatingCard || !cardLabel.trim() || !hasCurrencyAccount(selectedCurrency)}
+                                    disabled={creatingCard || !cardLabel.trim() || cardPin.length !== 8 || !hasCurrencyAccount(selectedCurrency)}
                                     isLoading={creatingCard}
                                     className="flex-1 bg-[#D4B139] hover:bg-[#c7a42f] text-black rounded-lg py-2.5 disabled:opacity-50 disabled:cursor-not-allowed"
                                   >

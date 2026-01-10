@@ -19,6 +19,7 @@ import {
 import { useGetAllBanks, useVerifyAccount } from "@/api/wallet/wallet.queries";
 import SearchableDropdown from "@/components/shared/SearchableDropdown";
 import { handleNumericKeyDown, handleNumericPaste } from "@/utils/utilityFunctions";
+import { useTransactionProcessingStore } from "@/store/transactionProcessing.store";
 
 interface BettingModalProps {
   isOpen: boolean;
@@ -53,6 +54,7 @@ const BettingModal: React.FC<BettingModalProps> = ({ isOpen, onClose }) => {
   
   const [resultSuccess, setResultSuccess] = useState<boolean | null>(null);
   const [transactionData, setTransactionData] = useState<any>(null);
+  const { showProcessing, showSuccess, showError } = useTransactionProcessingStore();
 
   const platformRef = useRef<HTMLDivElement>(null);
   const bankRef = useRef<HTMLDivElement>(null);
@@ -133,6 +135,7 @@ const BettingModal: React.FC<BettingModalProps> = ({ isOpen, onClose }) => {
       title: "Wallet Funded Successfully",
       description: `₦${fundWalletAmount} has been transferred to your betting wallet`,
     });
+    showSuccess({ title: "Successful", message: "Betting wallet funded successfully." });
   };
 
   const onFundWalletError = (error: any) => {
@@ -143,6 +146,10 @@ const BettingModal: React.FC<BettingModalProps> = ({ isOpen, onClose }) => {
       title: "Funding Failed",
       descriptions: Array.isArray(errorMessage) ? errorMessage : [errorMessage],
     });
+    showError({
+      title: "Transaction Failed",
+      message: Array.isArray(errorMessage) ? errorMessage[0] : errorMessage || "Funding failed.",
+    });
   };
 
   const { mutate: fundWallet, isPending: fundingWallet } = useFundBettingWallet(
@@ -152,6 +159,7 @@ const BettingModal: React.FC<BettingModalProps> = ({ isOpen, onClose }) => {
 
   const handleFundWallet = () => {
     if (fundWalletPin.length !== 4 || !fundWalletAmount || Number(fundWalletAmount) < 100) return;
+    showProcessing({ title: "Processing", message: "Funding betting wallet..." });
     fundWallet({
       amount: Number(fundWalletAmount),
       currency: "NGN",
@@ -169,6 +177,7 @@ const BettingModal: React.FC<BettingModalProps> = ({ isOpen, onClose }) => {
       title: "Platform Funded Successfully",
       description: `₦${fundPlatformAmount} has been sent to ${selectedPlatform?.name}`,
     });
+    showSuccess({ title: "Successful", message: "Betting platform funded successfully." });
   };
 
   const onFundPlatformError = (error: any) => {
@@ -179,6 +188,10 @@ const BettingModal: React.FC<BettingModalProps> = ({ isOpen, onClose }) => {
       title: "Funding Failed",
       descriptions: Array.isArray(errorMessage) ? errorMessage : [errorMessage],
     });
+    showError({
+      title: "Transaction Failed",
+      message: Array.isArray(errorMessage) ? errorMessage[0] : errorMessage || "Funding failed.",
+    });
   };
 
   const { mutate: fundPlatform, isPending: fundingPlatform } = useFundBettingPlatform(
@@ -188,6 +201,7 @@ const BettingModal: React.FC<BettingModalProps> = ({ isOpen, onClose }) => {
 
   const handleFundPlatform = () => {
     if (fundPlatformPin.length !== 4 || !selectedPlatform || !platformUserId || !fundPlatformAmount || Number(fundPlatformAmount) < 100) return;
+    showProcessing({ title: "Processing", message: "Funding platform..." });
     fundPlatform({
       platform: selectedPlatform.code,
       platformUserId: platformUserId,
@@ -207,6 +221,7 @@ const BettingModal: React.FC<BettingModalProps> = ({ isOpen, onClose }) => {
       title: "Withdrawal Successful",
       description: `₦${withdrawAmount} has been sent to ${withdrawAccountName}`,
     });
+    showSuccess({ title: "Successful", message: "Withdrawal completed successfully." });
   };
 
   const onWithdrawError = (error: any) => {
@@ -217,6 +232,10 @@ const BettingModal: React.FC<BettingModalProps> = ({ isOpen, onClose }) => {
       title: "Withdrawal Failed",
       descriptions: Array.isArray(errorMessage) ? errorMessage : [errorMessage],
     });
+    showError({
+      title: "Transaction Failed",
+      message: Array.isArray(errorMessage) ? errorMessage[0] : errorMessage || "Withdrawal failed.",
+    });
   };
 
   const { mutate: withdraw, isPending: withdrawing } = useWithdrawBettingWallet(
@@ -226,6 +245,7 @@ const BettingModal: React.FC<BettingModalProps> = ({ isOpen, onClose }) => {
 
   const handleWithdraw = () => {
     if (withdrawPin.length !== 4 || !selectedBank || !withdrawAccountNumber || !withdrawAccountName || !withdrawAmount || Number(withdrawAmount) < 100) return;
+    showProcessing({ title: "Processing", message: "Processing withdrawal..." });
     withdraw({
       amount: Number(withdrawAmount),
       currency: "NGN",

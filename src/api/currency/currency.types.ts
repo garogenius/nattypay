@@ -23,6 +23,7 @@ export interface ICurrencyAccount {
 export interface ICreateCard {
   label: string;
   currency: "USD" | "NGN"; // Virtual cards are available for USD and NGN (required)
+  pin: string; // Card PIN (8 digits) required when creating a virtual card
   initialBalance?: number; // Optional initial balance for the card
 }
 

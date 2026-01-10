@@ -72,6 +72,9 @@ export const reportScamRequest = async (formdata: FormData) => {
     url: "/user/report-scam",
     method: "post",
     data: formdata,
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
   });
 };
 

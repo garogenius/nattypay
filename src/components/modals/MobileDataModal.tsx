@@ -14,6 +14,7 @@ import { handleNumericKeyDown, handleNumericPaste } from "@/utils/utilityFunctio
 import ErrorToast from "@/components/toast/ErrorToast";
 import useOnClickOutside from "@/hooks/useOnClickOutside";
 import SpinnerLoader from "@/components/Loader/SpinnerLoader";
+import { useTransactionProcessingStore } from "@/store/transactionProcessing.store";
 
 interface MobileDataModalProps {
   isOpen: boolean;
@@ -112,9 +113,12 @@ const MobileDataModal: React.FC<MobileDataModalProps> = ({ isOpen, onClose }) =>
 
   const dataVariationsLoading = dataVariationsPending && !dataVariationsError;
 
+  const { showProcessing, showSuccess, showError } = useTransactionProcessingStore();
+
   const onPayDataSuccess = (data: any) => {
     setTransactionResult({ success: true, data });
     setStep("result");
+    showSuccess({ title: "Payment Successful", message: "Mobile data purchase completed." });
   };
 
   const onPayDataError = (error: any) => {
@@ -122,6 +126,10 @@ const MobileDataModal: React.FC<MobileDataModalProps> = ({ isOpen, onClose }) =>
     const descriptions = Array.isArray(errorMessage) ? errorMessage : [errorMessage];
     setTransactionResult({ success: false, error: errorMessage });
     setStep("result");
+    showError({
+      title: "Payment Failed",
+      message: descriptions?.[0] || "Mobile data purchase failed.",
+    });
   };
 
   const {
@@ -196,6 +204,7 @@ const MobileDataModal: React.FC<MobileDataModalProps> = ({ isOpen, onClose }) =>
       : cleaned;
     const phoneForPayment = `+234${phoneWithoutLeadingZero}`;
     
+    showProcessing({ title: "Processing Payment", message: "Please wait..." });
     PayForData({
       phone: phoneForPayment,
       currency: "NGN",
