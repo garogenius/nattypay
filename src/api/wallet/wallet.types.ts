@@ -13,6 +13,11 @@ export interface IVerifyAccount {
   bankCode?: string;
 }
 
+export interface IMatchedBank {
+  bankCode: string;
+  name: string;
+}
+
 export interface IInitiateTransfer {
   accountNumber: string;
   accountName: string;

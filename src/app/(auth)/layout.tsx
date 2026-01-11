@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import Image from "next/image";
 import Link from "next/link";
 import images from "../../../public/images";
+import AuthThemeGuard from "@/components/auth/AuthThemeGuard";
 
 const hideNavbarPaths = [
   '/account-type',
@@ -28,7 +29,8 @@ export default function AuthLayout({
   const pathname = usePathname();
   return (
     <RootProtectionProvider>
-      <div className="relative flex flex-col min-h-screen h-full bg-bg-600 dark:bg-black">
+      <AuthThemeGuard>
+        <div className="relative flex flex-col min-h-screen h-full bg-[#F7F7F8]">
         {/* Mobile Logo - hidden on mobile responsive screens */}
         <div className="fixed top-6 left-6 z-[9999] hidden">
           <Link href="/">
@@ -44,7 +46,8 @@ export default function AuthLayout({
         </div>
 
         <div className="flex flex-1">{children}</div>
-      </div>
+        </div>
+      </AuthThemeGuard>
     </RootProtectionProvider>
   );
 }

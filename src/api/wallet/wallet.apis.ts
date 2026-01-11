@@ -54,6 +54,20 @@ export const getAllBanks = () => {
   return request({ url: `/wallet/get-banks/NGN` });
 };
 
+export const getMatchedBanksRequest = (accountNumber: string) => {
+  const base =
+    (process.env.NEXT_PUBLIC_VALAR_PAY_API_BASE_URL ||
+      "https://valar-pay-api.up.railway.app/api/v1"
+    ).replace(/\/$/, "");
+
+  // This endpoint uses a separate base URL from the rest of the app.
+  // Using an absolute URL keeps the existing axios interceptors/headers (API key, token) intact.
+  return request({
+    url: `${base}/wallet/get-matched-banks/${accountNumber}`,
+    method: "get",
+  });
+};
+
 export const getTransferFee = ({
   currency,
   amount,

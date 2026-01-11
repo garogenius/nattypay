@@ -9,7 +9,6 @@ import { IconType } from "react-icons";
 import { SlTrophy } from "react-icons/sl";
 import SendMoneyModal from "@/components/modals/SendMoneyModal";
 import AddMoneyModal from "@/components/modals/AddMoneyModal";
-import BettingModal from "@/components/modals/BettingModal";
 import MobileDataModal from "@/components/modals/MobileDataModal";
 import AirtimeModal from "@/components/modals/AirtimeModal";
 
@@ -53,7 +52,6 @@ const QuickAccess = () => {
   const navigate = useNavigate();
   const [sendOpen, setSendOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
-  const [bettingOpen, setBettingOpen] = useState(false);
   const [mobileDataOpen, setMobileDataOpen] = useState(false);
   const [airtimeOpen, setAirtimeOpen] = useState(false);
   return (
@@ -71,7 +69,7 @@ const QuickAccess = () => {
               onClick={() => {
                 if (item.title === "Send Money") setSendOpen(true);
                 else if (item.title === "Add Money") setAddOpen(true);
-                else if (item.title === "Betting") setBettingOpen(true);
+                else if (item.title === "Betting") navigate("/user/betting");
                 else if (item.title === "Mobile Data") setMobileDataOpen(true);
                 else if (item.title === "Airtime") setAirtimeOpen(true);
                 else navigate(item.path);
@@ -92,7 +90,6 @@ const QuickAccess = () => {
       </div>
       <SendMoneyModal isOpen={sendOpen} onClose={() => setSendOpen(false)} />
       <AddMoneyModal isOpen={addOpen} onClose={() => setAddOpen(false)} />
-      <BettingModal isOpen={bettingOpen} onClose={() => setBettingOpen(false)} />
       <MobileDataModal isOpen={mobileDataOpen} onClose={() => setMobileDataOpen(false)} />
       <AirtimeModal isOpen={airtimeOpen} onClose={() => setAirtimeOpen(false)} />
     </div>

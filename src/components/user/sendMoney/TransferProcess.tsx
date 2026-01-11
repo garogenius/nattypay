@@ -18,6 +18,7 @@ import {
 } from "@/utils/utilityFunctions";
 import {
   useGetAllBanks,
+  useGetMatchedBanks,
   useGetTransferFee,
   useInitiateTransfer,
   useVerifyAccount,
@@ -151,6 +152,8 @@ const TransferProcess = ({ onStepChange, compact = false, initialType, onBackFir
   const [bankState, setBankState] = useState(false);
   const [isDetectingBank, setIsDetectingBank] = useState(false);
   const [isBankAutoDetected, setIsBankAutoDetected] = useState(false);
+  const [matchedBanks, setMatchedBanks] = useState<Array<{ bankCode: string; name: string }>>([]);
+  const [matchedBanksError, setMatchedBanksError] = useState<string>("");
   const detectReqIdRef = useRef(0);
   const [screen, setScreen] = useState<number>(0);
   const goTo = (s: number) => {
@@ -206,6 +209,42 @@ const TransferProcess = ({ onStepChange, compact = false, initialType, onBackFir
   const [balanceInfo, setBalanceInfo] = useState<{ requiredAmount?: number; currentBalance?: number }>({});
 
   const { banks } = useGetAllBanks();
+
+  const onMatchedBanksError = (error: any) => {
+    const errorMessage =
+      error?.response?.data?.message ||
+      error?.message ||
+      "Unable to fetch matched banks";
+    setMatchedBanksError(Array.isArray(errorMessage) ? errorMessage.join(" ") : String(errorMessage));
+    setMatchedBanks([]);
+  };
+
+  const onMatchedBanksSuccess = (data: any) => {
+    const raw = data?.data?.data ?? data?.data ?? data;
+    const list = Array.isArray(raw) ? raw : Array.isArray(raw?.banks) ? raw.banks : [];
+
+    const normalized = (list || [])
+      .map((b: any) => ({
+        bankCode: String(b?.bankCode ?? b?.code ?? b?.bank_code ?? ""),
+        name: String(b?.name ?? b?.bankName ?? b?.bank_name ?? ""),
+      }))
+      .filter((b: any) => !!b.bankCode && !!b.name);
+
+    const seen = new Set<string>();
+    const deduped = normalized.filter((b: any) => {
+      if (seen.has(b.bankCode)) return false;
+      seen.add(b.bankCode);
+      return true;
+    });
+
+    setMatchedBanksError("");
+    setMatchedBanks(deduped);
+  };
+
+  const { mutate: getMatchedBanks, isPending: matchedBanksLoading } = useGetMatchedBanks(
+    onMatchedBanksError,
+    onMatchedBanksSuccess
+  );
 
   const { user } = useUserStore();
   const { fingerprintPaymentEnabled } = usePaymentSettingsStore();
@@ -290,17 +329,23 @@ const TransferProcess = ({ onStepChange, compact = false, initialType, onBackFir
 
   const verifyLoading = verifyAccountPending && !verifyAccountError;
 
-  const tryAutoDetectBank = async (acctNumber: string) => {
+  const tryAutoDetectBank = async (
+    acctNumber: string,
+    candidateBanks?: Array<{ bankCode: string; name: string; raw?: any }>
+  ) => {
     const reqId = ++detectReqIdRef.current;
     setIsDetectingBank(true);
     try {
-      const normalizedBanks = (banks || [])
-        .map((b: any) => ({
-          bankCode: String(b?.bankCode ?? b?.code ?? b?.bank_code ?? ""),
-          name: String(b?.name ?? b?.bankName ?? b?.bank_name ?? ""),
-          raw: b,
-        }))
-        .filter((b: any) => !!b.bankCode);
+      const normalizedBanks =
+        candidateBanks && candidateBanks.length > 0
+          ? candidateBanks
+          : (banks || [])
+              .map((b: any) => ({
+                bankCode: String(b?.bankCode ?? b?.code ?? b?.bank_code ?? ""),
+                name: String(b?.name ?? b?.bankName ?? b?.bank_name ?? ""),
+                raw: b,
+              }))
+              .filter((b: any) => !!b.bankCode);
 
       for (const b of normalizedBanks) {
         try {
@@ -351,6 +396,20 @@ const TransferProcess = ({ onStepChange, compact = false, initialType, onBackFir
   };
 
   useEffect(() => {
+    // Fetch matched banks when account number is complete (bank transfers only)
+    if (selectedType === "bank") {
+      if (watchedAccountNumber && watchedAccountNumber.length === 10) {
+        const t = setTimeout(() => {
+          getMatchedBanks(watchedAccountNumber);
+        }, 250);
+        return () => clearTimeout(t);
+      }
+      setMatchedBanks([]);
+      setMatchedBanksError("");
+    }
+  }, [watchedAccountNumber, selectedType, getMatchedBanks]);
+
+  useEffect(() => {
     if (watchedAccountNumber && watchedAccountNumber.length === 10) {
       if (selectedType === "nattypay") {
         verifyAccount({ accountNumber: watchedAccountNumber });
@@ -361,8 +420,13 @@ const TransferProcess = ({ onStepChange, compact = false, initialType, onBackFir
             bankCode: watchedBankCode,
           });
         } else {
+          if (matchedBanksLoading) return;
           const t = setTimeout(() => {
-            tryAutoDetectBank(watchedAccountNumber);
+            const candidates =
+              matchedBanks.length > 0
+                ? matchedBanks.map((b) => ({ bankCode: b.bankCode, name: b.name }))
+                : undefined;
+            tryAutoDetectBank(watchedAccountNumber, candidates);
           }, 350);
           return () => clearTimeout(t);
         }
@@ -371,7 +435,23 @@ const TransferProcess = ({ onStepChange, compact = false, initialType, onBackFir
       detectReqIdRef.current += 1;
       setIsDetectingBank(false);
     }
-  }, [watchedAccountNumber, watchedBankCode, selectedType, verifyAccount]);
+  }, [watchedAccountNumber, watchedBankCode, selectedType, verifyAccount, matchedBanks, matchedBanksLoading]);
+
+  const bankOptions = useMemo(() => {
+    const normalizedAllBanks = (banks || [])
+      .map((b: any) => {
+        const bankCode = String(b?.bankCode ?? b?.code ?? b?.bank_code ?? "");
+        const name = String(b?.name ?? b?.bankName ?? b?.bank_name ?? "");
+        return { ...b, bankCode, name };
+      })
+      .filter((b: any) => !!b.bankCode && !!b.name);
+
+    if (!matchedBanks || matchedBanks.length === 0) return normalizedAllBanks;
+    const matchedSet = new Set(matchedBanks.map((b) => b.bankCode));
+    const matchedAsBanks = matchedBanks.map((b) => ({ bankCode: b.bankCode, name: b.name }));
+    const rest = normalizedAllBanks.filter((b: any) => !matchedSet.has(b.bankCode));
+    return [...matchedAsBanks, ...rest];
+  }, [banks, matchedBanks]);
 
   const onError = async (error: any) => {
     // Check if it's an insufficient balance error
@@ -886,6 +966,17 @@ const handleShare = async (transaction: TransactionResponse) => {
                         </motion.svg>
                       </div>
                     </div>
+                    {selectedType === "bank" && watchedAccountNumber.length === 10 && !watchedBankCode && (
+                      <p className="text-white/50 text-xs mt-1">
+                        {matchedBanksLoading
+                          ? "Finding matched banks..."
+                          : matchedBanksError
+                            ? "Couldn’t match banks automatically. You can still select the bank manually."
+                            : matchedBanks.length > 0
+                              ? `Matched banks found: ${matchedBanks.length}. Select one.`
+                              : "No matched banks found. Please select the bank manually."}
+                      </p>
+                    )}
                     {errors.bankCode?.message && (
                       <p className="text-text-2700 text-sm">
                         {errors.bankCode.message}
@@ -902,7 +993,7 @@ const handleShare = async (transaction: TransactionResponse) => {
                         }}
                       >
                         <SearchableDropdown
-                          items={banks}
+                          items={bankOptions}
                           searchKey="name"
                           displayFormat={(bank) => (
                             <div className="flex flex-col text-text-700 dark:text-text-1000">

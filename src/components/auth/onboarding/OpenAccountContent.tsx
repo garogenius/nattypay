@@ -639,7 +639,8 @@ const OpenAccountContent = () => {
                             type="text"
                             placeholder="Enter your 11-digit BVN"
                             maxLength={11}
-                            className="w-full border border-gray-300 rounded-lg py-3 px-4 text-black dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#D4B139] focus:border-transparent bg-transparent"
+                            className="w-full border border-gray-300 rounded-lg py-3 px-4 text-black placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#D4B139] focus:border-transparent bg-transparent"
+                            style={{ color: "#141414", WebkitTextFillColor: "#141414" }}
                             {...register("bvn")}
                           />
                           {errors.bvn && (
@@ -675,7 +676,8 @@ const OpenAccountContent = () => {
                         <input
                           type="text"
                           placeholder="Enter your NIN"
-                          className="w-full border border-gray-300 rounded-lg py-3 px-4 text-black dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#D4B139] focus:border-transparent bg-transparent"
+                          className="w-full border border-gray-300 rounded-lg py-3 px-4 text-black placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#D4B139] focus:border-transparent bg-transparent"
+                          style={{ color: "#141414", WebkitTextFillColor: "#141414" }}
                           {...register("nin")}
                         />
                         {errors.nin && (
@@ -741,7 +743,8 @@ const OpenAccountContent = () => {
                           renderInput={(props) => (
                             <input
                               {...props}
-                              className="w-12 h-12 bg-transparent border-b-2 border-gray-300 text-center text-xl font-medium outline-none focus:border-[#D4B139] text-[#141414] dark:text-white"
+                              className="w-12 h-12 bg-transparent border-b-2 border-gray-300 text-center text-xl font-medium outline-none focus:border-[#D4B139] text-[#141414]"
+                              style={{ color: "#141414", WebkitTextFillColor: "#141414" }}
                             />
                           )}
                         />

@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { CgClose } from "react-icons/cg";
 import CustomButton from "@/components/shared/Button";
-import { useGetAllBanks, useVerifyAccount } from "@/api/wallet/wallet.queries";
+import { useGetAllBanks, useGetMatchedBanks, useVerifyAccount } from "@/api/wallet/wallet.queries";
 import { verifyAccountRequest } from "@/api/wallet/wallet.apis";
 import useOnClickOutside from "@/hooks/useOnClickOutside";
 import SearchableDropdown from "@/components/shared/SearchableDropdown";
@@ -44,6 +44,8 @@ const AddMoneyModal: React.FC<AddMoneyModalProps> = ({ isOpen, onClose }) => {
   const [sessionId, setSessionId] = useState<string>("");
   const [isDetectingBank, setIsDetectingBank] = useState(false);
   const [isBankAutoDetected, setIsBankAutoDetected] = useState(false);
+  const [matchedBanks, setMatchedBanks] = useState<Array<{ bankCode: string; name: string }>>([]);
+  const [matchedBanksError, setMatchedBanksError] = useState<string>("");
   const detectReqIdRef = useRef(0);
   const [fundAmount, setFundAmount] = useState<string>("");
   const [walletPin, setWalletPin] = useState<string>("");
@@ -79,16 +81,58 @@ const AddMoneyModal: React.FC<AddMoneyModalProps> = ({ isOpen, onClose }) => {
   };
   const { mutate: verifyAccount } = useVerifyAccount(onVerifyAccountError, onVerifyAccountSuccess);
 
-  const tryAutoDetectBank = async (acctNumber: string) => {
+  const onMatchedBanksError = (error: any) => {
+    const errorMessage =
+      error?.response?.data?.message ||
+      error?.message ||
+      "Unable to fetch matched banks";
+    setMatchedBanksError(Array.isArray(errorMessage) ? errorMessage.join(" ") : String(errorMessage));
+    setMatchedBanks([]);
+  };
+
+  const onMatchedBanksSuccess = (data: any) => {
+    const raw = data?.data?.data ?? data?.data ?? data;
+    const list = Array.isArray(raw) ? raw : Array.isArray(raw?.banks) ? raw.banks : [];
+
+    const normalized = (list || [])
+      .map((b: any) => ({
+        bankCode: String(b?.bankCode ?? b?.code ?? b?.bank_code ?? ""),
+        name: String(b?.name ?? b?.bankName ?? b?.bank_name ?? ""),
+      }))
+      .filter((b: any) => !!b.bankCode && !!b.name);
+
+    const seen = new Set<string>();
+    const deduped = normalized.filter((b: any) => {
+      if (seen.has(b.bankCode)) return false;
+      seen.add(b.bankCode);
+      return true;
+    });
+
+    setMatchedBanksError("");
+    setMatchedBanks(deduped);
+  };
+
+  const { mutate: getMatchedBanks, isPending: matchedBanksLoading } = useGetMatchedBanks(
+    onMatchedBanksError,
+    onMatchedBanksSuccess
+  );
+
+  const tryAutoDetectBank = async (
+    acctNumber: string,
+    candidateBanks?: Array<{ bankCode: string; name: string }>
+  ) => {
     const reqId = ++detectReqIdRef.current;
     setIsDetectingBank(true);
     try {
-      const normalizedBanks = (banks || [])
-        .map((b: any) => ({
-          bankCode: String(b?.bankCode ?? b?.code ?? b?.bank_code ?? ""),
-          name: String(b?.name ?? b?.bankName ?? b?.bank_name ?? ""),
-        }))
-        .filter((b: any) => !!b.bankCode);
+      const normalizedBanks =
+        candidateBanks && candidateBanks.length > 0
+          ? candidateBanks
+          : (banks || [])
+              .map((b: any) => ({
+                bankCode: String(b?.bankCode ?? b?.code ?? b?.bank_code ?? ""),
+                name: String(b?.name ?? b?.bankName ?? b?.bank_name ?? ""),
+              }))
+              .filter((b: any) => !!b.bankCode);
 
       for (const b of normalizedBanks) {
         try {
@@ -120,6 +164,38 @@ const AddMoneyModal: React.FC<AddMoneyModalProps> = ({ isOpen, onClose }) => {
     }
   };
 
+  const bankOptions = useMemo(() => {
+    const normalizedAllBanks = (banks || [])
+      .map((b: any) => {
+        const bankCode = String(b?.bankCode ?? b?.code ?? b?.bank_code ?? "");
+        const name = String(b?.name ?? b?.bankName ?? b?.bank_name ?? "");
+        return { ...b, bankCode, name };
+      })
+      .filter((b: any) => !!b.bankCode && !!b.name);
+
+    if (!matchedBanks || matchedBanks.length === 0) return normalizedAllBanks;
+    const matchedSet = new Set(matchedBanks.map((b) => b.bankCode));
+    const matchedAsBanks = matchedBanks.map((b) => ({ bankCode: b.bankCode, name: b.name }));
+    const rest = normalizedAllBanks.filter((b: any) => !matchedSet.has(b.bankCode));
+    return [...matchedAsBanks, ...rest];
+  }, [banks, matchedBanks]);
+
+  // When matched banks are returned, open dropdown and (optionally) auto-detect/verify using shortlist
+  useEffect(() => {
+    if (tab !== "account") return;
+    if (!accountNumber || accountNumber.length !== 10) return;
+    if (selectedBank) return;
+    if (matchedBanksLoading) return;
+
+    if (matchedBanks && matchedBanks.length > 0) {
+      setBankOpen(true);
+      const t = setTimeout(() => {
+        tryAutoDetectBank(accountNumber, matchedBanks);
+      }, 200);
+      return () => clearTimeout(t);
+    }
+  }, [accountNumber, matchedBanks, matchedBanksLoading, selectedBank, tab]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Reset to first step whenever modal opens
   useEffect(()=>{
     if (isOpen) {
@@ -136,6 +212,8 @@ const AddMoneyModal: React.FC<AddMoneyModalProps> = ({ isOpen, onClose }) => {
       setAccountName("");
       setSessionId("");
       setBankOpen(false);
+      setMatchedBanks([]);
+      setMatchedBanksError("");
     }
   }, [isOpen]);
 
@@ -421,7 +499,7 @@ const AddMoneyModal: React.FC<AddMoneyModalProps> = ({ isOpen, onClose }) => {
                     {bankOpen && (
                       <div className="absolute top-full my-2.5 px-1 py-2 overflow-y-auto h-fit max-h-60 w-full bg-bg-600 border dark:bg-bg-1100 border-gray-300 dark:border-border-600 rounded-md shadow-md z-10 no-scrollbar">
                         <SearchableDropdown
-                          items={banks}
+                          items={bankOptions}
                           searchKey="name"
                           displayFormat={(bank) => (
                             <div className="flex flex-col text-white/90">
@@ -429,9 +507,15 @@ const AddMoneyModal: React.FC<AddMoneyModalProps> = ({ isOpen, onClose }) => {
                             </div>
                           )}
                           onSelect={(bank: any) => {
-                            setSelectedBank({ name: bank.name, bankCode: String(bank.bankCode) });
+                            const bankCode = String(bank.bankCode ?? bank.code ?? "");
+                            setSelectedBank({ name: bank.name, bankCode });
                             setIsBankAutoDetected(false);
                             setBankOpen(false);
+
+                            // If we already have a full account number, verify immediately with chosen bank
+                            if (accountNumber && accountNumber.length === 10 && bankCode) {
+                              verifyAccount({ accountNumber, bankCode });
+                            }
                           }}
                           placeholder="Search bank..."
                           isOpen={bankOpen}
@@ -453,20 +537,33 @@ const AddMoneyModal: React.FC<AddMoneyModalProps> = ({ isOpen, onClose }) => {
                           setAccountNumber(v);
                           setAccountName("");
                           setSessionId("");
+                          setMatchedBanks([]);
+                          setMatchedBanksError("");
                           if (isBankAutoDetected) {
                             setSelectedBank(null);
                           }
                           if (selectedBank && v.length === 10) {
                             verifyAccount({ accountNumber: v, bankCode: selectedBank.bankCode });
                           } else if (!selectedBank && v.length === 10) {
-                            // Auto-detect bank + verify
-                            tryAutoDetectBank(v);
+                            // Fetch matched banks first, then auto-detect from shortlist
+                            getMatchedBanks(v);
                           }
                         }}
                       />
                     </div>
                     {isDetectingBank ? (
                       <div className="text-xs text-white/60">Detecting bank...</div>
+                    ) : null}
+                    {!selectedBank && accountNumber.length === 10 ? (
+                      <div className="text-xs text-white/60">
+                        {matchedBanksLoading
+                          ? "Finding matched banks..."
+                          : matchedBanksError
+                            ? "Couldn’t match banks automatically. Please select the bank manually."
+                            : matchedBanks.length > 0
+                              ? `Matched banks found: ${matchedBanks.length}. Select one.`
+                              : "No matched banks found. Please select the bank manually."}
+                      </div>
                     ) : null}
                     {accountName ? (
                       <div className="w-full rounded-lg border border-white/15 bg-white/5 px-4 py-2 text-sm text-white/90">

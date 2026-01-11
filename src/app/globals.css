@@ -144,6 +144,36 @@ html:not(.dark) select:-webkit-autofill:active {
   -webkit-text-fill-color: #141414 !important;
 }
 
+/* Auth/Onboarding: force stable light mode + readable input text (typing/paste/autofill) */
+html[data-auth-onboarding="true"] input,
+html[data-auth-onboarding="true"] textarea,
+html[data-auth-onboarding="true"] select {
+  color: #141414 !important;
+  -webkit-text-fill-color: #141414 !important;
+  caret-color: #141414 !important;
+}
+
+html[data-auth-onboarding="true"] input::placeholder,
+html[data-auth-onboarding="true"] textarea::placeholder {
+  color: #797B86 !important;
+  opacity: 1 !important;
+}
+
+html[data-auth-onboarding="true"] input:-webkit-autofill,
+html[data-auth-onboarding="true"] input:-webkit-autofill:hover,
+html[data-auth-onboarding="true"] input:-webkit-autofill:focus,
+html[data-auth-onboarding="true"] input:-webkit-autofill:active,
+html[data-auth-onboarding="true"] textarea:-webkit-autofill,
+html[data-auth-onboarding="true"] textarea:-webkit-autofill:hover,
+html[data-auth-onboarding="true"] textarea:-webkit-autofill:focus,
+html[data-auth-onboarding="true"] textarea:-webkit-autofill:active,
+html[data-auth-onboarding="true"] select:-webkit-autofill,
+html[data-auth-onboarding="true"] select:-webkit-autofill:hover,
+html[data-auth-onboarding="true"] select:-webkit-autofill:focus,
+html[data-auth-onboarding="true"] select:-webkit-autofill:active {
+  -webkit-text-fill-color: #141414 !important;
+}
+
 @keyframes heartbeat {
   0% {
     transform: scale(0.95);

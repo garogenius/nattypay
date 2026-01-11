@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   bvnFaceVerificationRequest,
   getAllBanks,
+  getMatchedBanksRequest,
   generateQRCodeRequest,
   decodeQRCodeRequest,
   getTransactions,
@@ -101,6 +102,17 @@ export const useGetAllBanks = () => {
   const banks: BankProps[] = data?.data?.data;
 
   return { banks, isPending, isError };
+};
+
+export const useGetMatchedBanks = (
+  onError: (error: any) => void,
+  onSuccess: (data: any) => void
+) => {
+  return useMutation({
+    mutationFn: getMatchedBanksRequest,
+    onError,
+    onSuccess,
+  });
 };
 
 export const useGetTransferFee = ({

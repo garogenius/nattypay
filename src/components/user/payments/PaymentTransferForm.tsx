@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { useVerifyAccount, useInitiateTransfer, useGetAllBanks } from "@/api/wallet/wallet.queries";
+import { useVerifyAccount, useInitiateTransfer, useGetAllBanks, useGetMatchedBanks } from "@/api/wallet/wallet.queries";
 import { useGetBanksByCurrency, useGetCurrencyAccountByCurrency } from "@/api/currency/currency.queries";
 import { useQueryClient } from "@tanstack/react-query";
 import ErrorToast from "@/components/toast/ErrorToast";
@@ -72,6 +72,8 @@ const PaymentTransferForm: React.FC<PaymentTransferFormProps> = ({ type, account
   const [bankName, setBankName] = useState<string>("");
   const [isBankAutoDetected, setIsBankAutoDetected] = useState(false);
   const [isDetectingBank, setIsDetectingBank] = useState(false);
+  const [matchedBanks, setMatchedBanks] = useState<Array<{ bankCode: string; name: string }>>([]);
+  const [matchedBanksError, setMatchedBanksError] = useState<string>("");
   const detectReqIdRef = useRef(0);
   const [openBanks, setOpenBanks] = useState(false);
   const bankDropdownRef = useRef<HTMLDivElement | null>(null);
@@ -177,32 +179,77 @@ const PaymentTransferForm: React.FC<PaymentTransferFormProps> = ({ type, account
 
   const { mutate: verifyAccount, isPending: verifyLoading } = useVerifyAccount(onVerifyAccountError, onVerifyAccountSuccess);
 
+  const onMatchedBanksError = (error: any) => {
+    // Don't toast on every keystroke; keep it quiet and allow manual selection / fallback detection.
+    const errorMessage =
+      error?.response?.data?.message ||
+      error?.message ||
+      "Unable to fetch matched banks";
+    setMatchedBanksError(Array.isArray(errorMessage) ? errorMessage.join(" ") : String(errorMessage));
+    setMatchedBanks([]);
+  };
+
+  const onMatchedBanksSuccess = (data: any) => {
+    const raw = data?.data?.data ?? data?.data ?? data;
+    const list = Array.isArray(raw) ? raw : Array.isArray(raw?.banks) ? raw.banks : [];
+
+    const normalized = (list || [])
+      .map((b: any) => ({
+        bankCode: String(b?.bankCode ?? b?.code ?? b?.bank_code ?? ""),
+        name: String(b?.name ?? b?.bankName ?? b?.bank_name ?? ""),
+      }))
+      .filter((b: any) => !!b.bankCode && !!b.name);
+
+    // De-dupe by bankCode
+    const seen = new Set<string>();
+    const deduped = normalized.filter((b: any) => {
+      if (seen.has(b.bankCode)) return false;
+      seen.add(b.bankCode);
+      return true;
+    });
+
+    setMatchedBanksError("");
+    setMatchedBanks(deduped);
+  };
+
+  const { mutate: getMatchedBanks, isPending: matchedBanksLoading } = useGetMatchedBanks(
+    onMatchedBanksError,
+    onMatchedBanksSuccess
+  );
+
   const handleAccountChange = (val: string) => {
     const v = val.replace(/\D/g, "");
     setAccountNumber(v);
     // Clear previous verification when value changes
     setAccountName("");
     setSessionId("");
+    setMatchedBanks([]);
+    setMatchedBanksError("");
     if (type === "bank" && isBankAutoDetected) {
       setBankCode("");
       setBankName("");
     }
   };
 
-  const tryAutoDetectBank = async (acctNumber: string) => {
+  const tryAutoDetectBank = async (
+    acctNumber: string,
+    candidateBanks?: Array<{ bankCode: string; bankName: string }>
+  ) => {
     const reqId = ++detectReqIdRef.current;
     setIsDetectingBank(true);
 
     try {
-      // Some APIs return banks as { code, name } and others as { bankCode, name }.
-      const normalizedBanks = (banks || [])
-        .map((b: any) => ({
-          bankCode: String(b?.code ?? b?.bankCode ?? b?.bank_code ?? ""),
-          bankName: String(b?.name ?? b?.bankName ?? b?.bank_name ?? ""),
-        }))
-        .filter((b: any) => !!b.bankCode);
+      const sourceBanks =
+        candidateBanks && candidateBanks.length > 0
+          ? candidateBanks
+          : (banks || [])
+              .map((b: any) => ({
+                bankCode: String(b?.code ?? b?.bankCode ?? b?.bank_code ?? ""),
+                bankName: String(b?.name ?? b?.bankName ?? b?.bank_name ?? ""),
+              }))
+              .filter((b: any) => !!b.bankCode);
 
-      for (const b of normalizedBanks) {
+      for (const b of sourceBanks) {
         try {
           const res = await verifyAccountRequest({
             accountNumber: acctNumber,
@@ -249,6 +296,22 @@ const PaymentTransferForm: React.FC<PaymentTransferFormProps> = ({ type, account
     }
   };
 
+  // Fetch matched banks when account number is complete (NGN bank transfers only)
+  useEffect(() => {
+    if (type !== "bank") return;
+    if (selectedCurrency !== "NGN") return;
+
+    if (accountNumber && accountNumber.length === 10) {
+      const t = setTimeout(() => {
+        getMatchedBanks(accountNumber);
+      }, 250);
+      return () => clearTimeout(t);
+    }
+
+    setMatchedBanks([]);
+    setMatchedBanksError("");
+  }, [accountNumber, getMatchedBanks, selectedCurrency, type]);
+
   useEffect(() => {
     if (accountNumber && accountNumber.length === 10) {
       if (type === "nattypay") {
@@ -260,9 +323,16 @@ const PaymentTransferForm: React.FC<PaymentTransferFormProps> = ({ type, account
           // Avoid double-verification if we already have verified values.
           if (!accountName || !sessionId) verifyAccount({ accountNumber, bankCode });
         } else {
+          // Wait for matched-banks lookup (NGN) so we can try a shortlist first.
+          if (selectedCurrency === "NGN" && matchedBanksLoading) return;
+
           // Debounce a bit to avoid firing while user is still typing/pasting
           const t = setTimeout(() => {
-            tryAutoDetectBank(accountNumber);
+            const candidates =
+              selectedCurrency === "NGN" && matchedBanks.length > 0
+                ? matchedBanks.map((b) => ({ bankCode: b.bankCode, bankName: b.name }))
+                : undefined;
+            tryAutoDetectBank(accountNumber, candidates);
           }, 350);
           return () => clearTimeout(t);
         }
@@ -272,7 +342,33 @@ const PaymentTransferForm: React.FC<PaymentTransferFormProps> = ({ type, account
       detectReqIdRef.current += 1;
       setIsDetectingBank(false);
     }
-  }, [accountNumber, bankCode, type, verifyAccount, accountName, sessionId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [accountNumber, bankCode, type, verifyAccount, accountName, sessionId, matchedBanks, matchedBanksLoading, selectedCurrency]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const bankOptions = useMemo(() => {
+    const normalizedAllBanks = (banks || [])
+      .map((b: any) => {
+        const code = String(b?.code ?? b?.bankCode ?? b?.bank_code ?? "");
+        const name = String(b?.name ?? b?.bankName ?? b?.bank_name ?? "");
+        return {
+          ...b,
+          bankCode: code,
+          code,
+          name,
+        };
+      })
+      .filter((b: any) => !!b.bankCode && !!b.name);
+
+    if (!matchedBanks || matchedBanks.length === 0) return normalizedAllBanks;
+
+    const matchedSet = new Set(matchedBanks.map((b) => b.bankCode));
+    const matchedAsBanks = matchedBanks.map((b) => ({
+      bankCode: b.bankCode,
+      code: b.bankCode,
+      name: b.name,
+    }));
+    const rest = normalizedAllBanks.filter((b: any) => !matchedSet.has(b.bankCode));
+    return [...matchedAsBanks, ...rest];
+  }, [banks, matchedBanks]);
 
   const canProceed = useMemo(() => {
     // Parse amount, handling commas (formatNumberWithCommas adds commas)
@@ -422,9 +518,9 @@ const PaymentTransferForm: React.FC<PaymentTransferFormProps> = ({ type, account
                       <div className="flex items-center justify-center py-4">
                         <SpinnerLoader width={20} height={20} color="#D4B139" />
                       </div>
-                    ) : banks && banks.length > 0 ? (
+                    ) : bankOptions && bankOptions.length > 0 ? (
                       <SearchableDropdown
-                        items={banks}
+                        items={bankOptions}
                         searchKey="name"
                         displayFormat={(bank:any) => (
                           <div className="flex flex-col text-text-700 dark:text-text-1000">
@@ -473,6 +569,17 @@ const PaymentTransferForm: React.FC<PaymentTransferFormProps> = ({ type, account
                   <FiCheckCircle className="text-emerald-400" />
                   <span className="truncate">{accountName}</span>
                 </div>
+              )}
+              {type === "bank" && selectedCurrency === "NGN" && accountNumber.length === 10 && !bankCode && (
+                <p className="text-white/50 text-xs mt-1">
+                  {matchedBanksLoading
+                    ? "Finding matched banks..."
+                    : matchedBanksError
+                      ? "Couldn’t match banks automatically. You can still select the bank manually."
+                      : matchedBanks.length > 0
+                        ? `Matched banks found: ${matchedBanks.length}. Select one above.`
+                        : "No matched banks found. Please select the bank manually."}
+                </p>
               )}
             </div>
           </>
