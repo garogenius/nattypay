@@ -178,10 +178,10 @@ const MultiCurrencyContent: React.FC = () => {
             <>
               <div 
                 ref={scrollContainerRef}
-                className={`overflow-x-auto scrollbar-hide snap-x snap-mandatory ${hasSingleAccount ? "px-4" : "-mx-4 px-4"}`}
+                className="overflow-x-auto scrollbar-hide px-4 snap-x snap-mandatory"
                 style={{ WebkitOverflowScrolling: 'touch' }}
               >
-                <div className={`flex gap-3 ${hasSingleAccount ? "w-full justify-center" : "min-w-max"}`}>
+                <div className="flex gap-3 w-full">
                   {currencyAccounts.map((account: any) => {
                     const currency = String(account.currency).toUpperCase() as "USD" | "EUR" | "GBP";
                     const isActive = selectedCurrency === currency;
@@ -192,11 +192,11 @@ const MultiCurrencyContent: React.FC = () => {
                       <div
                         key={account.id || account.currency}
                         onClick={() => setSelectedCurrency(currency)}
-                        className={`rounded-xl px-4 py-5 2xs:py-6 flex flex-col gap-3 sm:gap-4 cursor-pointer transition-all flex-shrink-0 snap-start ${
+                        className={`rounded-xl px-4 py-5 2xs:py-6 flex flex-col gap-3 sm:gap-4 cursor-pointer transition-all flex-shrink-0 snap-center w-full min-w-full max-w-[500px] mx-auto ${
                           isActive 
                             ? "bg-[#D4B139] text-black" 
                             : "bg-bg-600 dark:bg-bg-1100"
-                        } ${hasSingleAccount ? "w-full max-w-[440px]" : "w-[calc(100vw-2rem)]"}`}
+                        }`}
                       >
                         {/* Header: currency icon + account label */}
                         <div className={`flex items-center gap-2 ${isActive ? "text-black" : "text-text-200 dark:text-text-800"}`}>
