@@ -339,6 +339,7 @@ const schema = yup.object().shape({
   username: yup.string().required("Username is required"),
   fullname: yup.string().required("Full Name is required"),
   businessName: yup.string().optional(),
+  companyRegistrationNumber: yup.string().optional(),
   phoneNumber: yup.string().optional(),
   dateOfBirth: yup.string().required("Date of birth is required"),
   referralCode: yup.string().optional(),
@@ -622,6 +623,7 @@ const ProfileContent = () => {
       username: user?.username,
       fullname: user?.fullname,
       businessName: user?.businessName || "",
+      companyRegistrationNumber: (user as any)?.companyRegistrationNumber || "",
       phoneNumber: user?.phoneNumber || "",
       dateOfBirth: user?.dateOfBirth || "",
       referralCode: user?.referralCode || "",
@@ -705,6 +707,7 @@ const ProfileContent = () => {
         username: user?.username || "",
         fullname: user?.fullname || "",
         businessName: user?.businessName || "",
+        companyRegistrationNumber: (user as any)?.companyRegistrationNumber || "",
         phoneNumber: user?.phoneNumber || "",
         dateOfBirth: user?.dateOfBirth || "",
         referralCode: user?.referralCode || "",
@@ -1395,6 +1398,24 @@ const ProfileContent = () => {
                       {errors?.fullname?.message}
                     </p>
                   ) : null}
+                </div>
+
+                <div className="flex flex-col justify-center items-center gap-1 w-full text-black dark:text-white">
+                  <label
+                    className="w-full text-sm font-medium  text-text-200 dark:text-text-800 mb-0 flex items-start "
+                    htmlFor={"companyRegistrationNumber"}
+                  >
+                    Company Registration Number
+                  </label>
+                  <div className="relative w-full flex gap-2 justify-center items-center bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-4 px-3">
+                    <input
+                      className="w-full bg-transparent p-0 border-none outline-none text-base text-text-200 dark:text-white placeholder:text-text-200 dark:placeholder:text-text-1000 placeholder:text-sm"
+                      placeholder="Registration number"
+                      type="text"
+                      {...register("companyRegistrationNumber")}
+                      disabled
+                    />
+                  </div>
                 </div>
               </>
             ) : (

@@ -497,8 +497,45 @@ const PaymentTransferForm: React.FC<PaymentTransferFormProps> = ({ type, account
 
         {type === "bank" && (
           <>
-            {/* Bank dropdown FIRST */}
-            <div className="flex flex-col gap-1" ref={bankDropdownRef}>
+            {/* Account Number FIRST */}
+            <div className="flex flex-col gap-1">
+              <label className="text-white/80 text-sm">Account Number</label>
+              <div className="relative w-full">
+                <input
+                  className="w-full bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-3 px-3 pr-10 text-white placeholder:text-white/40 outline-none"
+                  placeholder="Enter Account Number"
+                  value={accountNumber}
+                  inputMode="numeric"
+                  maxLength={10}
+                  onChange={(e) => handleAccountChange(e.target.value)}
+                />
+                {(verifyLoading || isDetectingBank || matchedBanksLoading) && (
+                  <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                    <SpinnerLoader width={18} height={18} color="#D4B139" />
+                  </div>
+                )}
+              </div>
+              {accountName && (
+                <div className="w-full rounded-md bg-[#0E2C25] text-emerald-200 text-sm px-3 py-2 flex items-center gap-2 mt-2">
+                  <FiCheckCircle className="text-emerald-400" />
+                  <span className="truncate">{accountName}</span>
+                </div>
+              )}
+              {type === "bank" && selectedCurrency === "NGN" && accountNumber.length === 10 && !bankCode && (
+                <p className="text-white/50 text-xs mt-1">
+                  {matchedBanksLoading
+                    ? "Finding matched banks..."
+                    : matchedBanksError
+                      ? "Couldn’t match banks automatically. You can still select the bank manually."
+                      : matchedBanks.length > 0
+                        ? `Matched banks found: ${matchedBanks.length}. Select one below.`
+                        : "No matched banks found. Please select the bank manually."}
+                </p>
+              )}
+            </div>
+
+            {/* Bank dropdown AFTER account number */}
+            <div className="flex flex-col gap-1 mt-2" ref={bankDropdownRef}>
               <label className="text-white/80 text-sm">Recipient Bank (auto-detect)</label>
               <div className="relative">
                 <button
@@ -544,43 +581,6 @@ const PaymentTransferForm: React.FC<PaymentTransferFormProps> = ({ type, account
                   </div>
                 </div>
               </div>
-            </div>
-
-            {/* Account Number AFTER bank selection */}
-            <div className="flex flex-col gap-1 mt-2">
-              <label className="text-white/80 text-sm">Account Number</label>
-              <div className="relative w-full">
-                <input
-                  className="w-full bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-3 px-3 pr-10 text-white placeholder:text-white/40 outline-none"
-                  placeholder="Enter Account Number"
-                  value={accountNumber}
-                  inputMode="numeric"
-                  maxLength={10}
-                  onChange={(e) => handleAccountChange(e.target.value)}
-                />
-                {verifyLoading && (
-                  <div className="absolute right-2 top-1/2 -translate-y-1/2">
-                    <SpinnerLoader width={18} height={18} color="#D4B139" />
-                  </div>
-                )}
-              </div>
-              {accountName && (
-                <div className="w-full rounded-md bg-[#0E2C25] text-emerald-200 text-sm px-3 py-2 flex items-center gap-2 mt-2">
-                  <FiCheckCircle className="text-emerald-400" />
-                  <span className="truncate">{accountName}</span>
-                </div>
-              )}
-              {type === "bank" && selectedCurrency === "NGN" && accountNumber.length === 10 && !bankCode && (
-                <p className="text-white/50 text-xs mt-1">
-                  {matchedBanksLoading
-                    ? "Finding matched banks..."
-                    : matchedBanksError
-                      ? "Couldn’t match banks automatically. You can still select the bank manually."
-                      : matchedBanks.length > 0
-                        ? `Matched banks found: ${matchedBanks.length}. Select one above.`
-                        : "No matched banks found. Please select the bank manually."}
-                </p>
-              )}
             </div>
           </>
         )}
