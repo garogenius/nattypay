@@ -338,7 +338,6 @@ const schema = yup.object().shape({
     .required("Email is required"),
   username: yup.string().required("Username is required"),
   fullname: yup.string().required("Full Name is required"),
-  businessName: yup.string().optional(),
   companyRegistrationNumber: yup.string().optional(),
   phoneNumber: yup.string().optional(),
   dateOfBirth: yup.string().required("Date of birth is required"),
@@ -622,7 +621,6 @@ const ProfileContent = () => {
       email: user?.email,
       username: user?.username,
       fullname: user?.fullname,
-      businessName: user?.businessName || "",
       companyRegistrationNumber: (user as any)?.companyRegistrationNumber || "",
       phoneNumber: user?.phoneNumber || "",
       dateOfBirth: user?.dateOfBirth || "",
@@ -706,7 +704,6 @@ const ProfileContent = () => {
         email: user?.email || "",
         username: user?.username || "",
         fullname: user?.fullname || "",
-        businessName: user?.businessName || "",
         companyRegistrationNumber: (user as any)?.companyRegistrationNumber || "",
         phoneNumber: user?.phoneNumber || "",
         dateOfBirth: user?.dateOfBirth || "",
@@ -1126,11 +1123,6 @@ const ProfileContent = () => {
     formData.append("fullName", data.fullname);
     formData.append("phoneNumber", data.phoneNumber || "");
 
-    // Add business name if it's a business account
-    if (isBusinessAccount && data.businessName) {
-      formData.append("businessName", data.businessName);
-    }
-
     // Add address fields
     if (data.address) {
       formData.append("address", data.address);
@@ -1348,32 +1340,6 @@ const ProfileContent = () => {
             <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
             {isBusinessAccount ? (
               <>
-                <div className="flex flex-col justify-center items-center gap-1 w-full text-black dark:text-white">
-                  <label
-                    className="w-full text-sm font-medium  text-text-200 dark:text-text-800 mb-0 flex items-start "
-                    htmlFor={"businessName"}
-                  >
-                    Business Name{" "}
-                  </label>
-                  <div className="relative w-full flex gap-2 justify-center items-center bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-4 px-3">
-                    <input
-                      className="w-full bg-transparent p-0 border-none outline-none text-base text-text-200 dark:text-white placeholder:text-text-200 dark:placeholder:text-text-1000 placeholder:text-sm"
-                      placeholder="Business name"
-                      type="text"
-                      {...register("businessName")}
-                    />
-                    <button type="button" className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 grid place-items-center rounded-md bg-[#D4B139]/15 text-[#D4B139] border border-[#D4B139]/30">
-                      <FiEdit2 className="text-xs" />
-                    </button>
-                  </div>
-
-                  {errors?.businessName?.message ? (
-                    <p className="flex self-start text-red-500 font-semibold mt-0.5 text-sm">
-                      {errors?.businessName?.message}
-                    </p>
-                  ) : null}
-                </div>
-
                 <div className="flex flex-col justify-center items-center gap-1 w-full text-black dark:text-white">
                   <label
                     className="w-full text-sm font-medium  text-text-200 dark:text-text-800 mb-0 flex items-start "
