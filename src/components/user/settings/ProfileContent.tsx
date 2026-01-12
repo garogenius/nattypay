@@ -434,6 +434,10 @@ const ProfileContent = () => {
   const [passportCountry, setPassportCountry] = useState<string>((user as any)?.passportCountry || "");
   const [passportIssueDate, setPassportIssueDate] = useState<string>((user as any)?.passportIssueDate || "");
   const [passportExpiryDate, setPassportExpiryDate] = useState<string>((user as any)?.passportExpiryDate || "");
+  const [bankStatementIssueDate, setBankStatementIssueDate] = useState<string>((user as any)?.bankStatementIssueDate || "");
+  const [bankStatementExpiryDate, setBankStatementExpiryDate] = useState<string>((user as any)?.bankStatementExpiryDate || "");
+  const [utilityBillIssueDate, setUtilityBillIssueDate] = useState<string>((user as any)?.utilityBillIssueDate || "");
+  const [utilityBillExpiryDate, setUtilityBillExpiryDate] = useState<string>((user as any)?.utilityBillExpiryDate || "");
   const navigate = useNavigate();
   const currentPhone = user?.phoneNumber || "";
   
@@ -754,6 +758,10 @@ const ProfileContent = () => {
       setPassportCountry((user as any)?.passportCountry || "");
       setPassportIssueDate((user as any)?.passportIssueDate || "");
       setPassportExpiryDate((user as any)?.passportExpiryDate || "");
+      setBankStatementIssueDate((user as any)?.bankStatementIssueDate || "");
+      setBankStatementExpiryDate((user as any)?.bankStatementExpiryDate || "");
+      setUtilityBillIssueDate((user as any)?.utilityBillIssueDate || "");
+      setUtilityBillExpiryDate((user as any)?.utilityBillExpiryDate || "");
     }
   }, [user, reset]);
 
@@ -1025,8 +1033,8 @@ const ProfileContent = () => {
 
     // Get dates from user data (bank statement fields not in form schema)
     const currentFormData = watch();
-    let issueDate = normalizeDate((user as any)?.bankStatementIssueDate || "");
-    let expiryDate = normalizeDate((user as any)?.bankStatementExpiryDate || "");
+    let issueDate = normalizeDate(bankStatementIssueDate || "");
+    let expiryDate = normalizeDate(bankStatementExpiryDate || "");
 
     if (!issueDate || !expiryDate) {
       ErrorToast({
@@ -1076,8 +1084,8 @@ const ProfileContent = () => {
 
     // Get dates from form or user data
     const currentFormData = watch();
-    let issueDate = normalizeDate((user as any)?.utilityBillIssueDate || "");
-    let expiryDate = normalizeDate((user as any)?.utilityBillExpiryDate || "");
+    let issueDate = normalizeDate(utilityBillIssueDate || "");
+    let expiryDate = normalizeDate(utilityBillExpiryDate || "");
 
     if (!issueDate || !expiryDate) {
       ErrorToast({
@@ -2329,9 +2337,9 @@ const ProfileContent = () => {
                           onClick={() => setShowBankStatementIssueDatePicker(!showBankStatementIssueDatePicker)}
                           className="cursor-pointer w-full flex gap-2 justify-center items-center bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-4 px-3"
                         >
-                          {(user as any)?.bankStatementIssueDate ? (
+                          {bankStatementIssueDate ? (
                             <div className="w-full bg-transparent p-0 border-none outline-none text-base text-text-200 dark:text-white">
-                              {(user as any)?.bankStatementIssueDate}
+                              {bankStatementIssueDate}
                             </div>
                           ) : (
                             <div className="w-full bg-transparent p-0 border-none outline-none text-base text-text-200 dark:text-white/50">
@@ -2343,13 +2351,13 @@ const ProfileContent = () => {
                       {showBankStatementIssueDatePicker && (
                         <div ref={bankStatementIssueDatePickerRef} className="absolute z-10 mt-1">
                           <DatePicker
-                            selected={(user as any)?.bankStatementIssueDate ? new Date((user as any)?.bankStatementIssueDate) : null}
+                            selected={bankStatementIssueDate ? new Date(bankStatementIssueDate) : null}
                             onChange={(date: Date | null) => {
                               if (date) {
                                 const year = date.getFullYear();
                                 const month = String(date.getMonth() + 1).padStart(2, "0");
                                 const day = String(date.getDate()).padStart(2, "0");
-                                // Bank statement fields not in form schema - handled via separate API
+                                setBankStatementIssueDate(`${year}-${month}-${day}`);
                                 setShowBankStatementIssueDatePicker(false);
                               }
                             }}
@@ -2371,9 +2379,9 @@ const ProfileContent = () => {
                           onClick={() => setShowBankStatementExpiryDatePicker(!showBankStatementExpiryDatePicker)}
                           className="cursor-pointer w-full flex gap-2 justify-center items-center bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-4 px-3"
                         >
-                          {(user as any)?.bankStatementExpiryDate ? (
+                          {bankStatementExpiryDate ? (
                             <div className="w-full bg-transparent p-0 border-none outline-none text-base text-text-200 dark:text-white">
-                              {(user as any)?.bankStatementExpiryDate}
+                              {bankStatementExpiryDate}
                             </div>
                           ) : (
                             <div className="w-full bg-transparent p-0 border-none outline-none text-base text-text-200 dark:text-white/50">
@@ -2385,13 +2393,13 @@ const ProfileContent = () => {
                       {showBankStatementExpiryDatePicker && (
                         <div ref={bankStatementExpiryDatePickerRef} className="absolute z-10 mt-1">
                           <DatePicker
-                            selected={(user as any)?.bankStatementExpiryDate ? new Date((user as any)?.bankStatementExpiryDate) : null}
+                            selected={bankStatementExpiryDate ? new Date(bankStatementExpiryDate) : null}
                             onChange={(date: Date | null) => {
                               if (date) {
                                 const year = date.getFullYear();
                                 const month = String(date.getMonth() + 1).padStart(2, "0");
                                 const day = String(date.getDate()).padStart(2, "0");
-                                // Bank statement fields not in form schema - handled via separate API
+                                setBankStatementExpiryDate(`${year}-${month}-${day}`);
                                 setShowBankStatementExpiryDatePicker(false);
                               }
                             }}
@@ -2518,9 +2526,9 @@ const ProfileContent = () => {
                           onClick={() => setShowUtilityBillIssueDatePicker(!showUtilityBillIssueDatePicker)}
                           className="cursor-pointer w-full flex gap-2 justify-center items-center bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-4 px-3"
                         >
-                          {(user as any)?.utilityBillIssueDate ? (
+                          {utilityBillIssueDate ? (
                             <div className="w-full bg-transparent p-0 border-none outline-none text-base text-text-200 dark:text-white">
-                              {(user as any)?.utilityBillIssueDate}
+                              {utilityBillIssueDate}
                             </div>
                           ) : (
                             <div className="w-full bg-transparent p-0 border-none outline-none text-base text-text-200 dark:text-white/50">
@@ -2532,13 +2540,13 @@ const ProfileContent = () => {
                       {showUtilityBillIssueDatePicker && (
                         <div ref={utilityBillIssueDatePickerRef} className="absolute z-10 mt-1">
                           <DatePicker
-                            selected={(user as any)?.utilityBillIssueDate ? new Date((user as any)?.utilityBillIssueDate) : null}
+                            selected={utilityBillIssueDate ? new Date(utilityBillIssueDate) : null}
                             onChange={(date: Date | null) => {
                               if (date) {
                                 const year = date.getFullYear();
                                 const month = String(date.getMonth() + 1).padStart(2, "0");
                                 const day = String(date.getDate()).padStart(2, "0");
-                                // Utility bill fields not in form schema - handled via separate API
+                                setUtilityBillIssueDate(`${year}-${month}-${day}`);
                                 setShowUtilityBillIssueDatePicker(false);
                               }
                             }}
@@ -2560,9 +2568,9 @@ const ProfileContent = () => {
                           onClick={() => setShowUtilityBillExpiryDatePicker(!showUtilityBillExpiryDatePicker)}
                           className="cursor-pointer w-full flex gap-2 justify-center items-center bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-4 px-3"
                         >
-                          {(user as any)?.utilityBillExpiryDate ? (
+                          {utilityBillExpiryDate ? (
                             <div className="w-full bg-transparent p-0 border-none outline-none text-base text-text-200 dark:text-white">
-                              {(user as any)?.utilityBillExpiryDate}
+                              {utilityBillExpiryDate}
                             </div>
                           ) : (
                             <div className="w-full bg-transparent p-0 border-none outline-none text-base text-text-200 dark:text-white/50">
@@ -2574,13 +2582,13 @@ const ProfileContent = () => {
                       {showUtilityBillExpiryDatePicker && (
                         <div ref={utilityBillExpiryDatePickerRef} className="absolute z-10 mt-1">
                           <DatePicker
-                            selected={(user as any)?.utilityBillExpiryDate ? new Date((user as any)?.utilityBillExpiryDate) : null}
+                            selected={utilityBillExpiryDate ? new Date(utilityBillExpiryDate) : null}
                             onChange={(date: Date | null) => {
                               if (date) {
                                 const year = date.getFullYear();
                                 const month = String(date.getMonth() + 1).padStart(2, "0");
                                 const day = String(date.getDate()).padStart(2, "0");
-                                // Utility bill fields not in form schema - handled via separate API
+                                setUtilityBillExpiryDate(`${year}-${month}-${day}`);
                                 setShowUtilityBillExpiryDatePicker(false);
                               }
                             }}
