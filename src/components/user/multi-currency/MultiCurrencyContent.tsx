@@ -264,25 +264,6 @@ const MultiCurrencyContent: React.FC = () => {
                 </div>
               </div>
               
-              {/* Navigation dots for switching between accounts */}
-              {currencyAccounts.length > 1 && (
-                <div className="flex items-center justify-center gap-2 mt-4">
-                  {currencyAccounts.map((account: any) => {
-                    const accCurrency = String(account.currency).toUpperCase() as "USD" | "EUR" | "GBP";
-                    const isDotActive = selectedCurrency === accCurrency;
-                    return (
-                      <button
-                        key={account.id || account.currency}
-                        onClick={() => setSelectedCurrency(accCurrency)}
-                        className={`h-2 rounded-full transition-all ${
-                          isDotActive ? "bg-[#D4B139] w-8" : "bg-white/30 w-2"
-                        }`}
-                        aria-label={`Switch to ${accCurrency} account`}
-                      />
-                    );
-                  })}
-                </div>
-              )}
             </>
           ) : (
             // No accounts - show create card
