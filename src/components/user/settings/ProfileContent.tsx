@@ -301,17 +301,31 @@ const PRIMARY_PURPOSE_OPTIONS = [
   { value: "other", label: "Other" },
 ];
 
-// Source of Funds Options
+// Source of Funds Options (must match backend enum)
 const SOURCE_OF_FUNDS_OPTIONS = [
   { value: "salary", label: "Salary" },
-  { value: "business_income", label: "Business Income" },
-  { value: "investment_returns", label: "Investment Returns" },
+  { value: "business", label: "Business" },
+  { value: "investment", label: "Investment" },
   { value: "savings", label: "Savings" },
   { value: "gift", label: "Gift" },
-  { value: "inheritance", label: "Inheritance" },
-  { value: "loan", label: "Loan" },
   { value: "other", label: "Other" },
 ];
+
+// Normalize legacy / unsupported values to backend-accepted ones
+const normalizeSourceOfFunds = (value?: string | null) => {
+  if (!value) return "";
+  switch (value) {
+    case "business_income":
+      return "business";
+    case "investment_returns":
+      return "investment";
+    case "inheritance":
+    case "loan":
+      return "other";
+    default:
+      return value;
+  }
+};
 
 import VerifyWalletPinModal from "@/components/modals/settings/VerifyWalletPinModal";
 import { isFingerprintPaymentAvailable } from "@/services/fingerprintPayment.service";
@@ -416,6 +430,10 @@ const ProfileContent = () => {
   const [openDelete, setOpenDelete] = useState(false);
   const [openVerifyPinForFingerprint, setOpenVerifyPinForFingerprint] = useState(false);
   const [pendingFingerprintEnable, setPendingFingerprintEnable] = useState(false);
+  const [passportNumber, setPassportNumber] = useState<string>((user as any)?.passportNumber || "");
+  const [passportCountry, setPassportCountry] = useState<string>((user as any)?.passportCountry || "");
+  const [passportIssueDate, setPassportIssueDate] = useState<string>((user as any)?.passportIssueDate || "");
+  const [passportExpiryDate, setPassportExpiryDate] = useState<string>((user as any)?.passportExpiryDate || "");
   const navigate = useNavigate();
   const currentPhone = user?.phoneNumber || "";
   
@@ -636,7 +654,7 @@ const ProfileContent = () => {
       employmentStatus: (user as any)?.employmentStatus || (user as any)?.background_information?.employment_status || "",
       occupation: (user as any)?.occupation || (user as any)?.background_information?.occupation || "",
       primaryPurpose: (user as any)?.primaryPurpose || (user as any)?.background_information?.primary_purpose || "",
-      sourceOfFunds: (user as any)?.sourceOfFunds || (user as any)?.background_information?.source_of_funds || "",
+      sourceOfFunds: normalizeSourceOfFunds((user as any)?.sourceOfFunds || (user as any)?.background_information?.source_of_funds),
       expectedMonthlyInflow: (user as any)?.expectedMonthlyInflow || (user as any)?.background_information?.expected_monthly_inflow || 0,
       // Additional fields for Oval API
       name_first: (user as any)?.name_first || "",
@@ -719,7 +737,7 @@ const ProfileContent = () => {
         employmentStatus: (user as any)?.employmentStatus || (user as any)?.background_information?.employment_status || "",
         occupation: (user as any)?.occupation || (user as any)?.background_information?.occupation || "",
         primaryPurpose: (user as any)?.primaryPurpose || (user as any)?.background_information?.primary_purpose || "",
-        sourceOfFunds: (user as any)?.sourceOfFunds || (user as any)?.background_information?.source_of_funds || "",
+        sourceOfFunds: normalizeSourceOfFunds((user as any)?.sourceOfFunds || (user as any)?.background_information?.source_of_funds),
         expectedMonthlyInflow: (user as any)?.expectedMonthlyInflow || (user as any)?.background_information?.expected_monthly_inflow || 0,
         // KYC Fields
         name_first: (user as any)?.name_first || "",
@@ -730,6 +748,12 @@ const ProfileContent = () => {
         id_country: (user as any)?.id_country || "",
         bank_id_number: (user as any)?.bank_id_number || "",
       }, { keepDefaultValues: false });
+
+      // Sync passport fields for KYC tab
+      setPassportNumber((user as any)?.passportNumber || "");
+      setPassportCountry((user as any)?.passportCountry || "");
+      setPassportIssueDate((user as any)?.passportIssueDate || "");
+      setPassportExpiryDate((user as any)?.passportExpiryDate || "");
     }
   }, [user, reset]);
 
@@ -938,10 +962,10 @@ const ProfileContent = () => {
 
     // Get all required fields from user data (passport fields not in form schema)
     const currentFormData = watch();
-    const documentNumber = (user as any)?.passportNumber || "";
-    const documentCountry = (user as any)?.passportCountry || "";
-    let issueDate = normalizeDate((user as any)?.passportIssueDate || "");
-    let expiryDate = normalizeDate((user as any)?.passportExpiryDate || "");
+    const documentNumber = passportNumber || "";
+    const documentCountry = passportCountry || "";
+    let issueDate = normalizeDate(passportIssueDate || "");
+    let expiryDate = normalizeDate(passportExpiryDate || "");
 
     if (!documentNumber || !documentCountry) {
       ErrorToast({
@@ -1147,8 +1171,9 @@ const ProfileContent = () => {
     if (data.primaryPurpose) {
       formData.append("primaryPurpose", data.primaryPurpose);
     }
-    if (data.sourceOfFunds) {
-      formData.append("sourceOfFunds", data.sourceOfFunds);
+    const normalizedSourceOfFunds = normalizeSourceOfFunds(data.sourceOfFunds);
+    if (normalizedSourceOfFunds) {
+      formData.append("sourceOfFunds", normalizedSourceOfFunds);
     }
     if (data.expectedMonthlyInflow) {
       formData.append("expectedMonthlyInflow", data.expectedMonthlyInflow.toString());
@@ -1242,7 +1267,7 @@ const ProfileContent = () => {
             employment_status: data.employmentStatus || "",
             occupation: data.occupation || "",
             primary_purpose: data.primaryPurpose || "",
-            source_of_funds: data.sourceOfFunds || "",
+            source_of_funds: normalizedSourceOfFunds || "",
             expected_monthly_inflow: data.expectedMonthlyInflow || 0,
           },
         }),
@@ -2042,8 +2067,8 @@ const ProfileContent = () => {
                           className="w-full bg-transparent p-0 border-none outline-none text-base text-text-200 dark:text-white placeholder:text-text-200 dark:placeholder:text-text-1000 placeholder:text-sm"
                           placeholder="Enter passport number"
                           type="text"
-                          value={(user as any)?.passportNumber || ""}
-                          readOnly
+                          value={passportNumber}
+                          onChange={(e) => setPassportNumber(e.target.value)}
                         />
                         <button type="button" className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 grid place-items-center rounded-md bg-[#D4B139]/15 text-[#D4B139] border border-[#D4B139]/30">
                           <FiEdit2 className="text-xs" />
@@ -2062,9 +2087,9 @@ const ProfileContent = () => {
                           onClick={() => setPassportCountryDropdownOpen(!passportCountryDropdownOpen)}
                           className="w-full flex gap-2 justify-between items-center bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-4 px-3 text-left"
                         >
-                          <span className={`text-base ${(user as any)?.passportCountry ? "text-text-200 dark:text-white" : "text-text-200 dark:text-text-1000"}`}>
-                            {(user as any)?.passportCountry 
-                              ? COUNTRIES.find(c => c.code === (user as any)?.passportCountry)?.name || (user as any)?.passportCountry
+                          <span className={`text-base ${passportCountry ? "text-text-200 dark:text-white" : "text-text-200 dark:text-text-1000"}`}>
+                            {passportCountry 
+                              ? COUNTRIES.find(c => c.code === passportCountry)?.name || passportCountry
                               : "Select country"}
                           </span>
                           <FiChevronRight className={`text-text-200 dark:text-text-400 transition-transform ${passportCountryDropdownOpen ? "rotate-90" : ""}`} />
@@ -2081,10 +2106,10 @@ const ProfileContent = () => {
                                   </span>
                                 </div>
                               )}
-                               onSelect={(country) => {
-                                 // Passport fields not in form schema - handled via separate API
-                                 setPassportCountryDropdownOpen(false);
-                               }}
+                              onSelect={(country) => {
+                                setPassportCountry(country.code);
+                                setPassportCountryDropdownOpen(false);
+                              }}
                               showSearch={true}
                               placeholder="Search country..."
                               isOpen={passportCountryDropdownOpen}
@@ -2105,9 +2130,9 @@ const ProfileContent = () => {
                           onClick={() => setShowPassportIssueDatePicker(!showPassportIssueDatePicker)}
                           className="cursor-pointer w-full flex gap-2 justify-center items-center bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-4 px-3"
                         >
-                          {(user as any)?.passportIssueDate ? (
+                          {passportIssueDate ? (
                             <div className="w-full bg-transparent p-0 border-none outline-none text-base text-text-200 dark:text-white">
-                              {(user as any)?.passportIssueDate}
+                              {passportIssueDate}
                             </div>
                           ) : (
                             <div className="w-full bg-transparent p-0 border-none outline-none text-base text-text-200 dark:text-white/50">
@@ -2119,13 +2144,13 @@ const ProfileContent = () => {
                       {showPassportIssueDatePicker && (
                         <div ref={passportIssueDatePickerRef} className="absolute z-10 mt-1">
                           <DatePicker
-                            selected={(user as any)?.passportIssueDate ? new Date((user as any)?.passportIssueDate) : null}
+                            selected={passportIssueDate ? new Date(passportIssueDate) : null}
                             onChange={(date: Date | null) => {
                               if (date) {
                                 const year = date.getFullYear();
                                 const month = String(date.getMonth() + 1).padStart(2, "0");
                                 const day = String(date.getDate()).padStart(2, "0");
-                                // Passport fields not in form schema - handled via separate API
+                                setPassportIssueDate(`${year}-${month}-${day}`);
                                 setShowPassportIssueDatePicker(false);
                               }
                             }}
@@ -2147,9 +2172,9 @@ const ProfileContent = () => {
                           onClick={() => setShowPassportExpiryDatePicker(!showPassportExpiryDatePicker)}
                           className="cursor-pointer w-full flex gap-2 justify-center items-center bg-bg-2400 dark:bg-bg-2100 border border-border-600 rounded-lg py-4 px-3"
                         >
-                          {(user as any)?.passportExpiryDate ? (
+                          {passportExpiryDate ? (
                             <div className="w-full bg-transparent p-0 border-none outline-none text-base text-text-200 dark:text-white">
-                              {(user as any)?.passportExpiryDate}
+                              {passportExpiryDate}
                             </div>
                           ) : (
                             <div className="w-full bg-transparent p-0 border-none outline-none text-base text-text-200 dark:text-white/50">
@@ -2161,13 +2186,13 @@ const ProfileContent = () => {
                       {showPassportExpiryDatePicker && (
                         <div ref={passportExpiryDatePickerRef} className="absolute z-10 mt-1">
                           <DatePicker
-                            selected={(user as any)?.passportExpiryDate ? new Date((user as any)?.passportExpiryDate) : null}
+                            selected={passportExpiryDate ? new Date(passportExpiryDate) : null}
                             onChange={(date: Date | null) => {
                               if (date) {
                                 const year = date.getFullYear();
                                 const month = String(date.getMonth() + 1).padStart(2, "0");
                                 const day = String(date.getDate()).padStart(2, "0");
-                                // Passport fields not in form schema - handled via separate API
+                                setPassportExpiryDate(`${year}-${month}-${day}`);
                                 setShowPassportExpiryDatePicker(false);
                               }
                             }}
@@ -2193,7 +2218,7 @@ const ProfileContent = () => {
                       <FiUpload className="text-base" />
                       <span>
                         {(user as any)?.passportDocumentUrl
-                          ? `Update Passport Document (${(user as any)?.passportNumber || "Uploaded"})`
+                          ? `Update Passport Document (${passportNumber || "Uploaded"})`
                           : "Upload Passport Document"}
                       </span>
                     </button>
@@ -2208,10 +2233,10 @@ const ProfileContent = () => {
                     <CustomButton
                       type="button"
                       onClick={async () => {
-                        const documentNumber = (user as any)?.passportNumber || "";
-                        const documentCountry = (user as any)?.passportCountry || "";
-                        let issueDate = normalizeDate((user as any)?.passportIssueDate || "");
-                        let expiryDate = normalizeDate((user as any)?.passportExpiryDate || "");
+                        const documentNumber = passportNumber || "";
+                        const documentCountry = passportCountry || "";
+                        let issueDate = normalizeDate(passportIssueDate || "");
+                        let expiryDate = normalizeDate(passportExpiryDate || "");
 
                         if (!documentNumber || !documentCountry) {
                           ErrorToast({
