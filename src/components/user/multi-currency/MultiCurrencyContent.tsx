@@ -178,10 +178,10 @@ const MultiCurrencyContent: React.FC = () => {
             <>
               <div 
                 ref={scrollContainerRef}
-                className="overflow-x-auto scrollbar-hide -mx-4 px-4 snap-x snap-mandatory"
+                className={`overflow-x-auto scrollbar-hide snap-x snap-mandatory ${hasSingleAccount ? "px-4" : "-mx-4 px-4"}`}
                 style={{ WebkitOverflowScrolling: 'touch' }}
               >
-                <div className={`flex gap-3 ${hasSingleAccount ? "min-w-full justify-center" : "min-w-max"}`}>
+                <div className={`flex gap-3 ${hasSingleAccount ? "w-full justify-center" : "min-w-max"}`}>
                   {currencyAccounts.map((account: any) => {
                     const currency = String(account.currency).toUpperCase() as "USD" | "EUR" | "GBP";
                     const isActive = selectedCurrency === currency;
@@ -196,7 +196,7 @@ const MultiCurrencyContent: React.FC = () => {
                           isActive 
                             ? "bg-[#D4B139] text-black" 
                             : "bg-bg-600 dark:bg-bg-1100"
-                        } ${hasSingleAccount ? "w-full max-w-[440px] mx-auto" : "w-[calc(100vw-2rem)]"}`}
+                        } ${hasSingleAccount ? "w-full max-w-[440px]" : "w-[calc(100vw-2rem)]"}`}
                       >
                         {/* Header: currency icon + account label */}
                         <div className={`flex items-center gap-2 ${isActive ? "text-black" : "text-text-200 dark:text-text-800"}`}>

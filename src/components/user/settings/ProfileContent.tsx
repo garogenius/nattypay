@@ -31,8 +31,7 @@ import PassportUploadModal from "@/components/modals/settings/PassportUploadModa
 import BankStatementUploadModal from "@/components/modals/settings/BankStatementUploadModal";
 import UtilityBillUploadModal from "@/components/modals/settings/UtilityBillUploadModal";
 import SearchableDropdown from "@/components/shared/SearchableDropdown";
-import ChangeTransactionPinModal from "@/components/modals/settings/ChangeTransactionPinModal";
-import ChangePinModal from "@/components/modals/cards/ChangePinModal";
+import dynamic from "next/dynamic";
 import ChangePasswordModal from "@/components/modals/settings/ChangePasswordModal";
 import ChangePasscodeModal from "@/components/modals/settings/ChangePasscodeModal";
 import SetSecurityQuestionsModal from "@/components/modals/settings/SetSecurityQuestionsModal";
@@ -47,6 +46,9 @@ import { useUpdateUser, useCreateOvalPerson, useUploadDocument } from "@/api/use
 import { updateUserRequest } from "@/api/user/user.apis";
 import { CURRENCY } from "@/constants/types";
 import usePaymentSettingsStore from "@/store/paymentSettings.store";
+
+const DynamicForgetPinModal = dynamic(() => import("@/components/modals/settings/ChangeTransactionPinModal"), { ssr: false });
+const DynamicChangePinModal = dynamic(() => import("@/components/modals/cards/ChangePinModal"), { ssr: false });
 
 // Countries list with ISO codes
 const COUNTRIES = [
@@ -2934,8 +2936,12 @@ const ProfileContent = () => {
         />
 
         {/* Security & Privacy Modals */}
-        <ChangeTransactionPinModal isOpen={openForgetPin} onClose={()=> setOpenForgetPin(false)} />
-        <ChangePinModal isOpen={openChangePin} onClose={()=> setOpenChangePin(false)} />
+        {openForgetPin ? (
+          <DynamicForgetPinModal isOpen={openForgetPin} onClose={()=> setOpenForgetPin(false)} />
+        ) : null}
+        {openChangePin ? (
+          <DynamicChangePinModal isOpen={openChangePin} onClose={()=> setOpenChangePin(false)} />
+        ) : null}
         <ChangePasswordModal isOpen={openChangePassword} onClose={()=> setOpenChangePassword(false)} />
         <ChangePasscodeModal isOpen={openChangePasscode} onClose={()=> setOpenChangePasscode(false)} />
         <SetSecurityQuestionsModal 
