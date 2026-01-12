@@ -32,6 +32,7 @@ import BankStatementUploadModal from "@/components/modals/settings/BankStatement
 import UtilityBillUploadModal from "@/components/modals/settings/UtilityBillUploadModal";
 import SearchableDropdown from "@/components/shared/SearchableDropdown";
 import ChangeTransactionPinModal from "@/components/modals/settings/ChangeTransactionPinModal";
+import ChangePinModal from "@/components/modals/cards/ChangePinModal";
 import ChangePasswordModal from "@/components/modals/settings/ChangePasswordModal";
 import ChangePasscodeModal from "@/components/modals/settings/ChangePasscodeModal";
 import SetSecurityQuestionsModal from "@/components/modals/settings/SetSecurityQuestionsModal";
@@ -405,6 +406,7 @@ const ProfileContent = () => {
   const [openUpdateAddress, setOpenUpdateAddress] = useState(false);
   const [addressDisplay, setAddressDisplay] = useState<string>((user as any)?.address || "");
   const [openChangePin, setOpenChangePin] = useState(false);
+  const [openForgetPin, setOpenForgetPin] = useState(false);
   const [openChangePassword, setOpenChangePassword] = useState(false);
   const [openChangePasscode, setOpenChangePasscode] = useState(false);
   const [openSetSecurity, setOpenSetSecurity] = useState(false);
@@ -2685,15 +2687,13 @@ const ProfileContent = () => {
             <div className="w-full bg-bg-600 dark:bg-bg-1100 border border-white/10 rounded-2xl p-4 sm:p-5">
               <p className="text-white font-semibold mb-3">Security</p>
               <div className="divide-y divide-white/10">
-                {[{
-                  icon: <FiKey className="text-[#D4B139]" />, title: "Change Transaction PIN", desc: "Secure your payments by updating your transaction PIN", onClick: () => setOpenChangePin(true)
-                },{
-                  icon: <FiLock className="text-[#D4B139]" />, title: "Change Password", desc: "Protect your account by setting a new, stronger password", onClick: () => setOpenChangePassword(true)
-                },{
-                  icon: <FiLock className="text-[#D4B139]" />, title: "Change Login Passcode", desc: "Update your 6-digit login passcode", onClick: () => setOpenChangePasscode(true)
-                },{
-                  icon: <FiShield className="text-[#D4B139]" />, title: "Set Security Question", desc: "Add an extra layer of protection with a security question", onClick: () => setOpenSetSecurity(true)
-                }].map((it, i)=> (
+                {[
+                  { icon: <FiKey className="text-[#D4B139]" />, title: "Forget Transaction PIN", desc: "Reset your transaction PIN using an OTP", onClick: () => setOpenForgetPin(true) },
+                  { icon: <FiKey className="text-[#D4B139]" />, title: "Change Transaction PIN", desc: "Secure your payments by updating your transaction PIN", onClick: () => setOpenChangePin(true) },
+                  { icon: <FiLock className="text-[#D4B139]" />, title: "Change Password", desc: "Protect your account by setting a new, stronger password", onClick: () => setOpenChangePassword(true) },
+                  { icon: <FiLock className="text-[#D4B139]" />, title: "Change Login Passcode", desc: "Update your 6-digit login passcode", onClick: () => setOpenChangePasscode(true) },
+                  { icon: <FiShield className="text-[#D4B139]" />, title: "Set Security Question", desc: "Add an extra layer of protection with a security question", onClick: () => setOpenSetSecurity(true) }
+                ].map((it, i)=> (
                   <button key={i} onClick={it.onClick} className="w-full flex items-center justify-between gap-3 py-3 text-left">
                     <div className="flex items-start gap-3">
                       <div className="w-8 h-8 rounded-md bg-white/5 grid place-items-center text-white">{it.icon}</div>
@@ -2934,7 +2934,8 @@ const ProfileContent = () => {
         />
 
         {/* Security & Privacy Modals */}
-        <ChangeTransactionPinModal isOpen={openChangePin} onClose={()=> setOpenChangePin(false)} />
+        <ChangeTransactionPinModal isOpen={openForgetPin} onClose={()=> setOpenForgetPin(false)} />
+        <ChangePinModal isOpen={openChangePin} onClose={()=> setOpenChangePin(false)} />
         <ChangePasswordModal isOpen={openChangePassword} onClose={()=> setOpenChangePassword(false)} />
         <ChangePasscodeModal isOpen={openChangePasscode} onClose={()=> setOpenChangePasscode(false)} />
         <SetSecurityQuestionsModal 
